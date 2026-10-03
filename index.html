@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Design mockup of the Boost Rx self-monitoring website. Sample data only; not a live study site.">
+<title>Boost Rx Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: a sticky preview switcher (Sign in / Participant / Admin). Participant = phone-width column with a 5-tab bottom bar.
+   Admin = wide desktop table. Palette: muted teal-blue + sage on warm off-white, every text pair 7:1 or better. */
+:root {
+  --bg: #F4F2EC; --surface: #FFFFFF; --sunk: #EEF3F2;
+  --ink: #1F2A37; --ink-muted: #434E5B;
+  --primary: #185A72; --primary-soft: #DCEBF0;
+  --success: #24573F; --success-soft: #E1EEE6;
+  --warn-ink: #5E3D00; --warn-soft: #F8EDD5;
+  --danger: #9A3324; --danger-soft: #F7E3DF;
+  --line: #7B8794; --hair: #E4E2DB;
+  --shadow: 0 1px 2px rgb(31 42 55 / .06), 0 4px 16px rgb(31 42 55 / .05);
+  --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #AEB8C2;
+    --primary: #86CBDD; --primary-soft: #1F3A46; --success: #9AD6B5; --success-soft: #1C362A;
+    --warn-ink: #F2C97D; --warn-soft: #33291A; --danger: #F4A595; --danger-soft: #3A2320; --line: #6B7785; --hair: #2A3641;
+    --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #AEB8C2;
+  --primary: #86CBDD; --primary-soft: #1F3A46; --success: #9AD6B5; --success-soft: #1C362A;
+  --warn-ink: #F2C97D; --warn-soft: #33291A; --danger: #F4A595; --danger-soft: #3A2320; --line: #6B7785; --hair: #2A3641;
+  --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 18px; line-height: 1.5; margin: 0; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.2; }
+p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 8px; }
+.muted { color: var(--ink-muted); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Preview switcher */
+.switcher { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--ink); color: var(--bg); padding: 8px 16px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; font-size: .9rem; }
+.switcher .lbl { font-weight: 700; letter-spacing: .05em; text-transform: uppercase; font-size: .78rem; opacity: .85; }
+.switcher .opts { display: flex; gap: 4px; background: color-mix(in srgb, var(--bg) 14%, transparent); padding: 3px; border-radius: 10px; }
+.switcher button { border: 0; background: none; color: inherit; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; min-height: 36px; }
+.switcher button[aria-pressed="true"] { background: var(--bg); color: var(--ink); }
+
+/* Shared */
+.wrap { max-width: 540px; margin: 0 auto; padding: 22px 16px 132px; display: grid; gap: 26px; }
+.wrap.wide { max-width: 1160px; padding-bottom: 48px; }
+.section { display: grid; gap: 10px; min-width: 0; }
+.section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-inline: 4px; flex-wrap: wrap; }
+.section-head h2 { font-size: 1.3rem; font-weight: 700; }
+.count { font-size: 1rem; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.count.met { color: var(--success); font-weight: 700; }
+.hint { font-size: 1rem; color: var(--ink-muted); padding-inline: 4px; margin-top: -4px; }
+.group { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; min-width: 0; }
+.pad { padding: 18px; display: grid; gap: 14px; }
+.row + .row { border-top: 1px solid var(--hair); }
+.foot { font-size: .92rem; color: var(--ink-muted); padding-inline: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 48px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-size: 1rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; text-align: left; }
+.chip svg { width: 18px; height: 18px; stroke: currentColor; flex: none; }
+.chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); font-weight: 700; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; }
+.seg button { min-height: 48px; border: 0; border-radius: 10px; background: transparent; cursor: pointer; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--primary); color: var(--surface); }
+.btn { min-height: 56px; padding: 0 22px; border-radius: 14px; border: 0; background: var(--primary); color: var(--surface); font-weight: 700; font-size: 1.05rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn svg { width: 18px; height: 18px; stroke: currentColor; }
+.btn.small { min-height: 44px; font-size: .95rem; padding: 0 16px; border-radius: 10px; }
+.btn.ghost { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label { font-weight: 600; font-size: 1rem; }
+.field small { color: var(--ink-muted); font-size: .88rem; }
+.input { min-height: 52px; width: 100%; min-width: 0; padding: 0 14px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 1.05rem; }
+.input.err { border-color: var(--danger); }
+.err-msg { color: var(--danger); font-size: .92rem; font-weight: 600; }
+.banner { padding: 12px 16px; border-radius: 14px; font-size: .98rem; }
+.banner.info { background: var(--primary-soft); color: var(--ink); }
+.tag { display: inline-flex; align-items: center; font-size: .8rem; font-weight: 700; letter-spacing: .04em; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.tag.sample { text-transform: uppercase; color: var(--warn-ink); background: var(--warn-soft); }
+.tag.ok { color: var(--success); background: var(--success-soft); }
+.tag.warn { color: var(--warn-ink); background: var(--warn-soft); }
+.tag.bad { color: var(--danger); background: var(--danger-soft); }
+.tag.dim { color: var(--ink-muted); background: var(--sunk); }
+
+/* Sign in */
+.signin { max-width: 960px; margin: 0 auto; padding: 40px 16px 60px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; }
+.logo { display: inline-flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.6rem; letter-spacing: -.01em; }
+.logo-mark { width: 48px; height: 48px; border-radius: 14px; background: var(--primary); display: grid; place-items: center; flex: none; }
+.logo-mark svg { width: 28px; height: 28px; stroke: var(--surface); }
+.signin h1 { font-size: 2.3rem; font-weight: 800; letter-spacing: -.02em; margin-top: 22px; }
+.signin .lede { font-size: 1.1rem; color: var(--ink-muted); margin-top: 14px; max-width: 34em; }
+.facts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.signin-card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 26px 22px; display: grid; gap: 16px; }
+.linkish { background: none; border: 0; color: var(--primary); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 8px 0; min-height: 44px; }
+@media (max-width: 760px) { .signin { grid-template-columns: 1fr; gap: 28px; padding-top: 28px; } .signin h1 { font-size: 1.9rem; } }
+
+/* Participant header */
+.hello { display: grid; gap: 16px; }
+.hello-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.date { font-size: 1rem; color: var(--ink-muted); font-weight: 500; }
+.hello h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -.01em; }
+.study { background: var(--surface); border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; }
+.study-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.weeks { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; }
+.weeks span { height: 10px; border-radius: 3px; background: var(--hair); }
+.weeks span.done { background: var(--primary); }
+.weeks span.now { background: var(--primary); opacity: .45; }
+.goals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.goal { display: grid; justify-items: center; gap: 4px; text-align: center; min-width: 0; }
+.goal svg { width: 56px; height: 56px; }
+.goal circle { fill: none; stroke-width: 6; }
+.goal .t { stroke: var(--hair); }
+.goal .f { stroke: var(--primary); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .5s ease; }
+.goal.met .f { stroke: var(--success); }
+.goal text { fill: var(--ink); font: 700 15px var(--font); }
+.goal span { font-size: .85rem; color: var(--ink-muted); line-height: 1.25; }
+
+/* Day and week pickers */
+.daybar, .weekpick { display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 8px; }
+.daybar { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 6px; }
+.arrow { height: 52px; border-radius: 12px; border: 0; background: var(--sunk); cursor: pointer; display: grid; place-items: center; }
+.weekpick .arrow { background: var(--surface); box-shadow: var(--shadow); }
+.arrow:disabled { opacity: .35; cursor: not-allowed; }
+.arrow svg { width: 24px; height: 24px; stroke: var(--ink); }
+.pick-label { text-align: center; font-weight: 700; display: grid; line-height: 1.25; }
+.weekpick .pick-label { font-weight: 800; font-size: 1.2rem; }
+.pick-label small { font-weight: 500; color: var(--ink-muted); font-size: .88rem; }
+
+/* Rows */
+.row-btn { width: 100%; min-height: 68px; display: flex; align-items: center; gap: 16px; padding: 12px 18px; background: none; border: 0; text-align: left; cursor: pointer; }
+.check { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid var(--line); display: grid; place-items: center; transition: background .2s, border-color .2s; }
+.check.sq { border-radius: 10px; }
+.check svg { width: 20px; height: 20px; stroke: var(--surface); opacity: 0; }
+.on .check { background: var(--success); border-color: var(--success); }
+.on .check svg { opacity: 1; }
+.row-text { flex: 1; display: grid; min-width: 0; }
+.row-title { font-weight: 600; }
+.row-sub { font-size: .95rem; color: var(--ink-muted); }
+.on .row-sub { color: var(--success); font-weight: 600; }
+.chev { width: 22px; height: 22px; stroke: var(--ink-muted); flex: none; }
+.detail { background: var(--sunk); padding: 16px 18px 20px; display: grid; gap: 18px; }
+.q { display: grid; gap: 10px; }
+.q-label { font-weight: 600; font-size: 1rem; }
+
+/* Servings */
+.tokens { display: grid; gap: 10px; }
+.tokens.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.tokens.eight { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tok { height: 64px; min-width: 0; border-radius: 16px; border: 2px dashed var(--line); background: transparent; cursor: pointer; display: grid; place-items: center; }
+.tok svg { width: 28px; height: 28px; stroke: var(--line); }
+.tok.full { background: var(--primary-soft); border: 2px solid var(--primary); }
+.tok.full svg { stroke: var(--primary); }
+.met .tok.full { background: var(--success-soft); border-color: var(--success); }
+.met .tok.full svg { stroke: var(--success); }
+.serve-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.serve-foot p { font-size: 1rem; }
+.serve-foot p.met { color: var(--success); font-weight: 700; }
+.minus { min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-size: 1rem; font-weight: 600; flex: none; }
+.minus:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Symptoms */
+.sym-detail { padding: 0 18px 18px 68px; display: grid; gap: 8px; }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale button { min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 700; }
+.scale button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+.scale-ends { display: flex; justify-content: space-between; gap: 12px; font-size: .86rem; color: var(--ink-muted); line-height: 1.3; }
+.scale-ends span:last-child { text-align: right; }
+
+/* Activity */
+.total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.total b { font-size: 2.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.meter { height: 14px; border-radius: 999px; background: var(--hair); overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; transition: width .5s ease; }
+.meter.done > span { background: var(--success); }
+.bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.bar-col { display: grid; gap: 6px; min-width: 0; text-align: center; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 10px; }
+.bar-col:disabled { cursor: default; }
+.bar-track { height: 84px; display: flex; align-items: flex-end; border-radius: 10px; background: var(--sunk); overflow: hidden; }
+.bar-track span { width: 100%; background: var(--primary); border-radius: 10px 10px 0 0; }
+.bar-col.sel .bar-track { outline: 2.5px solid var(--primary); outline-offset: 2px; }
+.bar-col b { font-size: .95rem; font-variant-numeric: tabular-nums; min-height: 1.4em; }
+.bar-col small { font-size: .8rem; color: var(--ink-muted); font-weight: 600; }
+.ladder { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.rung { display: grid; gap: 2px; text-align: center; padding: 10px 2px; border-radius: 12px; background: var(--sunk); min-width: 0; }
+.rung b { font-size: 1.02rem; font-variant-numeric: tabular-nums; }
+.rung span { font-size: .76rem; color: var(--ink-muted); }
+.rung.now { background: var(--primary); }
+.rung.now b, .rung.now span { color: var(--surface); }
+.inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.inline .input { max-width: 140px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Weight */
+.wchart svg { width: 100%; height: auto; display: block; }
+.wchart .grid { stroke: var(--hair); stroke-width: 1; }
+.wchart .axis { fill: var(--ink-muted); font: 500 12px var(--font); }
+.wchart .line { fill: none; stroke: var(--primary); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.wchart .area { fill: var(--primary-soft); opacity: .7; }
+.wchart .pt { fill: var(--surface); stroke: var(--primary); stroke-width: 3; pointer-events: none; }
+.wchart .pt.sel { fill: var(--primary); }
+.wchart .hit { fill: transparent; cursor: pointer; }
+.big-stat { display: flex; gap: 22px; flex-wrap: wrap; }
+.big-stat div { display: grid; }
+.big-stat b { font-size: 2rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.big-stat span { font-size: .9rem; color: var(--ink-muted); }
+
+/* Progress */
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--hair); }
+.stat { background: var(--surface); padding: 16px 18px; display: grid; gap: 4px; min-width: 0; align-content: start; }
+.stat b { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat b small { font-size: 1rem; font-weight: 600; color: var(--ink-muted); }
+.stat span { font-size: .92rem; color: var(--ink-muted); line-height: 1.3; }
+.stat .tag { justify-self: start; margin-top: 4px; }
+
+/* Lessons */
+.lesson { display: flex; gap: 14px; align-items: center; padding: 14px 18px; width: 100%; background: none; border: 0; text-align: left; cursor: pointer; min-height: 76px; }
+.lesson:disabled { cursor: not-allowed; }
+.lesson .num { flex: none; width: 46px; height: 46px; border-radius: 12px; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; font-weight: 800; }
+.lesson:disabled .num { background: var(--sunk); color: var(--ink-muted); }
+.lesson .num svg { width: 22px; height: 22px; stroke: currentColor; }
+.video { aspect-ratio: 16 / 9; max-width: 100%; border-radius: 16px; background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 60%, var(--success))); display: grid; place-items: center; color: var(--surface); text-align: center; padding: 16px; }
+.video .play { width: 72px; height: 72px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; margin: 0 auto 10px; border: 0; cursor: pointer; }
+.video .play svg { width: 30px; height: 30px; fill: var(--primary); }
+.watch-bar { height: 8px; border-radius: 999px; background: var(--hair); overflow: hidden; }
+.watch-bar span { display: block; height: 100%; background: var(--success); }
+
+/* Tab bar */
+nav.tabs { position: fixed; inset-inline: 0; bottom: 0; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--hair); padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 5; }
+nav.tabs .inner { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 540px; margin: 0 auto; }
+nav.tabs button { min-height: 72px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; align-content: center; gap: 3px; color: var(--ink-muted); font-size: .82rem; font-weight: 600; padding: 0; }
+nav.tabs svg { width: 25px; height: 25px; stroke: currentColor; }
+nav.tabs button[aria-selected="true"] { color: var(--primary); }
+nav.tabs button[aria-selected="true"] .pill { background: var(--primary-soft); }
+.pill { padding: 4px 14px; border-radius: 999px; display: grid; place-items: center; }
+
+/* Admin */
+.admin-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.admin-top .logo { font-size: 1.3rem; }
+.admin-top .logo-mark { width: 40px; height: 40px; }
+.admin-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.admin-nav button { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: none; cursor: pointer; font-weight: 600; color: var(--ink-muted); }
+.admin-nav button[aria-current="page"] { background: var(--primary-soft); color: var(--ink); }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 14px 16px; display: grid; gap: 2px; }
+.kpi b { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: .9rem; color: var(--ink-muted); }
+@media (max-width: 700px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.table-wrap { overflow-x: auto; }
+table.data { width: 100%; border-collapse: collapse; font-size: .95rem; font-variant-numeric: tabular-nums; }
+table.data th { text-align: left; font-size: .8rem; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; padding: 12px; border-bottom: 1.5px solid var(--hair); white-space: nowrap; }
+table.data th.sortable { padding: 0; }
+table.data th button { all: unset; display: flex; gap: 4px; align-items: center; padding: 12px; cursor: pointer; }
+table.data th button:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; }
+table.data th.grp { text-align: center; padding: 8px 12px 4px; border-bottom: 0; font-size: .74rem; }
+table.data td { padding: 12px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+table.data tbody tr.click { cursor: pointer; }
+table.data tbody tr.click:hover td { background: var(--sunk); }
+table.data tbody tr.click:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; }
+table.data .num { text-align: right; }
+table.data th.num button { justify-content: flex-end; width: 100%; box-sizing: border-box; }
+table.data .id { font-weight: 700; color: var(--primary); }
+.prior { background: color-mix(in srgb, var(--primary-soft) 40%, var(--surface)); }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--hair); }
+.toolbar .input { max-width: 260px; min-height: 44px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+.code { font-family: ui-monospace, Menlo, monospace; font-size: .82rem; background: var(--sunk); padding: 12px; border-radius: 12px; overflow-x: auto; white-space: pre; }
+.record-head { display: flex; gap: 10px 28px; flex-wrap: wrap; align-items: baseline; }
+.record-head h2 { font-size: 1.6rem; }
+.dl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .dl-grid { grid-template-columns: 1fr; } }
+
+/* Feedback */
+.toast { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(500px, calc(100% - 32px)); background: var(--ink); color: var(--bg); padding: 16px 18px; border-radius: 16px; font-weight: 600; z-index: 30; box-shadow: var(--shadow); }
+.celebrate { position: fixed; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: blur(3px); z-index: 40; padding: 16px; overflow: hidden; }
+.cel-card { background: var(--surface); border-radius: 24px; padding: 32px 24px 24px; text-align: center; display: grid; gap: 12px; max-width: 400px; width: 100%; position: relative; z-index: 2; box-shadow: 0 12px 40px rgb(0 0 0 / .18); }
+.cel-card .tick { width: 72px; height: 72px; margin: 0 auto 4px; border-radius: 50%; background: var(--success); display: grid; place-items: center; }
+.cel-card .tick svg { width: 40px; height: 40px; stroke: var(--surface); }
+.cel-card h2 { font-size: 1.6rem; font-weight: 800; }
+.balloon { position: absolute; bottom: -140px; width: 44px; height: 56px; border-radius: 50% 50% 46% 46%; animation: rise 3.4s cubic-bezier(.3,.1,.6,1) forwards; z-index: 1; }
+.balloon::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1.5px; height: 44px; background: var(--line); }
+@keyframes rise { to { transform: translateY(-125vh) translateX(var(--drift)); } }
+@media (prefers-reduced-motion: reduce) { .balloon { display: none; } * { transition: none !important; } }
+@media (max-width: 380px) { .goal svg { width: 48px; height: 48px; } .sym-detail { padding-left: 18px; } }
+</style>
+
+<div class="switcher" role="group" aria-label="Choose what to preview">
+  <span class="lbl">Boost Rx design mockup, sample data only</span>
+  <div class="opts">
+    <button data-mode="signin" aria-pressed="false">Sign-in page</button>
+    <button data-mode="app" aria-pressed="true">Participant app</button>
+    <button data-mode="admin" aria-pressed="false">Admin portal</button>
+  </div>
+</div>
+<main id="root"></main>
+<nav class="tabs" id="tabs" aria-label="App sections"><div class="inner" role="tablist" id="tabs-inner"></div></nav>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="celebrate" id="celebrate" hidden role="dialog" aria-modal="true" aria-labelledby="cel-title">
+  <div class="cel-card">
+    <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h2 id="cel-title">Goal met!</h2>
+    <p id="cel-text" class="muted"></p>
+    <button class="btn" id="cel-close">Keep going</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  /* ---------- helpers ---------- */
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const svg = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const I = {
+    check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 3), chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+    left: svg('<path d="M15 6l-6 6 6 6"/>', 2.4), right: svg('<path d="M9 6l6 6-6 6"/>', 2.4), lock: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+    leaf: svg('<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/>'), cup: svg('<path d="M6 4h12l-1.5 15a2 2 0 0 1-2 1.8h-5A2 2 0 0 1 7.5 19z"/><path d="M6.6 9h10.8"/>'),
+    today: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'), move: svg('<circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-6 3 2v4M6 12l3-4 4 1 3 3h3M11 15l2-6"/>'),
+    scale: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 10a5 5 0 0 1 7 0M12 10l1.5-2"/>'), chart: svg('<path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/>'), more: svg('<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'),
+    play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', logo: svg('<path d="M4 14l4-4 3 3 7-7"/><path d="M14 6h4v4"/>', 2.6), dl: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
+  };
+  let tt;
+  const toast = msg => { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3600); };
+  function celebrate(text) {
+    const c = $('#celebrate'); $('#cel-text').textContent = text; c.hidden = false;
+    c.querySelectorAll('.balloon').forEach(b => b.remove());
+    if (!reduced) for (let i = 0; i < 12; i++) {
+      const b = document.createElement('span'); b.className = 'balloon';
+      b.style.left = (4 + Math.random() * 92) + '%'; b.style.background = ['var(--primary)', 'var(--success)', 'var(--primary-soft)', 'var(--success-soft)', 'var(--warn-soft)'][i % 5];
+      b.style.animationDelay = (Math.random() * .9) + 's'; b.style.setProperty('--drift', (Math.random() * 90 - 45) + 'px'); c.appendChild(b);
+    }
+    $('#cel-close').focus();
+  }
+  $('#cel-close').addEventListener('click', () => { $('#celebrate').hidden = true; });
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  /* ---------- study rules ---------- */
+  const DAY = 864e5, START = Date.UTC(2027, 0, 4), TODAY = Date.UTC(2027, 0, 19);
+  const dayNum = t => Math.round((t - START) / DAY) + 1;
+  const weekOf = t => Math.floor((dayNum(t) - 1) / 7) + 1;
+  const weekStart = w => START + (w - 1) * 7 * DAY;
+  const fmt = (t, o) => new Date(t).toLocaleDateString('en-US', { timeZone: 'UTC', ...o });
+  const iso = t => new Date(t).toISOString().slice(0, 10);
+  // Requirements doc: start at 100 (baseline under 100) or 125, +25 at weeks 3, 5, 7, 9, 11, 13, max 250.
+  const mvpaGoal = (baseline, w) => Math.min(250, (baseline < 100 ? 100 : 125) + 25 * Math.floor((w - 1) / 2));
+  const NOW_WEEK = weekOf(TODAY), EDIT_FROM = weekStart(NOW_WEEK - 1);
+  const editable = t => t >= EDIT_FROM && t <= TODAY;
+
+  const SLOTS = [['b', 'Breakfast', 0], ['ams', 'Morning snack', 1], ['l', 'Lunch', 0], ['pms', 'Afternoon snack', 1], ['d', 'Dinner', 0], ['evs', 'Evening snack', 1]];
+  const REASONS = ['Habit or routine', 'Emotional reasons', 'Social situation', 'Food cravings or desire to eat', 'Other'];
+  const SYMPTOMS = ['Nausea or upset stomach', 'Constipation', 'Belly pain or bloating', 'Cramping', 'Vomiting', 'Diarrhea', 'Heartburn or reflux', 'Tiredness', 'Headache', 'Dizziness'];
+  const ACTS = ['Aerobics class or video', 'Bicycling', 'Dancing', 'Elliptical or stair stepper', 'High impact aerobics or HIIT', 'Pickleball', 'Running', 'Sport (tennis, soccer, basketball)', 'Lap swimming', 'Water aerobics', 'Weight lifting', 'Yoga or Pilates', 'Other'];
+  const BASELINE = 80;
+
+  /* ---------- sample participant data (BRX-014, Linda) ---------- */
+  const days = {};
+  const blankDay = () => ({ meals: {}, fv: 0, bev: 0, sym: {}, ex: null, mins: 0, acts: [], actOther: '', strength: false, weight: null });
+  const W0 = 212.4;
+  for (let t = START; t < TODAY; t += DAY) {
+    const d = blankDay(), n = dayNum(t);
+    SLOTS.forEach(([id, , snack]) => {
+      if (rnd() < (snack ? .55 : .93)) { const hungry = rnd() < .6; d.meals[id] = { eaten: true, protein: rnd() < (snack ? .45 : .7) ? 'Yes' : 'No', hunger: hungry ? 'Yes' : 'No', reason: hungry ? null : REASONS[Math.floor(rnd() * 4)], other: '' }; }
+    });
+    d.fv = Math.floor(rnd() * 5) + 1; d.bev = Math.floor(rnd() * 5) + 3;
+    if (rnd() < .3) d.sym[Math.floor(rnd() * 4)] = Math.ceil(rnd() * 3);
+    d.ex = rnd() < .6; if (d.ex) { d.mins = [20, 25, 30, 35, 40][Math.floor(rnd() * 5)]; d.acts = [ACTS[[1, 6, 11, 0][Math.floor(rnd() * 4)]]]; } else d.ex = false;
+    d.strength = [2, 5, 9, 12].includes(n);
+    if ([1, 3, 5, 8, 10, 12, 15].includes(n)) d.weight = +(W0 - n * .38 - rnd() * .6).toFixed(1);
+    days[t] = d;
+  }
+  days[TODAY] = Object.assign(blankDay(), { meals: { b: { eaten: true, protein: 'Yes', hunger: 'Yes', reason: null, other: '' } }, fv: 2, bev: 3 });
+  Object.assign(days[TODAY - DAY], { ex: true, mins: 30, acts: ['Bicycling'] });
+  const med = { plan: { day: 'Monday', dose: '5 mg' }, doses: [{ date: '2027-01-04', time: '08:15', dose: '5 mg' }, { date: '2027-01-11', time: '08:40', dose: '5 mg' }, { date: '2027-01-18', time: '09:05', dose: '5 mg' }] };
+  const lessons = ['Welcome to Boost Rx', 'Protein at every meal', 'Moving more, step by step', 'Hydration and GLP-1s', 'Fruits and vegetables made easy', 'Why we eat when not hungry', 'Strength training basics', 'Handling side effects', 'Eating out and social events', 'Sleep, stress, and appetite', 'Planning for busy weeks', 'When progress slows', 'Keeping muscle while losing weight', 'Your plan after Boost Rx'].map((title, i) => ({ n: i + 1, title, watched: i < 2 ? 100 : 0 }));
+
+  /* ---------- state ---------- */
+  const S = { mode: 'app', tab: 'today', day: TODAY, open: {}, actDay: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
+    admin: { view: 'home', sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {} } };
+  const dayData = t => days[t] || (days[t] = blankDay());
+
+  // Re-render everything on change, then put focus back on the same control (matched by data-k).
+  function render() {
+    const k = document.activeElement?.dataset?.k;
+    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode));
+    $('#root').innerHTML = S.mode === 'signin' ? viewSignin() : S.mode === 'admin' ? viewAdmin() : viewApp();
+    $('#tabs').hidden = S.mode !== 'app';
+    if (S.mode === 'app') $('#tabs-inner').innerHTML = TABS.map(([id, name, ic]) => `<button role="tab" data-k="tab-${id}" data-tab="${id}" aria-selected="${S.tab === id}"><span class="pill">${ic}</span>${name}</button>`).join('');
+    if (k) document.querySelector(`[data-k="${CSS.escape(k)}"]`)?.focus();
+  }
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { S.mode = b.dataset.mode; render(); scrollTo(0, 0); }));
+
+  /* ---------- sign in ---------- */
+  function viewSignin() {
+    return `<div class="signin">
+      <div>
+        <span class="logo"><span class="logo-mark">${I.logo}</span>Boost Rx</span>
+        <h1>Build healthy habits while on a GLP-1 medication.</h1>
+        <p class="lede">Boost Rx is a 14-week research program from the Weight Control and Diabetes Research Center at Brown University Health. Each day you check off meals, activity, and how you feel, and watch your progress grow week by week.</p>
+        <div class="facts"><span class="tag dim">14 weeks</span><span class="tag dim">About 3 minutes a day</span><span class="tag dim">Private and secure</span></div>
+        <p class="foot" style="margin-top:18px;padding:0">Logo placeholder. The study team is sending the real logo.</p>
+      </div>
+      <form class="signin-card" id="signin-form" novalidate>
+        <h2>Sign in</h2>
+        <div class="field"><label for="si-id">Study ID</label><input class="input" id="si-id" data-k="si-id" autocomplete="username" value="BRX-014" autocapitalize="characters"><small>Printed on the card the study team gave you.</small></div>
+        <div class="field"><label for="si-pw">Password</label><input class="input" id="si-pw" data-k="si-pw" type="password" autocomplete="current-password" value="sample-pass"></div>
+        <button class="btn" type="submit" data-k="si-go">Sign in</button>
+        <p class="muted" style="font-size:.95rem">You'll stay signed in on this device until the program ends.</p>
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:8px">
+          <button type="button" class="linkish" data-act="forgot">Forgot password?</button>
+          <button type="button" class="linkish" data-act="to-admin">Study staff sign in</button>
+        </div>
+      </form></div>`;
+  }
+
+  /* ---------- participant app ---------- */
+  const TABS = [['today', 'Today', I.today], ['activity', 'Activity', I.move], ['weight', 'Weight', I.scale], ['progress', 'Progress', I.chart], ['more', 'More', I.more]];
+  $('#tabs-inner').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; S.tab = b.dataset.tab; S.lesson = null; render(); scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); });
+
+  function ring(label, v, goal) {
+    const C = 2 * Math.PI * 24, met = v >= goal;
+    return `<div class="goal ${met ? 'met' : ''}"><svg viewBox="0 0 56 56" aria-hidden="true"><circle class="t" cx="28" cy="28" r="24"/><circle class="f" cx="28" cy="28" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, v / goal))}"/><text x="28" y="33" text-anchor="middle">${met ? '✓' : v}</text></svg><span>${label}</span><span class="sr">${v} of ${goal}${met ? ', goal met' : ''}</span></div>`;
+  }
+  const weekDays = w => Array.from({ length: 7 }, (_, i) => weekStart(w) + i * DAY);
+  const weekMins = w => weekDays(w).reduce((a, t) => a + (days[t]?.mins || 0), 0);
+  const weekStrength = w => weekDays(w).filter(t => days[t]?.strength).length;
+
+  function header(title) {
+    const dd = days[TODAY], meals = Object.values(dd.meals).filter(m => m.eaten), prot = meals.filter(m => m.protein === 'Yes').length;
+    return `<header class="hello">
+      <div class="hello-top"><div><p class="date">${fmt(TODAY, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${title}</h1></div><span class="tag sample">Sample data</span></div>
+      ${S.tab === 'today' ? `<div class="study">
+        <div class="study-row"><strong>Week ${NOW_WEEK} of 14</strong><span class="muted" style="font-size:1rem">Day ${dayNum(TODAY)}</span></div>
+        <div class="weeks" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<span class="${i + 1 < NOW_WEEK ? 'done' : i + 1 === NOW_WEEK ? 'now' : ''}"></span>`).join('')}</div>
+        <div class="goals" aria-label="Today's goals">${ring('Fruit + veg', dd.fv, 5)}${ring('Drinks', dd.bev, 8)}${ring('Protein', prot, Math.max(meals.length, 1))}${ring('Active', weekMins(NOW_WEEK), mvpaGoal(BASELINE, NOW_WEEK))}</div>
+      </div>` : ''}</header>`;
+  }
+
+  function dayBar(cur, act) {
+    const prev = cur - DAY, next = cur + DAY;
+    return `<div class="daybar"><button class="arrow" data-k="${act}-prev" data-act="${act}" data-day="${prev}" ${editable(prev) ? '' : 'disabled'} aria-label="Previous day">${I.left}</button>
+      <div class="pick-label">${cur === TODAY ? 'Today' : fmt(cur, { weekday: 'long' })}<small>${fmt(cur, { month: 'long', day: 'numeric' })}, week ${weekOf(cur)}</small></div>
+      <button class="arrow" data-k="${act}-next" data-act="${act}" data-day="${next}" ${next <= TODAY ? '' : 'disabled'} aria-label="Next day">${I.right}</button></div>
+      ${!editable(prev) ? `<p class="foot">You can fill in or change this week and last week. Earlier weeks are locked.</p>` : ''}`;
+  }
+
+  function viewApp() {
+    const T = { today: ['Good morning, Linda', viewToday], activity: ['Activity', viewActivity], weight: ['Weight', viewWeight], progress: ['My progress', viewProgress], more: ['More', viewMore] }[S.tab];
+    return `<div class="wrap">${header(T[0])}${T[1]()}</div>`;
+  }
+
+  function viewToday() {
+    const x = dayData(S.day), eaten = SLOTS.filter(([id]) => x.meals[id]?.eaten).length;
+    return `${dayBar(S.day, 'set-day')}
+    <section class="section"><div class="section-head"><h2>Meals and snacks</h2><span class="count">${eaten} of 6 logged</span></div>
+      <div class="group">${SLOTS.map(([id, name, snack]) => mealRow(x, id, name, snack)).join('')}</div></section>
+    ${serve(x, 'fv', 'Fruits and vegetables', 'Tap a circle for each serving. Goal: 5.', 5, 'leaf', ['serving', 'servings'])}
+    ${serve(x, 'bev', 'Drinks without added sugar', 'Water, plain tea, black coffee. One cup is 8 ounces. Goal: 8.', 8, 'cup', ['cup', 'cups'])}
+    <section class="section"><div class="section-head"><h2>Side effects</h2></div><p class="hint">Tap any you had ${S.day === TODAY ? 'today' : 'this day'}, then rate how strong.</p>
+      <div class="group">${SYMPTOMS.map((n, i) => symRow(x, n, i)).join('')}</div>
+      <p class="foot">The first 4 come from the study team. The other 6 are placeholders until the team sends the full list.</p></section>`;
+  }
+
+  function mealRow(x, id, name, snack) {
+    const m = x.meals[id], on = !!m?.eaten, open = on && S.open[id + S.day];
+    let sub = 'Tap if you ate this';
+    if (on) sub = [`Protein goal: ${m.protein ? m.protein.toLowerCase() : 'not answered'}`, m.hunger === 'Yes' ? 'hungry' : m.hunger === 'No' ? (m.reason || 'reason not answered').toLowerCase() : null].filter(Boolean).join(', ');
+    const needs = on && (!m.protein || !m.hunger || (m.hunger === 'No' && !m.reason));
+    return `<div class="row ${on ? 'on' : ''}" data-meal="${id}">
+      <div style="display:flex;align-items:center">
+        <button class="row-btn" style="flex:1" data-k="meal-${id}" data-act="meal-toggle" aria-pressed="${on}"><span class="check">${I.check}</span><span class="row-text"><span class="row-title">${name}</span><span class="row-sub">${esc(sub)}</span></span></button>
+        ${on ? `<button class="minus" style="margin-right:14px" data-k="meal-open-${id}" data-act="meal-open" aria-expanded="${!!open}">${open ? 'Done' : needs ? 'Answer' : 'Edit'}</button>` : ''}
+      </div>
+      ${open ? `<div class="detail">
+        <div class="q"><span class="q-label">Did this ${snack ? 'snack' : 'meal'} have ${snack ? '10' : '20'} grams of protein or more?</span>
+          <div class="seg">${['Yes', 'No'].map(v => `<button data-k="p-${id}-${v}" data-act="protein" data-v="${v}" aria-pressed="${m.protein === v}">${v}</button>`).join('')}</div></div>
+        <div class="q"><span class="q-label">Did you eat mostly because you were hungry?</span>
+          <div class="seg">${['Yes', 'No'].map(v => `<button data-k="h-${id}-${v}" data-act="hunger" data-v="${v}" aria-pressed="${m.hunger === v}">${v}</button>`).join('')}</div></div>
+        ${m.hunger === 'No' ? `<div class="q"><span class="q-label">What was your main reason for eating? Pick one.</span>
+          <div class="chips">${REASONS.map(r => `<button class="chip" data-k="r-${id}-${r}" data-act="reason" data-v="${esc(r)}" aria-pressed="${m.reason === r}">${m.reason === r ? I.check : ''}${esc(r)}</button>`).join('')}</div>
+          ${m.reason === 'Other' ? `<input class="input" data-k="ro-${id}" data-act="reason-other" placeholder="Tell us in a few words" value="${esc(m.other)}" aria-label="Other reason">` : ''}</div>` : ''}
+      </div>` : ''}</div>`;
+  }
+
+  function serve(x, key, title, hint, goal, icon, [one, many]) {
+    const v = x[key], met = v >= goal;
+    return `<section class="section"><div class="section-head"><h2>${title}</h2></div><p class="hint">${hint}</p>
+      <div class="group pad ${met ? 'met' : ''}" data-serve="${key}" data-goal="${goal}">
+        <div class="tokens ${goal === 8 ? 'eight' : 'five'}">${Array.from({ length: goal }, (_, i) => `<button class="tok ${i < v ? 'full' : ''}" data-k="${key}-${i}" data-act="tok" data-n="${i + 1}" aria-label="${i + 1} ${i ? many : one}" aria-pressed="${i < v}">${I[icon]}</button>`).join('')}</div>
+        <div class="serve-foot"><p class="${met ? 'met' : ''}" aria-live="polite">${met ? `Goal met: ${v} ${many}` : `${v} of ${goal} ${many}`}</p>
+        <button class="minus" data-k="${key}-minus" data-act="tok-minus" ${v === 0 ? 'disabled' : ''}>Undo one</button></div></div></section>`;
+  }
+
+  function symRow(x, name, i) {
+    const sev = x.sym[i], on = sev !== undefined;
+    return `<div class="row ${on ? 'on' : ''}" data-sym="${i}">
+      <button class="row-btn" data-k="sym-${i}" data-act="sym" aria-pressed="${on}"><span class="check sq">${I.check}</span><span class="row-text"><span class="row-title">${esc(name)}</span>${on ? `<span class="row-sub">${sev ? `Strength ${sev} of 5` : 'How strong was it?'}</span>` : ''}</span></button>
+      ${on ? `<div class="sym-detail" role="group" aria-label="How strong was it?"><div class="scale">${[1, 2, 3, 4, 5].map(n => `<button data-k="sev-${i}-${n}" data-act="sev" data-v="${n}" aria-pressed="${sev === n}">${n}</button>`).join('')}</div>
+        <div class="scale-ends"><span>1 Very minimal, did not affect my day</span><span>5 Severe, greatly limited my day</span></div></div>` : ''}</div>`;
+  }
+
+  function viewActivity() {
+    const w = weekOf(S.actDay), goal = mvpaGoal(BASELINE, w), total = weekMins(w), x = dayData(S.actDay);
+    const max = Math.max(45, ...weekDays(w).map(t => days[t]?.mins || 0)), str = weekStrength(w);
+    return `${dayBar(S.actDay, 'act-day')}
+    <section class="section"><div class="section-head"><h2>Week ${w} active minutes</h2><span class="count ${total >= goal ? 'met' : ''}">Goal: ${goal}</span></div>
+      <div class="group pad">
+        <div class="total"><b>${total}</b><span class="muted">of <strong>${goal}</strong> minutes</span></div>
+        <div class="meter ${total >= goal ? 'done' : ''}" role="progressbar" aria-label="Active minutes this week" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${total}"><span style="width:${Math.min(100, total / goal * 100)}%"></span></div>
+        <p class="muted" style="font-size:1rem">${total >= goal ? 'Goal met this week. Wonderful work!' : `${goal - total} minutes to go. Tap a day to log it.`}</p>
+        <div class="bars">${weekDays(w).map(t => { const m = days[t]?.mins || 0, off = t > TODAY || !editable(t); return `<button class="bar-col ${t === S.actDay ? 'sel' : ''}" data-k="bar-${t}" data-act="act-day" data-day="${t}" ${off ? 'disabled' : ''} aria-label="${fmt(t, { weekday: 'long' })}, ${m} minutes${days[t]?.strength ? ', strength session' : ''}"><span class="bar-track" aria-hidden="true"><span style="height:${m / max * 100}%"></span></span><b>${t > TODAY ? '' : m}</b><small>${fmt(t, { weekday: 'short' })}${days[t]?.strength ? ' •' : ''}</small></button>`; }).join('')}</div>
+        <p class="foot" style="padding:0">• marks a strength session.</p>
+      </div></section>
+
+    <section class="section"><div class="section-head"><h2>${S.actDay === TODAY ? 'Today' : fmt(S.actDay, { weekday: 'long', month: 'short', day: 'numeric' })}</h2></div>
+      <div class="group pad">
+        <div class="q"><span class="q-label">Did you exercise?</span>
+          <div class="seg">${[['Yes', true], ['No', false]].map(([l, v]) => `<button data-k="ex-${l}" data-act="ex" data-v="${v}" aria-pressed="${x.ex === v}">${l}</button>`).join('')}</div></div>
+        ${x.ex ? `<div class="q"><label class="q-label" for="mins">Minutes of moderate or harder activity</label>
+          <div class="inline"><input class="input" id="mins" data-k="mins" data-act="mins" inputmode="numeric" maxlength="3" value="${x.mins || ''}" placeholder="0"><span class="muted">minutes</span></div>
+          <small class="muted" style="font-size:.92rem">Moderate means you breathe harder and can talk, though not sing. Brisk walking counts. The team will refine this wording.</small></div>
+        <div class="q"><span class="q-label">What did you do? Choose any.</span>
+          <div class="chips">${ACTS.map(a => `<button class="chip" data-k="act-${a}" data-act="act" data-v="${esc(a)}" aria-pressed="${x.acts.includes(a)}">${x.acts.includes(a) ? I.check : ''}${esc(a)}</button>`).join('')}</div>
+          ${x.acts.includes('Other') ? `<input class="input" data-k="act-other" data-act="act-other" placeholder="What activity?" value="${esc(x.actOther)}" aria-label="Other activity">` : ''}</div>` : ''}
+      </div></section>
+
+    <section class="section"><div class="section-head"><h2>Strength training</h2><span class="count ${str >= 2 ? 'met' : ''}">${str} of 2 this week</span></div>
+      <div class="group"><div class="row ${x.strength ? 'on' : ''}"><button class="row-btn" data-k="strength" data-act="strength" aria-pressed="${x.strength}"><span class="check sq">${I.check}</span><span class="row-text"><span class="row-title">I did a full-body strength session</span><span class="row-sub">${x.strength ? 'Logged' : 'Tap to log'}</span></span></button></div></div>
+      <p class="foot">A full-body session is 30 minutes or more working all major muscle groups. Only did upper or lower body? The team will add guidance here.</p></section>
+
+    <section class="section"><div class="section-head"><h2>How your goal grows</h2></div>
+      <p class="hint">Your starting goal is ${BASELINE < 100 ? 100 : 125} minutes. It rises by 25 minutes every 2 weeks, up to 250.</p>
+      <div class="group" style="padding:16px"><div class="ladder">${[1, 3, 5, 7, 9, 11, 13].map(wk => `<div class="rung ${w >= wk && w <= wk + 1 ? 'now' : ''}"><b>${mvpaGoal(BASELINE, wk)}</b><span>Wk ${wk}-${wk + 1}</span></div>`).join('')}</div></div></section>`;
+  }
+
+  function viewWeight() {
+    const pts = Object.keys(days).map(Number).sort((a, b) => a - b).filter(t => days[t].weight).map(t => ({ t, w: days[t].weight }));
+    const first = pts[0], last = pts[pts.length - 1], lost = +(first.w - last.w).toFixed(1), pct = (lost / first.w * 100).toFixed(1);
+    const thisWeek = weekDays(NOW_WEEK).filter(t => days[t]?.weight).length, sel = pts.find(p => p.t === S.wsel) || last;
+    const W = 600, H = 260, L = 46, R = 16, Tp = 16, B = 34, x0 = START, x1 = weekStart(NOW_WEEK) + 6 * DAY;
+    const lo = Math.floor(Math.min(...pts.map(p => p.w)) - 1), hi = Math.ceil(Math.max(...pts.map(p => p.w)) + 1);
+    const X = t => L + (t - x0) / (x1 - x0) * (W - L - R), Y = v => Tp + (hi - v) / (hi - lo) * (H - Tp - B);
+    const step = Math.max(1, Math.round((hi - lo) / 4)), ticks = []; for (let v = lo; v <= hi; v += step) ticks.push(v);
+    const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.w).toFixed(1)}`).join('');
+    const area = `${path}L${X(last.t).toFixed(1)},${H - B}L${X(first.t).toFixed(1)},${H - B}Z`;
+    return `<section class="section"><div class="section-head"><h2>Today's weight</h2><span class="count ${thisWeek >= 2 ? 'met' : ''}">${thisWeek} of 2 weigh-ins this week</span></div>
+      <div class="group pad">
+        <div class="inline"><input class="input" id="w-today" data-k="w-today" inputmode="decimal" placeholder="000.0" value="${days[TODAY].weight ?? ''}" aria-label="Today's weight in pounds"><span class="muted">pounds</span>
+        <button class="btn small" data-k="w-save" data-act="weight-save">Save</button></div>
+        <p class="foot" style="padding:0">Weigh yourself at least 2 times a week, ideally in the morning before eating.</p>
+      </div></section>
+    <section class="section"><div class="section-head"><h2>Since you started</h2></div>
+      <div class="group pad">
+        <div class="big-stat"><div><b>${lost} lb</b><span>lost so far</span></div><div><b>${last.w}</b><span>latest, ${fmt(last.t, { month: 'short', day: 'numeric' })}</span></div><div><b>${pct}%</b><span>of starting weight</span></div></div>
+        <div class="wchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight went from ${first.w} to ${last.w} pounds since ${fmt(first.t, { month: 'long', day: 'numeric' })}">
+          ${ticks.map(v => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axis" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`).join('')}
+          ${[1, 2, 3].map(w => `<text class="axis" x="${X(weekStart(w) + 3 * DAY)}" y="${H - 10}" text-anchor="middle">Week ${w}</text>`).join('')}
+          <path class="area" d="${area}"/><path class="line" d="${path}"/>
+          ${pts.map(p => `<circle class="pt ${p.t === sel.t ? 'sel' : ''}" cx="${X(p.t)}" cy="${Y(p.w)}" r="${p.t === sel.t ? 7 : 5}"/><circle class="hit" cx="${X(p.t)}" cy="${Y(p.w)}" r="16" data-act="wpt" data-t="${p.t}"/>`).join('')}
+        </svg></div>
+        <p aria-live="polite" style="font-size:1rem"><strong>${fmt(sel.t, { weekday: 'long', month: 'long', day: 'numeric' })}:</strong> ${sel.w} lb${sel.t !== first.t ? `, ${(first.w - sel.w).toFixed(1)} lb below your start` : ', your starting weight'}. <span class="muted">Tap a dot to see that day.</span></p>
+      </div></section>`;
+  }
+
+  function weekSummary(w) {
+    const ds = weekDays(w).filter(t => t <= TODAY).map(t => days[t]).filter(Boolean);
+    let meals = 0, mealsP = 0, snacks = 0, snacksP = 0;
+    ds.forEach(x => SLOTS.forEach(([id, , snack]) => { const m = x.meals[id]; if (!m?.eaten) return; if (snack) { snacks++; if (m.protein === 'Yes') snacksP++; } else { meals++; if (m.protein === 'Yes') mealsP++; } }));
+    const avg = k => ds.length ? (ds.reduce((a, x) => a + x[k], 0) / ds.length).toFixed(1) : '0';
+    return { n: ds.length, pm: meals ? Math.round(mealsP / meals * 100) : 0, ps: snacks ? Math.round(snacksP / snacks * 100) : 0, fv: avg('fv'), bev: avg('bev'), mins: weekMins(w), goal: mvpaGoal(BASELINE, w), str: weekStrength(w), wi: ds.filter(x => x.weight).length };
+  }
+  function viewProgress() {
+    const w = S.week, s = weekSummary(w), cur = w === NOW_WEEK;
+    const stat = (v, label, ok) => `<div class="stat"><b>${v}</b><span>${label}</span>${ok === undefined ? '' : ok ? '<span class="tag ok">Goal met</span>' : '<span class="tag dim">Keep going</span>'}</div>`;
+    return `<div class="weekpick"><button class="arrow" data-k="wk-prev" data-act="week" data-v="${w - 1}" ${w <= 1 ? 'disabled' : ''} aria-label="Previous week">${I.left}</button>
+      <div class="pick-label">Week ${w}<small>${fmt(weekStart(w), { month: 'short', day: 'numeric' })} to ${fmt(weekStart(w) + 6 * DAY, { month: 'short', day: 'numeric' })}${cur ? ' (so far)' : ''}</small></div>
+      <button class="arrow" data-k="wk-next" data-act="week" data-v="${w + 1}" ${w >= NOW_WEEK ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
+    <section class="section"><div class="section-head"><h2>Eating</h2></div><div class="group"><div class="stats">
+      ${stat(s.pm + '%', 'of meals met the protein goal')}${stat(s.ps + '%', 'of snacks met the protein goal')}
+      ${stat(s.fv, 'fruit and vegetable servings a day, on average', +s.fv >= 5)}${stat(s.bev, 'cups of sugar-free drinks a day, on average', +s.bev >= 8)}
+    </div></div></section>
+    <section class="section"><div class="section-head"><h2>Moving</h2></div><div class="group"><div class="stats">
+      ${stat(`${s.mins}<small> / ${s.goal}</small>`, 'active minutes', s.mins >= s.goal)}${stat(`${s.str}<small> / 2</small>`, 'strength sessions', s.str >= 2)}
+    </div></div></section>
+    <section class="section"><div class="section-head"><h2>Logging</h2></div><div class="group"><div class="stats">
+      ${stat(`${s.n}<small> / ${cur ? s.n : 7}</small>`, 'days logged')}${stat(`${s.wi}<small> / 2</small>`, 'weigh-ins', s.wi >= 2)}
+    </div></div></section>
+    <div class="banner info">${s.mins >= s.goal ? 'You met your activity goal this week. That consistency is what builds the habit.' : 'Every week counts, including the busy ones. Small steps add up.'}</div>`;
+  }
+
+  function viewMore() {
+    if (S.lesson) {
+      const L = lessons[S.lesson - 1];
+      return `<button class="linkish" data-k="back" data-act="lesson-back" style="justify-self:start">← All lessons</button>
+      <section class="section"><div class="section-head"><h2>Lesson ${L.n}: ${esc(L.title)}</h2></div>
+        <div class="video"><div><button class="play" data-k="play" data-act="play" aria-label="Play lesson">${I.play}</button><strong>Video plays here</strong><br><span style="font-size:.92rem">The team's Canva mp4, hosted on our server so we can track watching</span></div></div>
+        <div class="watch-bar" aria-hidden="true"><span style="width:${L.watched}%"></span></div>
+        <p class="muted" style="font-size:1rem">${L.watched >= 100 ? 'Watched. Nice work.' : L.watched ? `Watched ${L.watched}%. Tap play again to finish.` : 'Not watched yet'}</p>
+        <div class="group pad"><h3>Week ${L.n} survey</h3><p class="muted" style="font-size:1rem">A few quick questions about this lesson. Takes about 2 minutes.</p>
+          <button class="btn ghost" data-k="survey" data-act="survey">Open the survey</button></div></section>`;
+    }
+    return `<section class="section"><div class="section-head"><h2>Weekly lessons</h2><span class="count">${lessons.filter(l => l.watched >= 100).length} of ${NOW_WEEK} watched</span></div>
+      <p class="hint">A new lesson opens each week. Past lessons stay here.</p>
+      <div class="group">${lessons.map(l => { const open = l.n <= NOW_WEEK; return `<div class="row"><button class="lesson" data-k="lesson-${l.n}" data-act="lesson" data-v="${l.n}" ${open ? '' : 'disabled'}>
+        <span class="num">${open ? l.n : I.lock}</span><span class="row-text"><span class="row-title">${esc(l.title)}</span><span class="row-sub">${open ? (l.watched >= 100 ? 'Watched' : 'Ready to watch') : `Opens ${fmt(weekStart(l.n), { month: 'short', day: 'numeric' })}`}</span></span>${open ? I.chev : ''}</button></div>`; }).join('')}</div></section>
+    <section class="section"><div class="section-head"><h2>Medication</h2></div>
+      <div class="group pad"><h3>Your plan for January</h3>
+        <div class="form-grid"><div class="field"><label for="plan-day">Injection day</label><select class="input" id="plan-day" data-k="plan-day" data-act="plan-day">${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(x => `<option ${x === med.plan.day ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+        <div class="field"><label for="plan-dose">Planned dose</label><input class="input" id="plan-dose" data-k="plan-dose" data-act="plan-dose" value="${esc(med.plan.dose)}"></div></div>
+        <p class="foot" style="padding:0">On the 1st of each month you'll be asked to set this again.</p></div>
+      <div class="group pad"><h3>Log this week's dose</h3>
+        <div class="form-grid"><div class="field"><label for="dose-date">Date</label><input class="input" id="dose-date" data-k="dose-date" type="date" min="${iso(EDIT_FROM)}" max="${iso(TODAY)}" value="${iso(TODAY - DAY)}"></div>
+        <div class="field"><label for="dose-time">Time</label><input class="input" id="dose-time" data-k="dose-time" type="time" value="09:00"></div>
+        <div class="field"><label for="dose-amt">Dose taken</label><input class="input" id="dose-amt" data-k="dose-amt" value="${esc(med.plan.dose)}"></div></div>
+        <button class="btn" data-k="dose-save" data-act="dose-save">Save dose</button></div>
+      <div class="group">${med.doses.slice().reverse().map(x => `<div class="row" style="padding:14px 18px;display:flex;justify-content:space-between;gap:12px"><span><strong>${fmt(Date.parse(x.date), { weekday: 'short', month: 'short', day: 'numeric' })}</strong> at ${esc(x.time)}</span><span>${esc(x.dose)}</span></div>`).join('')}</div></section>
+    <section class="section"><div class="section-head"><h2>Look and feel</h2></div>
+      <div class="group pad"><div class="chips">${[['light', 'Light'], ['dark', 'Dark'], ['', 'Match device']].map(([v, l]) => `<button class="chip" data-k="th-${l}" data-act="theme" data-v="${v}" aria-pressed="${(document.documentElement.dataset.theme || '') === v}">${l}</button>`).join('')}</div>
+      <p class="muted" style="font-size:1rem">Every text color reaches 7:1 contrast, the strictest accessibility level. The font, Atkinson Hyperlegible Next, was made by the Braille Institute for easy reading.</p></div></section>`;
+  }
+
+  function feedback(key, v, goal, label) {
+    if (v >= goal && !S.fired[key + ':done']) { S.fired[key + ':done'] = 1; celebrate(label); }
+    else if (v >= goal / 2 && v < goal && !S.fired[key + ':half']) { S.fired[key + ':half'] = 1; toast("You're halfway to your goal. Keep up the great work!"); }
+  }
+
+  /* ---------- admin ---------- */
+  const firsts = ['Linda', 'Robert', 'Carol', 'James', 'Denise', 'Michael', 'Patricia', 'Thomas', 'Angela', 'Gary', 'Sharon', 'Frank', 'Teresa', 'Paul'];
+  const PEOPLE = firsts.map((f, i) => {
+    const start = START + [0, -14, -7, 7, -21, 0, -28, 14, -7, -35, 0, -91, -98, 21][i] * DAY;
+    const wk = TODAY < start ? 'NS' : TODAY >= start + 98 * DAY ? 'C' : Math.floor((TODAY - start) / DAY / 7) + 1;
+    const ago = [0, 1, 0, null, 4, 0, 2, null, 0, 6, 1, 3, 9, null][i];
+    const hasPrior = typeof wk === 'number' && wk > 1;
+    return { id: `BRX-${String(i === 0 ? 14 : i < 14 ? i : 15).padStart(3, '0')}`, first: f, start, wk, last: ago === null ? null : TODAY - ago * DAY, baseline: [80, 140, 60, 120, 200, 95, 30, 150, 110, 70, 260, 90, 130, 100][i],
+      mvpa: hasPrior ? Math.round(40 + rnd() * 160) : null, str: hasPrior ? Math.floor(rnd() * 3) : null, prot: hasPrior ? Math.floor(rnd() * 8) : null, fv: hasPrior ? Math.floor(rnd() * 8) : null, bev: hasPrior ? 3 + Math.floor(rnd() * 5) : null };
+  });
+  Object.assign(PEOPLE[0], { mvpa: weekMins(NOW_WEEK - 1), str: weekStrength(NOW_WEEK - 1) });
+  PEOPLE.sort((a, b) => a.id.localeCompare(b.id));
+  const all = () => PEOPLE.concat(S.admin.added);
+  const COLS = [['id', 'Study ID', p => p.id], ['wk', 'Week', p => p.wk === 'NS' ? -1 : p.wk === 'C' ? 99 : p.wk], ['start', 'Start date', p => p.start], ['last', 'Last logged', p => p.last ?? -1],
+    ['mvpa', 'MVPA min', p => p.mvpa ?? -1, 1], ['str', 'Strength', p => p.str ?? -1, 1], ['prot', 'Protein days', p => p.prot ?? -1, 1], ['fv', 'F+V days', p => p.fv ?? -1, 1], ['bev', 'Drink days', p => p.bev ?? -1, 1]];
+  const lastCell = p => { if (p.last === null) return '<span class="tag dim">Never</span>'; const ago = Math.round((TODAY - p.last) / DAY); const txt = ago === 0 ? 'Today' : ago === 1 ? 'Yesterday' : fmt(p.last, { month: 'short', day: 'numeric' }); return ago >= 3 && p.wk !== 'C' ? `<span class="tag bad">${txt}, ${ago} days ago</span>` : txt; };
+  const wkCell = p => p.wk === 'NS' ? '<span class="tag dim">NS</span>' : p.wk === 'C' ? '<span class="tag ok">C</span>' : p.wk;
+  const dash = '<span class="muted">–</span>';
+
+  function viewAdmin() {
+    const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['reports', 'Reports'], ['admins', 'Admins']];
+    return `<div class="wrap wide">
+      <div class="admin-top"><span class="logo"><span class="logo-mark">${I.logo}</span>Boost Rx <span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
+        <nav class="admin-nav" aria-label="Admin sections">${nav.map(([id, l]) => `<button data-k="an-${id}" data-act="anav" data-v="${id}" ${v === id || (id === 'home' && v === 'record') ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
+        <span class="tag sample">Sample data</span></div>
+      ${v === 'record' ? adminRecord() : v === 'add' ? adminAdd() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : adminHome()}</div>`;
+  }
+  function adminHome() {
+    const ps = all(), active = ps.filter(p => typeof p.wk === 'number'), lapsed = active.filter(p => p.last === null || TODAY - p.last >= 3 * DAY);
+    const [key, dir] = S.admin.sort, col = COLS.find(c => c[0] === key), q = S.admin.q.trim().toUpperCase();
+    const rows = ps.filter(p => !q || p.id.includes(q)).sort((a, b) => { const x = col[2](a), y = col[2](b); return (x > y ? 1 : x < y ? -1 : 0) * dir; });
+    const th = ([k, l, , num]) => `<th class="sortable ${num ? 'num prior' : ''}" aria-sort="${key === k ? (dir > 0 ? 'ascending' : 'descending') : 'none'}"><button data-k="sort-${k}" data-act="sort" data-v="${k}">${l}<span aria-hidden="true">${key === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</span></button></th>`;
+    return `<div class="kpis"><div class="kpi"><b>${ps.length}</b><span>participants</span></div><div class="kpi"><b>${active.length}</b><span>in the program now</span></div>
+      <div class="kpi"><b>${active.filter(p => p.last === TODAY).length}</b><span>logged today</span></div><div class="kpi"><b>${lapsed.length}</b><span>no log in 3+ days</span></div></div>
+    <section class="group"><div class="toolbar"><input class="input" data-k="aq" data-act="aq" placeholder="Search study ID" value="${esc(S.admin.q)}" aria-label="Search by study ID">
+      <span class="muted" style="font-size:.92rem">Click a column to sort. Click a row to open the record.</span></div>
+      <div class="table-wrap"><table class="data"><thead>
+        <tr><th colspan="4" class="grp"></th><th colspan="5" class="grp prior">Last full week</th></tr>
+        <tr>${COLS.map(th).join('')}</tr></thead><tbody>
+        ${rows.map(p => `<tr class="click" data-act="open-p" data-v="${p.id}" tabindex="0" data-k="row-${p.id}"><td class="id">${p.id}</td><td>${wkCell(p)}</td><td>${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</td><td>${lastCell(p)}</td>
+          ${['mvpa', 'str', 'prot', 'fv', 'bev'].map(k => `<td class="num prior">${p[k] ?? dash}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div></section>
+    <p class="foot">Week: NS = not started, 1 to 14 = current week, C = complete. Red means no logging in 3 or more days; that participant also got the automatic reminder.</p>`;
+  }
+  function adminRecord() {
+    const p = all().find(x => x.id === S.admin.pid), real = p.id === 'BRX-014';
+    const maxW = typeof p.wk === 'number' ? p.wk : p.wk === 'C' ? 14 : 0, w = S.admin.pweek ?? maxW;
+    seed = 1000 + w * 31 + p.id.charCodeAt(6) * 7;
+    const rows = w ? Array.from({ length: 7 }, (_, i) => p.start + ((w - 1) * 7 + i) * DAY).map(t => {
+      if (t > TODAY) return [t, null];
+      if (real) { const x = days[t]; if (!x) return [t, null]; const ms = SLOTS.filter(([id]) => x.meals[id]?.eaten); return [t, { meals: ms.length, prot: ms.filter(([id]) => x.meals[id].protein === 'Yes').length, hunger: ms.filter(([id]) => x.meals[id].hunger === 'Yes').length, fv: x.fv, bev: x.bev, mins: x.mins, acts: x.acts.join(', '), str: x.strength, sym: Object.entries(x.sym).map(([i, s]) => `${SYMPTOMS[i]} (${s ?? '?'})`).join(', '), wt: x.weight }]; }
+      return [t, { meals: 3 + Math.floor(rnd() * 3), prot: Math.floor(rnd() * 4), hunger: Math.floor(rnd() * 4), fv: Math.floor(rnd() * 6), bev: 2 + Math.floor(rnd() * 7), mins: rnd() < .5 ? 0 : 20 + Math.floor(rnd() * 30), acts: rnd() < .5 ? 'Running' : 'Bicycling', str: rnd() < .3, sym: rnd() < .3 ? 'Nausea or upset stomach (2)' : '', wt: rnd() < .3 ? (190 + Math.floor(rnd() * 30)) + '.4' : null }];
+    }) : [];
+    rows.forEach(([, r]) => { if (r && !r.mins) r.acts = ''; });
+    return `<button class="linkish" data-k="rec-back" data-act="anav" data-v="home" style="justify-self:start">← All participants</button>
+    <section class="group pad"><div class="record-head"><h2>${p.id}</h2><span>First name: <strong>${esc(p.first)}</strong></span><span>Week: ${wkCell(p)}</span><span>Started ${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</span><span>Baseline: <strong>${p.baseline}</strong> min/week</span><span>Email: <strong>${p.first[0].toLowerCase()}***@gmail.com</strong> <span class="tag dim">encrypted</span></span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn small ghost" data-k="imp" data-act="impersonate" data-v="${p.id}">View as participant</button><button class="btn small ghost" data-k="pw" data-act="reset-pw">Reset password</button><button class="btn small ghost" data-k="sd" data-act="edit-start">Change start date</button></div></section>
+    ${w ? `<div class="weekpick" style="max-width:440px"><button class="arrow" data-k="pw-prev" data-act="pweek" data-v="${w - 1}" ${w <= 1 ? 'disabled' : ''} aria-label="Previous week">${I.left}</button>
+      <div class="pick-label">Week ${w}<small>Goal: ${mvpaGoal(p.baseline, w)} active minutes</small></div>
+      <button class="arrow" data-k="pw-next" data-act="pweek" data-v="${w + 1}" ${w >= maxW ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
+    <section class="group"><div class="table-wrap"><table class="data"><thead><tr>${['Day', 'Meals + snacks', 'Protein met', 'Mostly hungry', 'F+V', 'Drinks', 'MVPA min', 'Activity', 'Strength', 'Side effects', 'Weight'].map((h, i) => `<th class="${i && i < 7 || i === 10 ? 'num' : ''}">${h}</th>`).join('')}</tr></thead><tbody>
+      ${rows.map(([t, r]) => `<tr><td><strong>${fmt(t, { weekday: 'short', month: 'short', day: 'numeric' })}</strong></td>${r ? `<td class="num">${r.meals}</td><td class="num">${r.prot}</td><td class="num">${r.hunger}</td><td class="num">${r.fv}</td><td class="num">${r.bev}</td><td class="num">${r.mins}</td><td>${esc(r.acts) || dash}</td><td>${r.str ? 'Yes' : dash}</td><td>${esc(r.sym) || '<span class="muted">None</span>'}</td><td class="num">${r.wt ?? dash}</td>` : `<td colspan="10" class="muted">Not logged yet</td>`}</tr>`).join('')}
+    </tbody></table></div></section>
+    <p class="foot">${real ? 'Same data as the Participant app preview. Change something there and it shows up here.' : 'Random sample rows. Open BRX-014 to see the data from the Participant app preview.'}</p>`
+    : '<div class="banner info">This participant has not started yet. Their data appears here from their start date.</div>'}`;
+  }
+  function adminAdd() {
+    const e = S.admin.err;
+    const f = (id, label, type = 'text', small = '', val = '') => `<div class="field"><label for="${id}">${label}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="${type}" value="${esc(val)}" ${e[id] ? `aria-describedby="${id}-e" aria-invalid="true"` : ''}>${e[id] ? `<span class="err-msg" id="${id}-e">${e[id]}</span>` : small ? `<small>${small}</small>` : ''}</div>`;
+    return `<section class="group pad" style="max-width:820px"><h2>Add a participant</h2>
+      <form id="add-form" novalidate style="display:grid;gap:18px"><div class="form-grid">
+        ${f('np-id', 'Study ID (also their username)', 'text', 'Format BRX-000', `BRX-0${16 + S.admin.added.length}`)}${f('np-first', 'First name', 'text', 'Used to greet them in the app and emails')}
+        ${f('np-pw', 'Password', 'password', 'At least 10 characters. Write it on their sign-in card.')}${f('np-pw2', 'Confirm password', 'password')}
+        ${f('np-email', 'Email', 'email', 'Encrypted before it leaves this screen. Staff see it masked; developers never see it.')}${f('np-start', 'Program start date', 'date', 'Can be changed later', '2027-02-01')}
+        ${f('np-base', 'Baseline active minutes per week', 'number', 'Under 100 starts at a 100 minute goal. 100 or more starts at 125.')}
+      </div><button class="btn" type="submit" style="justify-self:start" data-k="np-go">Add participant</button></form></section>`;
+  }
+  function adminReports() {
+    const daily = 'study_id,date,study_week,study_day,meals_eaten,snacks_eaten,meal_protein_met,snack_protein_met,eat_mostly_hungry,fruit_veg,beverages,mvpa_min,activity_types,strength,symptoms,weight_lb\nBRX-014,2027-01-18,3,15,3,1,2,0,3,4,6,30,Bicycling,0,,\nBRX-014,2027-01-17,2,14,3,2,3,1,4,3,5,0,,0,Nausea or upset stomach:2,207.1\nBRX-002,2027-01-18,4,29,3,0,2,0,2,5,8,45,Running,1,,198.4';
+    const weekly = 'study_id,study_week,days_logged,pct_meals_protein,pct_snacks_protein,avg_fruit_veg,avg_beverages,mvpa_min,mvpa_goal,mvpa_goal_met,strength_sessions,weigh_ins,lb_change_from_start,pct_weight_change\nBRX-014,2,7,76,43,3.1,5.0,145,100,1,2,3,-4.6,-2.2\nBRX-014,1,7,71,40,2.9,5.4,120,100,1,2,4,-1.9,-0.9\nBRX-002,3,6,88,50,4.2,7.1,190,175,1,2,2,-6.3,-2.9';
+    const card = (name, file, desc, sample) => `<section class="group pad" style="align-content:start;min-width:0"><h2 style="font-size:1.2rem">${name}</h2><p class="muted" style="font-size:1rem">${desc}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn small" data-k="dl-${file}-x" data-act="dl" data-v="${file}.xlsx">${I.dl} Excel</button><button class="btn small ghost" data-k="dl-${file}-c" data-act="dl" data-v="${file}.csv">CSV</button></div>
+      <p class="q-label" style="font-size:.9rem">First rows</p><div class="code">${esc(sample)}</div></section>`;
+    return `<div class="dl-grid">${card('Daily report', 'boostrx_daily', 'One row per participant per day, with every item they logged.', daily)}${card('Weekly summary', 'boostrx_weekly', 'One row per participant per week, with goals and percentages already calculated.', weekly)}</div>
+      <div class="banner info">Each Excel file also has a Data dictionary tab explaining every column, plus tabs for meals, side effects, medication, and lesson views. Every download is recorded in the audit log.</div>`;
+  }
+  function adminAdmins() {
+    return `<section class="group pad" style="max-width:820px"><h2>Study admins</h2>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Username</th><th>First name</th><th>Sign-in code app</th><th>Last sign in</th></tr></thead><tbody>
+        <tr><td>admin1</td><td>Alex</td><td><span class="tag ok">Set up</span></td><td>Today</td></tr><tr><td>admin2</td><td>Jordan</td><td><span class="tag ok">Set up</span></td><td>Yesterday</td></tr><tr><td>coordinator1</td><td>Sam</td><td><span class="tag warn">Not set up</span></td><td>Never</td></tr>
+      </tbody></table></div>
+      <h3 style="margin-top:8px">Add an admin</h3>
+      <div class="form-grid"><div class="field"><label for="na-user">Username</label><input class="input" id="na-user" data-k="na-user"></div><div class="field"><label for="na-first">First name</label><input class="input" id="na-first" data-k="na-first"></div>
+      <div class="field"><label for="na-pw">Password</label><input class="input" id="na-pw" data-k="na-pw" type="password"></div><div class="field"><label for="na-pw2">Confirm password</label><input class="input" id="na-pw2" data-k="na-pw2" type="password"></div></div>
+      <button class="btn small" style="justify-self:start" data-k="na-go" data-act="add-admin">Add admin</button>
+      <p class="foot" style="padding:0">New admins set up a sign-in code app (like Google Authenticator) the first time they sign in.</p></section>`;
+  }
+
+  /* ---------- events ---------- */
+  const root = $('#root');
+  root.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    const a = b.dataset.act, v = b.dataset.v, x = S.mode === 'app' ? dayData(S.day) : null;
+    const mealId = b.closest('[data-meal]')?.dataset.meal, m = mealId && x.meals[mealId];
+    switch (a) {
+      case 'set-day': S.day = +b.dataset.day; break;
+      case 'meal-toggle': if (m?.eaten) { delete x.meals[mealId]; S.open[mealId + S.day] = false; } else { x.meals[mealId] = { eaten: true, protein: null, hunger: null, reason: null, other: '' }; S.open[mealId + S.day] = true; } break;
+      case 'meal-open': S.open[mealId + S.day] = !S.open[mealId + S.day]; break;
+      case 'protein': m.protein = v; break;
+      case 'hunger': m.hunger = v; if (v === 'Yes') m.reason = null; break;
+      case 'reason': m.reason = v; break;
+      case 'tok': case 'tok-minus': {
+        const box = b.closest('[data-serve]'), k = box.dataset.serve, goal = +box.dataset.goal, before = x[k];
+        x[k] = a === 'tok-minus' ? Math.max(0, x[k] - 1) : (+b.dataset.n === x[k] ? x[k] - 1 : +b.dataset.n);
+        render(); if (x[k] > before) feedback(k + S.day, x[k], goal, k === 'fv' ? 'You had 5 servings of fruits and vegetables.' : 'You drank 8 cups of sugar-free drinks.'); return;
+      }
+      case 'sym': { const i = b.closest('[data-sym]').dataset.sym; if (x.sym[i] !== undefined) delete x.sym[i]; else x.sym[i] = null; break; }
+      case 'sev': x.sym[b.closest('[data-sym]').dataset.sym] = +v; break;
+      case 'act-day': S.actDay = +b.dataset.day; break;
+      case 'ex': { const y = dayData(S.actDay); y.ex = v === 'true'; if (!y.ex) { y.mins = 0; y.acts = []; } break; }
+      case 'act': { const y = dayData(S.actDay); y.acts = y.acts.includes(v) ? y.acts.filter(z => z !== v) : [...y.acts, v]; break; }
+      case 'strength': { const y = dayData(S.actDay), wk = weekOf(S.actDay); y.strength = !y.strength; render(); if (y.strength) feedback('str' + wk, weekStrength(wk), 2, 'You did 2 strength sessions this week.'); return; }
+      case 'wpt': S.wsel = +b.dataset.t; break;
+      case 'weight-save': { const val = parseFloat($('#w-today').value); if (!(val > 60 && val < 700)) { toast('Type your weight in pounds, for example 205.4'); return; } days[TODAY].weight = +val.toFixed(1); S.wsel = TODAY; render(); toast('Weight saved.'); return; }
+      case 'week': S.week = +v; break;
+      case 'lesson': S.lesson = +v; break;
+      case 'lesson-back': S.lesson = null; break;
+      case 'play': { const L = lessons[S.lesson - 1]; L.watched = Math.min(100, L.watched + 50); render(); if (L.watched >= 100) toast('Lesson watched. Your survey is ready below.'); return; }
+      case 'survey': toast("Opens the team's survey link for this week."); return;
+      case 'dose-save': med.doses.push({ date: $('#dose-date').value, time: $('#dose-time').value, dose: $('#dose-amt').value }); med.doses.sort((p, q) => p.date.localeCompare(q.date)); render(); toast('Dose saved.'); return;
+      case 'theme': v ? document.documentElement.setAttribute('data-theme', v) : document.documentElement.removeAttribute('data-theme'); break;
+      case 'forgot': toast('Participants contact the study team, who set a new password in the admin portal.'); return;
+      case 'to-admin': S.mode = 'admin'; break;
+      case 'anav': S.admin.view = v; S.admin.err = {}; break;
+      case 'sort': { const [k, dir] = S.admin.sort; S.admin.sort = [v, k === v ? -dir : 1]; break; }
+      case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; break;
+      case 'pweek': S.admin.pweek = +v; break;
+      case 'impersonate': if (v === 'BRX-014') { S.mode = 'app'; S.tab = 'today'; render(); scrollTo(0, 0); toast('Viewing as BRX-014. Read-only on the real site.'); } else toast("Opens this participant's app, read-only. Try it on BRX-014."); return;
+      case 'reset-pw': toast('Sets a new password to give the participant. Their old one stops working.'); return;
+      case 'edit-start': toast('Opens a date picker. Their week numbers and goals shift to match.'); return;
+      case 'dl': toast(`The real site downloads ${v} here. The first rows are shown below.`); return;
+      case 'add-admin': toast('Admin added. They set up their sign-in code app on first sign in.'); return;
+      default: return;
+    }
+    render();
+  });
+  root.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-act]')) { e.preventDefault(); e.target.click(); } });
+  root.addEventListener('change', e => {
+    const a = e.target.dataset.act;
+    if (a === 'reason-other') dayData(S.day).meals[e.target.closest('[data-meal]').dataset.meal].other = e.target.value;
+    else if (a === 'act-other') dayData(S.actDay).actOther = e.target.value;
+    else if (a === 'mins') { const y = dayData(S.actDay), w = weekOf(S.actDay), g = mvpaGoal(BASELINE, w); y.mins = Math.min(600, +e.target.value.replace(/\D/g, '') || 0); render(); feedback('mvpa' + w, weekMins(w), g, `You reached ${g} active minutes this week.`); }
+    else if (a === 'plan-day') med.plan.day = e.target.value;
+    else if (a === 'plan-dose') med.plan.dose = e.target.value;
+  });
+  root.addEventListener('input', e => { if (e.target.dataset.act === 'aq') { S.admin.q = e.target.value; render(); } });
+  root.addEventListener('submit', e => {
+    e.preventDefault();
+    if (e.target.id === 'signin-form') { S.mode = 'app'; S.tab = 'today'; render(); toast('Signed in. You will stay signed in on this device.'); return; }
+    if (e.target.id === 'add-form') {
+      const g = id => $('#' + id).value.trim(), err = {}, id = g('np-id').toUpperCase();
+      if (!/^BRX-\d{3}$/.test(id)) err['np-id'] = 'Use the format BRX-000.';
+      else if (all().some(p => p.id === id)) err['np-id'] = 'That study ID already exists.';
+      if (g('np-pw').length < 10) err['np-pw'] = 'Use at least 10 characters.';
+      if (g('np-pw') !== g('np-pw2')) err['np-pw2'] = 'The two passwords do not match.';
+      if (g('np-base') === '') err['np-base'] = 'Enter their usual weekly minutes, or 0.';
+      if (Object.keys(err).length) { S.admin.err = err; render(); $('#' + Object.keys(err)[0])?.focus(); return; }
+      const start = Date.parse(g('np-start') || '2027-02-01');
+      S.admin.added.push({ id, first: g('np-first') || 'New', start, wk: start > TODAY ? 'NS' : Math.floor((TODAY - start) / DAY / 7) + 1, last: null, baseline: +g('np-base'), mvpa: null, str: null, prot: null, fv: null, bev: null });
+      S.admin.err = {}; S.admin.view = 'home'; render(); toast(`${id} added. Their activity goal starts at ${+g('np-base') < 100 ? 100 : 125} minutes.`);
+    }
+  });
+
+  render();
+})();
+</script>
+
+</html>
