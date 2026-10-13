@@ -1,0 +1,83 @@
+{
+  "users": [
+    {
+      "id": "u-admin-1",
+      "email": "admin@boostrx.test",
+      "name": "Dr. Chen",
+      "role": "admin",
+      "passwordHash": "$2a$10$ClYdGKDtBHqcSmbz7HksNuIMr9yQtXrqTXRyCTiWMG4.8K/KSHDcS"
+    },
+    {
+      "id": "u-participant-1",
+      "email": "linda@boostrx.test",
+      "name": "Linda Parker",
+      "role": "participant",
+      "studyId": "BRX-1042",
+      "passwordHash": "$2a$10$flT/WKgpTZ.rcXHgJF.m0OEK6RKYJ7esrHp9XDf85/NYPnBbqf4/6"
+    },
+    {
+      "id": "u-participant-2",
+      "email": "marcos@boostrx.test",
+      "name": "Marcos Ruiz",
+      "role": "participant",
+      "studyId": "BRX-2107",
+      "passwordHash": "$2a$10$xDlZ0/4SRundMtjQ085u0u7qkIUPpSP0r1ycP1tdoOimtGP609O1u"
+    }
+  ],
+  "participants": [
+    {
+      "id": "p-1",
+      "studyId": "BRX-1042",
+      "name": "Linda Parker",
+      "status": "active",
+      "week": 3,
+      "day": 16,
+      "cohort": "Intervention",
+      "lastCheckin": "2026-01-19",
+      "email": "linda@boostrx.test"
+    },
+    {
+      "id": "p-2",
+      "studyId": "BRX-2107",
+      "name": "Marcos Ruiz",
+      "status": "active",
+      "week": 2,
+      "day": 11,
+      "cohort": "Control",
+      "lastCheckin": "2026-01-12",
+      "email": "marcos@boostrx.test"
+    }
+  ],
+  "checkins": [
+    {
+      "id": "c-1",
+      "participantId": "p-1",
+      "date": "2026-01-19",
+      "breakfast": "logged",
+      "goalProtein": true,
+      "fruitServings": 2,
+      "drinkCups": 3,
+      "sideEffects": [
+        "Fatigue"
+      ],
+      "mood": 3,
+      "weight": 150.8,
+      "activeMinutes": 32
+    },
+    {
+      "id": "c-2",
+      "participantId": "p-2",
+      "date": "2026-01-12",
+      "breakfast": "not-logged",
+      "goalProtein": false,
+      "fruitServings": 1,
+      "drinkCups": 4,
+      "sideEffects": [
+        "Nausea"
+      ],
+      "mood": 2,
+      "weight": 172.4,
+      "activeMinutes": 18
+    }
+  ]
+}

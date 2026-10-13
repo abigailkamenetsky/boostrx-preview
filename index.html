@@ -390,6 +390,38 @@ table.data .id { font-weight: 700; color: var(--primary); }
   const S = { mode: 'app', tab: 'today', day: TODAY, open: {}, actDay: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
     admin: { authed: false, step: 'pw', view: 'home', sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
       admins: [{ user: 'admin1', first: 'Alex', set: true, last: 'Today' }, { user: 'admin2', first: 'Jordan', set: true, last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', set: false, last: 'Never' }] } };
+  const API_BASE = 'http://localhost:4000';
+  const DEMO_USER_MAP = {
+    'BRX-014': 'linda@boostrx.test',
+    'BRX-2107': 'marcos@boostrx.test',
+    admin: 'admin@boostrx.test',
+    demo: 'admin@boostrx.test'
+  };
+  function getStoredToken() { return localStorage.getItem('boostrx_token') || ''; }
+  function setStoredToken(token) { if (token) localStorage.setItem('boostrx_token', token); else localStorage.removeItem('boostrx_token'); }
+  async function apiRequest(path, options = {}) {
+    const token = getStoredToken();
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
+      ...options
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.error || 'Request failed');
+    }
+    return body;
+  }
+  async function loginWithBackend({ email, password }) {
+    if (!email || !password) throw new Error('Email and password required');
+    const payload = await apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    setStoredToken(payload.token);
+    return payload;
+  }
+  function ensureDemoAuth() {
+    const token = getStoredToken();
+    if (!token) return false;
+    return true;
+  }
   const dayData = t => days[t] || (days[t] = blankDay());
 
   // Re-render everything on change, then put focus back on the same control (matched by data-k).
@@ -416,7 +448,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       <form class="signin-card" id="signin-form" novalidate>
         <h2>Sign in</h2>
         <div class="field"><label for="si-id">Study ID</label><input class="input" id="si-id" data-k="si-id" autocomplete="username" value="BRX-014" autocapitalize="characters"><small>Printed on the card the study team gave you.</small></div>
-        <div class="field"><label for="si-pw">Password</label><input class="input" id="si-pw" data-k="si-pw" type="password" autocomplete="current-password" value="sample-pass"></div>
+        <div class="field"><label for="si-pw">Password</label><input class="input" id="si-pw" data-k="si-pw" type="password" autocomplete="current-password" value="patient123"></div>
         <button class="btn" type="submit" data-k="si-go">Sign in</button>
         <p class="muted" style="font-size:.95rem">You'll stay signed in on this device until the program ends.</p>
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:8px">
@@ -701,8 +733,8 @@ table.data .id { font-weight: 700; color: var(--primary); }
           <button class="btn" type="submit" data-k="a-code-go">Sign in</button><p class="foot" style="padding:0">Demo: type any 6 digits.</p></form>`
         : `<form class="signin-card" id="admin-pw-form" novalidate><h2>Study staff sign in</h2>
           ${S.admin.err.pw ? `<p class="err-msg" role="alert">${S.admin.err.pw}</p>` : ''}
-          <div class="field"><label for="a-user">Username</label><input class="input" id="a-user" data-k="a-user" autocomplete="username" value="demo"></div>
-          <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="demo-password"></div>
+          <div class="field"><label for="a-user">Username</label><input class="input" id="a-user" data-k="a-user" autocomplete="username" value="admin@boostrx.test"></div>
+          <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="admin123"></div>
           <button class="btn" type="submit" data-k="a-pw-go">Continue</button><p class="foot" style="padding:0">Demo: any username and password. The real site checks both, then asks for the code.</p></form>`}
     </div>`;
     const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['reports', 'Reports'], ['admins', 'Admins']];
@@ -936,11 +968,31 @@ table.data .id { font-weight: 700; color: var(--primary); }
     else if (a === 'plan-dose') med.plan.dose = e.target.value;
   });
   root.addEventListener('input', e => { if (e.target.dataset.act === 'aq') { S.admin.q = e.target.value; render(); } });
-  root.addEventListener('submit', e => {
+  root.addEventListener('submit', async e => {
     e.preventDefault();
-    if (e.target.id === 'signin-form') { S.mode = 'app'; S.tab = 'today'; render(); toast('Signed in. You will stay signed in on this device.'); return; }
+    if (e.target.id === 'signin-form') {
+      const studyId = $('#si-id').value.trim().toUpperCase();
+      const password = $('#si-pw').value.trim();
+      const email = DEMO_USER_MAP[studyId] || `${studyId.toLowerCase()}@boostrx.test`;
+      try {
+        const payload = await loginWithBackend({ email, password });
+        S.mode = 'app'; S.tab = 'today'; S.admin.authed = false; render(); toast(`Signed in as ${payload.user.name}.`); return;
+      } catch (error) {
+        toast('Local backend login failed. Falling back to the sample demo flow.');
+      }
+      S.mode = 'app'; S.tab = 'today'; render(); toast('Signed in. You will stay signed in on this device.'); return;
+    }
     if (e.target.id === 'admin-pw-form') {
-      if (!$('#a-user').value.trim() || !$('#a-pw').value) { S.admin.err = { pw: 'Enter your username and password.' }; render(); return; }
+      const user = $('#a-user').value.trim();
+      const password = $('#a-pw').value;
+      if (!user || !password) { S.admin.err = { pw: 'Enter your username and password.' }; render(); return; }
+      const email = user.includes('@') ? user : DEMO_USER_MAP[user.toLowerCase()] || 'admin@boostrx.test';
+      try {
+        const payload = await loginWithBackend({ email, password });
+        S.admin.err = {}; S.admin.authed = true; S.admin.view = 'home'; S.admin.step = 'pw'; render(); scrollTo(0, 0); toast(`Admin signed in as ${payload.user.name}.`); return;
+      } catch (error) {
+        toast('Admin login failed. Falling back to the mock admin flow.');
+      }
       S.admin.err = {}; S.admin.step = 'code'; render(); $('#a-code')?.focus(); return;
     }
     if (e.target.id === 'admin-code-form') {
