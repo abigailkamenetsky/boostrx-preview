@@ -89,6 +89,8 @@ button, input, select { font: inherit; color: inherit; }
 .err-msg { color: var(--danger); font-size: .92rem; font-weight: 600; }
 .banner { padding: 12px 16px; border-radius: 14px; font-size: .98rem; }
 .banner.info { background: var(--primary-soft); color: var(--ink); }
+.banner.bad { background: var(--danger-soft); color: var(--danger); font-weight: 600; display: grid; gap: 10px; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .tag { display: inline-flex; align-items: center; font-size: .8rem; font-weight: 700; letter-spacing: .04em; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 .tag.sample { text-transform: uppercase; color: var(--warn-ink); background: var(--warn-soft); }
 .tag.ok { color: var(--success); background: var(--success-soft); }
@@ -312,7 +314,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   <a class="switch-link" href="https://abigailkamenetsky.github.io/boostrx-preview/screens.html" target="_blank" rel="noopener">Screenshots of the real website</a>
 </div>
 <main id="root"></main>
-<nav class="tabs" id="tabs" aria-label="App sections"><div class="inner" role="tablist" id="tabs-inner"></div></nav>
+<nav class="tabs" id="tabs" aria-label="Website sections"><div class="inner" role="tablist" id="tabs-inner"></div></nav>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="celebrate" id="celebrate" hidden role="dialog" aria-modal="true" aria-labelledby="cel-title">
   <div class="cel-card">
@@ -417,10 +419,11 @@ table.data .id { font-weight: 700; color: var(--primary); }
   const lessons = Array.from({ length: 14 }, (_, i) => ({ n: i + 1 }));
 
   /* ---------- state ---------- */
-  const S = { mode: 'app', tab: 'dashboard', day: TODAY, open: {}, actDay: TODAY, actDone: {}, strOn: {}, wday: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
+  const S = { mode: 'app', tab: 'dashboard', day: TODAY, open: {}, mconfirm: null, month: null, actDay: TODAY, actDone: {}, strOn: {}, wday: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
     dose: { date: iso(TODAY - DAY), time: '09:00', dose: null, route: null, changed: null, details: '' },
     admin: { authed: false, view: 'home', sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
-      admins: [{ user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
+      confirm: null, // which two-step button is asking ("restore-BRX-009", "remove-admin2")
+      admins: [{ user: 'demo', first: 'Demo', last: 'Today', me: true }, { user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
   const dayData = t => days[t] || (days[t] = blankDay());
 
   // Re-render everything on change, then put focus back on the same control (matched by data-k).
@@ -458,7 +461,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
 
   /* ---------- participant website ---------- */
   const TABS = [['dashboard', 'Dashboard', I.today], ['activity', 'Activity', I.move], ['weight', 'Weight', I.scale], ['summaries', 'Summaries', I.chart], ['more', 'More', I.more]];
-  $('#tabs-inner').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; S.tab = b.dataset.tab; S.lesson = null; render(); scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); });
+  $('#tabs-inner').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; S.tab = b.dataset.tab; S.lesson = null; S.month = null; render(); scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); });
 
   function ring(label, v, goal, unit) {
     const C = 2 * Math.PI * 24, met = v >= goal;
@@ -492,6 +495,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
 
   function viewApp() {
     const T = S.tab === 'more' && S.lesson ? [`Lesson ${S.lesson}`, viewLesson]
+      : S.tab === 'summaries' && S.month ? [`Month ${S.month} summary`, viewMonth]
       : { dashboard: ['Participant Dashboard', viewDashboard], activity: ['Activity', viewActivity], weight: ['Weight', viewWeight], summaries: ['Weekly Summaries', viewSummaries], more: ['More', viewMore] }[S.tab];
     return `<div class="wrap">${header(T[0])}${T[1]()}</div>`;
   }
@@ -521,7 +525,9 @@ table.data .id { font-weight: 700; color: var(--primary); }
         <button class="row-btn" style="flex:1" data-k="meal-${k}" data-act="meal-toggle" aria-pressed="${on}"><span class="check">${I.check}</span><span class="row-text"><span class="row-title">${esc(name)}</span><span class="row-sub">${esc(sub)}</span></span></button>
         ${on ? `<button class="minus" style="margin-right:14px" data-k="meal-open-${m.id}" data-act="meal-open" aria-expanded="${!!open}">${open ? 'Done' : needs ? 'Answer' : 'Edit'}</button>` : ''}
       </div>
-      ${open ? `<div class="detail">
+      ${on && S.mconfirm === m.id ? `<div class="detail" role="group" aria-label="Remove ${esc(name)}?"><span class="q-label">Remove ${esc(name.toLowerCase())}? Its answers will be deleted.</span>
+        <div class="btn-row"><button class="minus" data-k="mrm-${m.id}" data-act="meal-remove">Remove</button><button class="minus" data-k="mkeep-${m.id}" data-act="meal-keep">Keep</button></div></div>` : ''}
+      ${open && S.mconfirm !== m.id ? `<div class="detail">
         <div class="q"><span class="q-label" id="pq-${m.id}">Did this ${what} include a significant source of protein (about 10 g or more)?</span>
           <div class="seg" role="group" aria-labelledby="pq-${m.id}">${[['Yes', true], ['No', false]].map(([l, v]) => `<button data-k="p-${m.id}-${l}" data-act="protein" data-v="${v}" aria-pressed="${m.protein === null ? false : (m.protein > 0) === v}">${l}</button>`).join('')}</div></div>
         ${m.protein ? `<div class="q"><span class="q-label" id="ps-${m.id}">About how much protein? Tap one for each 10 g.</span>
@@ -648,7 +654,58 @@ table.data .id { font-weight: 700; color: var(--primary); }
     <section class="section"><div class="section-head"><h2>Self-Weighing Goals</h2></div><div class="group"><div class="stats">
       ${stat(s.weighIns, 2, 'weigh-ins', s.weighIns >= 2)}
     </div></div></section>
+    ${MONTHS.some(monthOpen) ? `<section class="section"><div class="section-head"><h2>Monthly summaries</h2></div><div class="group">
+      ${MONTHS.filter(monthOpen).map(m => `<div class="row" style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>Month ${m}</strong> <span class="muted">weeks ${m * 4 - 3} to ${m * 4}</span></span><button class="btn small" data-k="month-${m}" data-act="month" data-v="${m}">Open</button></div>`).join('')}
+    </div></section>` : ''}
     <div class="banner info">${s.goalMet ? 'You met your activity goal this week. That consistency is what builds the habit.' : 'Every week counts, including the busy ones. Small steps add up.'}</div>`;
+  }
+
+  /* ---------- monthly summary (same rules and wording as web/src/lib/message-text.ts, DRAFT for the team) ---------- */
+  const MONTHS = [1, 2, 3];
+  const monthWeeks = m => [m * 4 - 3, m * 4 - 2, m * 4 - 1, m * 4];
+  /** Month m's summary opens on the first day of the week after it ends (the day its email goes out). */
+  const monthOpen = m => TODAY >= weekStart(m * 4 + 1);
+  const TIPS = {
+    activity: 'Try adding one 10-minute brisk walk on a day you usually skip.',
+    strength: 'Pick two days for strength training and put them on your calendar.',
+    protein: 'Add a protein food to a snack, such as Greek yogurt, a cheese stick, or a hard-boiled egg.',
+    fruitVeg: 'Add one serving of fruit or vegetables to a meal you already eat.',
+    hydration: 'Keep a water bottle where you can see it and refill it twice a day.',
+    weighing: 'Weigh yourself on the same two mornings each week.',
+  };
+  const TIP_LABEL = { activity: 'aerobic exercise', strength: 'strength training', protein: 'protein', fruitVeg: 'fruits and vegetables', hydration: 'sugar-free drinks', weighing: 'self-weighing' };
+  function monthlyNote(weeks, daysPossible) {
+    const logged = weeks.reduce((a, w) => a + w.daysLogged, 0);
+    const effort = `You logged on ${logged} of ${daysPossible} days this month.${logged >= daysPossible * 0.7 ? " That's real consistency." : ' Every entry helps you see your own patterns.'}`;
+    const share = w => ({
+      activity: Math.min(1, w.mins / w.goal), strength: Math.min(1, w.str / 2),
+      protein: w.avgProt === null ? null : Math.min(1, w.avgProt / PROTEIN_GOAL), fruitVeg: w.avgFv === null ? null : Math.min(1, w.avgFv / 5),
+      hydration: w.avgBev === null ? null : Math.min(1, w.avgBev / 8), weighing: Math.min(1, w.weighIns / 2),
+    });
+    const keys = Object.keys(TIPS);
+    const avg = (ws, k) => { const v = ws.map(w => share(w)[k]).filter(x => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+    const early = weeks.slice(0, 2), late = weeks.slice(2);
+    let best = null;
+    for (const k of keys) { const a = avg(early, k), b = avg(late, k); if (a !== null && b !== null && b - a >= 0.1 && (!best || b - a > best.gain)) best = { k, gain: b - a }; }
+    const trend = best ? `Your ${TIP_LABEL[best.k]} improved over the month. That trend matters more than any single week.`
+      : "Some weeks are harder than others, and that's normal. What matters is the overall direction, not a perfect week.";
+    let focus = 'activity', low = Infinity;
+    for (const k of keys) { const v = avg(weeks, k); if (v !== null && v < low) { low = v; focus = k; } }
+    return { effort, trend, action: TIPS[focus], reflect: 'Think about your best week this month. What helped most, and how could you repeat it?' };
+  }
+  function viewMonth() {
+    const m = S.month, weeks = monthWeeks(m), p = PEOPLE.find(x => x.id === 'BRX-014'), s = weeks.map(w => summarize(p, w)), note = monthlyNote(s, 28), dash = '–';
+    const first = weekStart(weeks[0]), last = weekStart(weeks[3]) + 6 * DAY, mark = met => met ? ' <span class="tag ok">Met</span>' : '';
+    return `<p style="margin:0"><button class="linkish back" data-k="month-back" data-act="month-back">${I.left} Weekly Summaries</button></p>
+    <p class="hint">Weeks ${weeks[0]} to ${weeks[3]}, ${fmt(first, { month: 'short', day: 'numeric' })} to ${fmt(last, { month: 'short', day: 'numeric' })}.</p>
+    <section class="section"><div class="section-head"><h2>How the month went</h2></div>
+      <div class="group pad"><p>${note.effort}</p><p>${note.trend}</p><p><strong>One thing to try next month:</strong> ${note.action}</p><p class="muted">${note.reflect}</p></div></section>
+    <section class="section"><div class="section-head"><h2>Week by week</h2></div>
+      <div class="group"><div class="table-wrap"><table class="data"><thead><tr><th>Week</th><th class="num">Aerobic minutes</th><th class="num">Strength</th><th class="num">Protein a day</th><th class="num">Fruit + veg a day</th><th class="num">Drinks a day</th><th class="num">Weigh-ins</th></tr></thead><tbody>
+        ${s.map((w, i) => `<tr><td>${weeks[i]}</td><td class="num">${w.mins} / ${w.goal}${mark(w.goalMet)}</td><td class="num">${w.str} / 2${mark(w.strMet)}</td><td class="num">${w.avgProt ?? dash}${mark(w.avgProt !== null && w.avgProt >= PROTEIN_GOAL)}</td>
+          <td class="num">${w.avgFv ?? dash}${mark(w.avgFv !== null && w.avgFv >= 5)}</td><td class="num">${w.avgBev ?? dash}${mark(w.avgBev !== null && w.avgBev >= 8)}</td><td class="num">${w.weighIns} / 2${mark(w.weighIns >= 2)}</td></tr>`).join('')}
+      </tbody></table></div></div>
+      <p class="foot">Daily numbers are averages of the days you logged.</p></section>`;
   }
 
   function viewMore() {
@@ -727,6 +784,33 @@ table.data .id { font-weight: 700; color: var(--primary); }
   const lastLogged = p => { const D = pdays[p.id] || {}; const ts = Object.keys(D).map(Number).filter(t => isLogged(D[t])); return ts.length ? Math.max(...ts) : null; };
   const pDates = (p, w) => Array.from({ length: 7 }, (_, i) => p.start + ((w - 1) * 7 + i) * DAY);
   const avg1 = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 10) / 10 : null;
+
+  // Admin-side sample extras: one participant whose access was ended, two without an email on file, lesson views, and the
+  // messages the daily job would have recorded (email sending is not set up yet, so they show as not_sent).
+  PEOPLE.forEach(p => { p.hasEmail = !['BRX-003', 'BRX-010'].includes(p.id); p.ended = null; p.reason = null; });
+  Object.assign(PEOPLE.find(p => p.id === 'BRX-009'), { ended: TODAY - 5 * DAY, reason: 'Withdrew 1/14' });
+  const lessonUpTo = p => { const wk = pWeek(p); return wk === 'C' ? 14 : typeof wk === 'number' ? wk : 0; };
+  const plessons = {}, pmsgs = {}, TEMPLATE_VERSION = 'draft-2026-10-23';
+  PEOPLE.forEach(p => {
+    seed = 500 + p.id.charCodeAt(6) * 13 + p.id.charCodeAt(5) * 7;
+    const stop = Math.min(p.ended ?? TODAY, TODAY), L = plessons[p.id] = [];
+    for (let n = 1; n <= lessonUpTo(p); n++) {
+      const first = p.start + (n - 1) * 7 * DAY + Math.floor(rnd() * 3) * DAY + (14 + Math.floor(rnd() * 8)) * 3600e3;
+      if (rnd() < .2 || first > stop + 10 * 3600e3) continue;
+      const pct = rnd() < .75 ? 70 + Math.floor(rnd() * 31) : Math.floor(rnd() * 60);
+      L.push({ lesson: n, first, count: 1 + Math.floor(rnd() * 3), pct, survey: pct >= 50 && rnd() < .7 ? first + 600e3 : null });
+    }
+    // Same rules as web/src/lib/jobs.ts: a check-in after 3 quiet program days (once per quiet spell), and a monthly
+    // summary on the first day of weeks 5, 9, and 13.
+    const D = pdays[p.id] || {}, M = pmsgs[p.id] = [], seen = new Set(), end = Math.min(p.ended ?? Infinity, TODAY, p.start + 97 * DAY);
+    const add = (t, kind, period) => { if (seen.has(kind + period)) return; seen.add(kind + period);
+      M.push({ at: t + 14 * 3600e3, kind, period, status: p.hasEmail ? 'not_sent' : 'no_email', detail: p.hasEmail ? 'Email sending is not set up on this server yet (SMTP_URL and MAIL_FROM).' : 'No email on file.' }); };
+    for (let t = p.start; t <= end; t += DAY) {
+      let last = null; for (let u = t - DAY; u >= p.start; u -= DAY) if (isLogged(D[u])) { last = u; break; }
+      if ((t - (last ?? p.start - DAY)) / DAY >= 4 && (t - p.start) / DAY >= 3) add(t, 'nudge_3day', last === null ? 'never' : iso(last));
+      [1, 2, 3].forEach(m => { if (t === p.start + m * 28 * DAY) add(t, 'monthly_summary', String(m)); });
+    }
+  });
   /** Same math as the real website's weekly summary (web/src/lib/summary.ts). */
   function summarize(p, w) {
     const ds = pDates(p, w).filter(t => t <= TODAY).map(t => pdays[p.id]?.[t]).filter(Boolean);
@@ -743,9 +827,9 @@ table.data .id { font-weight: 700; color: var(--primary); }
   }
   const COLS = [['id', 'Study ID', p => p.id], ['wk', 'Week', p => p.wk === 'NS' ? -1 : p.wk === 'C' ? 99 : p.wk], ['start', 'Start date', p => p.start], ['last', 'Last logged', p => p.last ?? -1],
     ['mvpa', 'MVPA min', p => p.s?.mins ?? -1, 1], ['str', 'Strength', p => p.s?.str ?? -1, 1], ['prot', 'Protein days', p => p.s?.protGoal ?? -1, 1], ['fv', 'F+V days', p => p.s?.fvAny ?? -1, 1], ['bev', 'Drink days', p => p.s?.bevAny ?? -1, 1]];
-  const late = p => typeof p.wk === 'number' && (p.last === null || TODAY - p.last >= 3 * DAY);
+  const late = p => typeof p.wk === 'number' && !p.ended && (p.last === null || TODAY - p.last >= 3 * DAY);
   const lastCell = p => { if (p.last === null) return `<span class="tag ${late(p) ? 'bad' : 'dim'}">Never</span>`; const ago = Math.round((TODAY - p.last) / DAY), txt = fmt(p.last, { month: 'short', day: 'numeric' }); return late(p) ? `<span class="tag bad">${txt}, ${ago} days ago</span>` : txt; };
-  const wkCell = p => p.wk === 'NS' ? '<span class="tag dim">NS</span>' : p.wk === 'C' ? '<span class="tag ok">C</span>' : p.wk;
+  const wkCell = p => p.ended ? '<span class="tag dim">Ended</span>' : p.wk === 'NS' ? '<span class="tag dim">NS</span>' : p.wk === 'C' ? '<span class="tag ok">C</span>' : p.wk;
   const dash = '<span class="muted">–</span>';
   const dlButtons = (report, pid, csv = true) => `<span style="display:inline-flex;gap:8px;flex-wrap:wrap"><button class="btn small" data-act="dl" data-report="${report}" data-fmt="xlsx" data-p="${pid || ''}" data-k="dl-${report}-${pid}-x">${I.dl} Excel</button>${csv ? `<button class="btn small ghost" data-act="dl" data-report="${report}" data-fmt="csv" data-p="${pid || ''}" data-k="dl-${report}-${pid}-c">CSV</button>` : ''}</span>`;
 
@@ -766,7 +850,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       ${v === 'record' ? adminRecord() : v === 'add' ? adminAdd() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : adminHome()}</div>`;
   }
   function adminHome() {
-    const ps = rowsForHome(), active = ps.filter(p => typeof p.wk === 'number');
+    const ps = rowsForHome(), active = ps.filter(p => typeof p.wk === 'number' && !p.ended);
     const [key, dir] = S.admin.sort, col = COLS.find(c => c[0] === key), q = S.admin.q.trim().toUpperCase();
     const rows = ps.filter(p => !q || p.id.includes(q)).sort((a, b) => { const x = col[2](a), y = col[2](b); return (x > y ? 1 : x < y ? -1 : 0) * dir; });
     const th = ([k, l, , num]) => `<th class="sortable ${num ? 'num prior' : ''}" aria-sort="${key === k ? (dir > 0 ? 'ascending' : 'descending') : 'none'}"><button data-k="sort-${k}" data-act="sort" data-v="${k}">${l}<span aria-hidden="true">${key === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</span></button></th>`;
@@ -781,10 +865,14 @@ table.data .id { font-weight: 700; color: var(--primary); }
           ${['mins', 'str', 'protGoal', 'fvAny', 'bevAny'].map(k => `<td class="num prior">${p.s ? p.s[k] : dash}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div></section>
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center">
-      <p class="foot" style="max-width:680px">Week: NS = not started, 1 to 14 = current week, C = complete. Red = no logging in 3 or more days. Last full week columns: strength = full-body sessions (2 partial = 1 full); protein = days with 8 or more servings; F+V and drinks = days with at least one serving.</p>
+      <p class="foot" style="max-width:680px">Week: NS = not started, 1 to 14 = current week, C = complete, Ended = access ended early. Red = no logging in 3 or more days. Last full week columns: strength = full-body sessions (2 partial = 1 full); protein = days with 8 or more servings; F+V and drinks = days with at least one serving.</p>
       <span style="display:flex;gap:10px;align-items:center"><span class="muted" style="font-size:.92rem">All data:</span>${dlButtons('all', '', false)}</span></div>`;
   }
   const yn = v => v === 'Yes' ? 'Y' : v === 'No' ? 'N' : '?';
+  /** A button that asks once before acting (restore access, remove an admin), like the real ConfirmButton. */
+  const askButton = (key, labelText, question, confirmLabel, act, v) => `<span class="btn-row">${S.admin.confirm === key
+    ? `<span>${esc(question)}</span><button class="btn small" data-k="${key}-yes" data-act="${act}" data-v="${esc(v)}">${confirmLabel}</button><button class="btn small ghost" data-k="${key}-no" data-act="ask" data-v="">Cancel</button>`
+    : `<button class="btn small ghost" data-k="${key}" data-act="ask" data-v="${key}">${labelText}</button>`}</span>`;
   const label = (list, k) => list.find(x => x[0] === k)?.[1] ?? k;
   function adminRecord() {
     const p = all().find(x => x.id === S.admin.pid), wk = pWeek(p), last = lastLogged(p);
@@ -794,7 +882,10 @@ table.data .id { font-weight: 700; color: var(--primary); }
     const f = (id, lbl, type, val, hint) => `<div class="field"><label for="${id}">${lbl}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="${type}" value="${esc(val ?? '')}">${e[id] ? `<span class="err-msg">${e[id]}</span>` : hint ? `<small>${hint}</small>` : ''}</div>`;
     return `<button class="linkish" data-k="rec-back" data-act="anav" data-v="home" style="justify-self:start">← All participants</button>
     ${S.admin.added.some(x => x.id === p.id) && S.admin.justAdded === p.id ? `<p class="banner info">${p.id} was added. Give them their study ID and password.</p>` : ''}
-    <section class="group pad"><div class="record-head"><h2>${p.id}</h2><span>First name: <strong>${esc(p.first)}</strong></span><span>Week: <strong>${wk}</strong></span><span>Start: <strong>${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</strong></span><span>Baseline: <strong>${p.baseline}</strong> min/week</span><span>Email: <span class="tag dim">encrypted, on file</span></span><span>Last logged: <strong>${last ? fmt(last, { month: 'short', day: 'numeric', year: 'numeric' }) : 'never'}</strong></span></div>
+    ${p.ended ? `<div class="banner bad" role="status"><span>Access ended on ${fmt(p.ended, { month: 'short', day: 'numeric', year: 'numeric' })}${p.reason ? ` (${esc(p.reason)})` : ''}. They cannot sign in. Their data is kept.</span>
+      ${askButton(`restore-${p.id}`, 'Restore access', `Let ${p.id} sign in again?`, 'Restore access', 'restore', p.id)}</div>` : ''}
+    <section class="group pad"><div class="record-head"><h2>${p.id}</h2><span>First name: <strong>${esc(p.first)}</strong></span><span>Week: <strong>${wk}</strong></span><span>Start: <strong>${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</strong></span><span>Baseline: <strong>${p.baseline}</strong> min/week</span><span>Email: ${p.hasEmail === false ? '<span class="tag warn">none</span>' : '<span class="tag dim">encrypted, on file</span>'}</span><span>Last logged: <strong>${last ? fmt(last, { month: 'short', day: 'numeric', year: 'numeric' }) : 'never'}</strong></span></div>
+      ${wk !== 'C' && !p.ended ? `<div class="btn-row"><button class="btn small" data-k="rec-view" data-act="impersonate" data-v="${p.id}">View as participant</button><span class="muted" style="font-size:.95rem">See their screens exactly as they do, read-only.</span></div>` : ''}
       <div style="display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center"><span class="muted" style="font-size:.95rem">All of ${p.id}'s data:</span>${dlButtons('all', p.id, false)}<span class="muted" style="font-size:.95rem">Daily report only:</span>${dlButtons('daily', p.id)}<span class="muted" style="font-size:.95rem">Weekly summary only:</span>${dlButtons('weekly', p.id)}</div></section>
     ${w ? `<div class="weekpick" style="max-width:460px"><button class="arrow" data-k="pw-prev" data-act="pweek" data-v="${w - 1}" ${w <= 1 ? 'disabled' : ''} aria-label="Previous week">${I.left}</button>
       <div class="pick-label">Week ${w}<small>${fmt(dates[0], { month: 'short', day: 'numeric' })} to ${fmt(dates[6], { month: 'short', day: 'numeric' })}, MVPA goal ${mvpaGoal(p.baseline, w)}</small></div>
@@ -809,11 +900,18 @@ table.data .id { font-weight: 700; color: var(--primary); }
     </tbody></table></div></section>
     <p class="foot">P = protein servings (about 10 g each), H = ate mostly because hungry, Y/N/? = yes, no, not answered. Doses this week: ${doses.length ? doses.map(d => `${fmt(Date.parse(d.date), { weekday: 'short', month: 'short', day: 'numeric' })} ${d.time} ${esc(d.dose)} ${d.route}${d.rxChanged ? ` (prescription changed: ${esc(d.rxDetails)})` : ''}`).join('; ') : 'none logged'}.${p.id === 'BRX-014' ? ' This is the same data as the Participant website tab: change something there and it shows up here.' : ''}</p>`
     : '<div class="banner info">This participant has not started yet. Their data appears here from their start date.</div>'}
+    <section class="group pad" style="gap:10px"><h2 style="font-size:1.2rem">Lessons and messages</h2>
+      <p><strong>Lessons:</strong> ${(plessons[p.id] || []).length ? plessons[p.id].map(l => `${l.lesson} (watched ${l.pct}%${l.survey ? ', survey clicked' : ''})`).join('; ') : '<span class="muted">none opened yet</span>'}</p>
+      <p><strong>Automated messages:</strong> ${(pmsgs[p.id] || []).length ? [...pmsgs[p.id]].reverse().slice(0, 20).map(m => `${fmt(m.at, { month: 'short', day: 'numeric' })} ${m.kind === 'nudge_3day' ? '3-day check-in' : `month ${m.period} summary`} (${m.status.replace('_', ' ')})`).join('; ') : '<span class="muted">none yet</span>'}</p></section>
     <details class="group pad" ${S.admin.openPanel === 'settings' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Change settings (name, start date, baseline, email)</summary>
       <form id="settings-form" novalidate style="display:grid;gap:16px;margin-top:12px"><div class="form-grid">
         ${f('st-first', 'First name', 'text', p.first)}${f('st-start', 'Program start date', 'date', iso(p.start), 'Moving it shifts week numbers, goals, and the edit window.')}
         ${f('st-base', 'Baseline active minutes per week', 'number', p.baseline)}${f('st-email', 'Replace email (optional)', 'email', '', 'Leave blank to keep the current one. Stored encrypted.')}
       </div><button class="btn small" type="submit" style="justify-self:start" data-k="st-go">Save settings</button></form></details>
+    ${!p.ended && wk !== 'C' ? `<details class="group pad" ${S.admin.openPanel === 'end' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">End access early (for example, they leave the study)</summary>
+      <form id="end-form" novalidate style="display:grid;gap:16px;margin-top:12px;max-width:480px">
+        ${f('ea-reason', 'Reason (optional)', 'text', '', 'For the study records, for example "Withdrew 2/3". Do not include health details. They are signed out on every device; all their data is kept.')}
+        <button class="btn small" type="submit" style="justify-self:start" data-k="ea-go">End access now</button></form></details>` : ''}
     <details class="group pad" ${S.admin.openPanel === 'reset' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Reset password</summary>
       <form id="reset-form" novalidate style="display:grid;gap:16px;margin-top:12px;max-width:480px">
         ${f('rp-pw', 'New password', 'password', '', 'At least 10 characters. Signs them out on every device.')}${f('rp-pw2', 'Confirm new password', 'password', '')}
@@ -836,6 +934,8 @@ table.data .id { font-weight: 700; color: var(--primary); }
     ['weekly', 'Weekly summary', "One row per participant per program week: average protein servings and days meeting the protein goal, average servings, aerobic minutes against that week's goal, strength sessions (two partial sessions = one full-body), weigh-ins, weight change, side effect days, and doses."],
     ['participants', 'Participants', 'One row per participant: start and end dates, current week (NS, 1 to 14, C), baseline and starting goal, days logged, and last logged date.'],
     ['medication', 'Medication', 'Each dose taken: date, time, dose, route (oral or injection), and any reported prescription change.'],
+    ['lessons', 'Lessons', 'One row per participant per opened-up lesson: whether they opened it, how much of the video they actually watched, and when they clicked the survey link.'],
+    ['messages', 'Messages', 'Every automated message (3-day check-in, monthly summary email): when, which wording version, and whether it was sent.'],
     ['history', 'Edit history', 'Every change or removal of logged data, with the values before and after.'],
     ['dictionary', 'Data dictionary', 'What every column in every report means, with codes and units.'],
   ];
@@ -846,15 +946,21 @@ table.data .id { font-weight: 700; color: var(--primary); }
       <div class="banner info">These buttons make real files from this demo's sample data, with the same columns as the real website. Inside Claude's preview window downloads are blocked; they work on the public GitHub Pages version. On the real site, downloads contain protected health information and every one is recorded with who made it and when.</div>`;
   }
   function adminAdmins() {
+    const e = S.admin.err;
+    const pf = (id, lbl, hint, ac) => `<div class="field"><label for="${id}">${lbl}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="password" autocomplete="${ac}">${e[id] ? `<span class="err-msg">${e[id]}</span>` : hint ? `<small>${hint}</small>` : ''}</div>`;
     return `<section class="group pad" style="max-width:820px"><h2>Study admins</h2>
-      <div class="table-wrap"><table class="data"><thead><tr><th>Username</th><th>First name</th><th>Last sign in</th></tr></thead><tbody>
-        ${S.admin.admins.map(a => `<tr><td>${esc(a.user)}</td><td>${esc(a.first)}</td><td>${a.last}</td></tr>`).join('')}
+      <div class="table-wrap"><table class="data"><thead><tr><th>Username</th><th>First name</th><th>Last sign in</th><th></th></tr></thead><tbody>
+        ${S.admin.admins.map(a => `<tr><td>${esc(a.user)}</td><td>${esc(a.first)}</td><td>${a.last}</td><td>${a.me ? '<span class="muted">You</span>' : askButton(`remove-${a.user}`, 'Remove', `Remove ${a.user}? They will no longer be able to sign in.`, 'Remove admin', 'remove-admin', a.user)}</td></tr>`).join('')}
       </tbody></table></div>
       <h3 style="margin-top:8px">Add an admin</h3>
       ${S.admin.err.na ? `<p class="err-msg" role="alert">${S.admin.err.na}</p>` : ''}
       <form id="admin-add-form" novalidate style="display:grid;gap:16px"><div class="form-grid"><div class="field"><label for="na-user">Username</label><input class="input" id="na-user" data-k="na-user"><small>Lowercase, for example jsmith</small></div><div class="field"><label for="na-first">First name</label><input class="input" id="na-first" data-k="na-first"></div>
       <div class="field"><label for="na-pw">Password</label><input class="input" id="na-pw" data-k="na-pw" type="password"><small>At least 12 characters.</small></div><div class="field"><label for="na-pw2">Confirm password</label><input class="input" id="na-pw2" data-k="na-pw2" type="password"></div></div>
-      <button class="btn small" style="justify-self:start" type="submit" data-k="na-go">Add admin</button></form></section>`;
+      <button class="btn small" style="justify-self:start" type="submit" data-k="na-go">Add admin</button></form></section>
+    <section class="group pad" style="max-width:520px"><h2>Change your password</h2>
+      <form id="my-pw-form" novalidate style="display:grid;gap:16px">
+        ${pf('my-cur', 'Current password', '', 'current-password')}${pf('my-pw', 'New password', 'At least 12 characters. Your other devices are signed out.', 'new-password')}${pf('my-pw2', 'Confirm new password', '', 'new-password')}
+        <button class="btn small" style="justify-self:start" type="submit" data-k="my-go">Change password</button><p class="foot" style="padding:0">Demo: any current password works.</p></form></section>`;
   }
 
   /* ---------- downloads (same columns as web/src/lib/reports.ts) ---------- */
@@ -873,8 +979,10 @@ table.data .id { font-weight: 700; color: var(--primary); }
       ['end_date', 'date', 'Last program day (day 98). Access ends the next day.'], ['current_week', 'text', 'Program week today', 'NS = not started, 1 to 14, C = complete'],
       ['baseline_mvpa_min', 'number', 'Self-reported average weekly MVPA minutes before the program'], ['starting_mvpa_goal', 'number', 'Weeks 1-2 MVPA goal: 100 if baseline under 100, otherwise 125'],
       ['days_logged', 'number', 'Program days with any entry so far'], ['last_logged', 'date', 'Date of the most recent entry of any kind (study time zone)'],
-      ['email_on_file', 'flag', 'Whether an encrypted email is stored. The email itself is never exported.', FLAG]],
-      rows: ps.map(p => { const l = lastLogged(p); return { study_id: p.id, first_name: p.first, start_date: iso(p.start), end_date: iso(p.start + 97 * DAY), current_week: String(pWeek(p)), baseline_mvpa_min: p.baseline, starting_mvpa_goal: mvpaGoal(p.baseline, 1), days_logged: progDates(p).filter(t => isLogged(pdays[p.id]?.[t])).length, last_logged: l ? iso(l) : null, email_on_file: 1 }; }) };
+      ['email_on_file', 'flag', 'Whether an encrypted email is stored. The email itself is never exported.', FLAG],
+      ['access_ended', 'date', 'Date an admin ended access early (for example, withdrew). Blank = access not ended.'], ['access_end_reason', 'text', 'Reason the admin entered when ending access']],
+      rows: ps.map(p => { const l = lastLogged(p); return { study_id: p.id, first_name: p.first, start_date: iso(p.start), end_date: iso(p.start + 97 * DAY), current_week: String(pWeek(p)), baseline_mvpa_min: p.baseline, starting_mvpa_goal: mvpaGoal(p.baseline, 1), days_logged: progDates(p).filter(t => isLogged(pdays[p.id]?.[t])).length, last_logged: l ? iso(l) : null, email_on_file: p.hasEmail === false ? 0 : 1,
+        access_ended: p.ended ? iso(p.ended) : null, access_end_reason: p.reason || null }; }) };
     const dcols = [['study_id', 'text', 'Study ID'], ['date', 'date', 'Calendar date'], ['study_week', 'number', 'Program week, 1 to 14'], ['study_day', 'number', 'Program day, 1 to 98'], ['logged_anything', 'flag', 'Any entry at all for this day', '1 = yes, 0 = no']];
     MEALS.forEach(([k, name]) => dcols.push([`${k}_eaten`, 'flag', `${name}: logged as eaten`, '1 = eaten, 0 = not logged as eaten'], [`${k}_protein_servings`, 'number', `${name}: protein servings`, PROTEIN_VALS], [`${k}_mostly_hungry`, 'flag', `${name}: eaten mostly because of hunger`, FLAG], [`${k}_main_reason`, 'text', `${name}: main reason for eating when not mostly hungry`, REASON_VALS], [`${k}_reason_other`, 'text', `${name}: participant's words when the reason is "other"`]));
     dcols.push(['snacks_eaten', 'number', "Snacks logged (any number a day). Each snack's answers are in the Meals report."], ['snack_protein_servings', 'number', 'Protein servings from all snacks that day (unanswered counted as 0)'],
@@ -921,14 +1029,30 @@ table.data .id { font-weight: 700; color: var(--primary); }
     ps.forEach(p => (pmeds[p.id]?.doses || []).forEach(d => mrows.push({ study_id: p.id, taken_date: d.date, taken_time: d.time, dose_taken: d.dose, route: d.route, rx_changed: d.rxChanged ? 1 : 0, rx_change_details: d.rxChanged ? d.rxDetails : null })));
     const medication = { title: 'Medication', desc: 'Each dose the participant reported taking.', cols: [['study_id', 'text', 'Study ID'], ['taken_date', 'date', 'Date taken'], ['taken_time', 'text', "Time taken (24-hour, participant's local time)"], ['dose_taken', 'text', 'Dose, as typed'],
       ['route', 'text', 'How the medication is taken', ROUTES.map(([k, l]) => `${k} = ${l}`).join('; ')], ['rx_changed', 'flag', 'Answered yes to: Any changes to your prescription (dosage)?', '1 = yes, 0 = no'], ['rx_change_details', 'text', "Participant's description of the prescription change"]], rows: mrows };
+    const isoTime = t => new Date(t).toISOString();
+    const lessons = { title: 'Lessons', desc: 'One row per participant per lesson that has opened for them. Blank times = not opened or not clicked yet.', cols: [
+      ['study_id', 'text', 'Study ID'], ['lesson', 'number', 'Lesson number, 1 to 14 (opens at the start of that program week)'], ['lesson_title', 'text', 'Lesson title'],
+      ['opened', 'flag', 'Opened the lesson page at least once', '1 = yes, 0 = no'], ['first_opened_at', 'text', 'First time the lesson page was opened (UTC, ISO 8601)'],
+      ['times_opened', 'number', 'Visits to the lesson page (opens less than a minute apart count once)'], ['watched_pct', 'number', 'Share of the video actually played, 0 to 100 (skipped parts are not counted)'],
+      ['watched_90', 'flag', 'Watched 90% or more of the video', '1 = yes, 0 = no'], ['survey_clicked_at', 'text', 'First time the survey link was clicked (UTC, ISO 8601). Completing the survey is tracked in the survey tool.']],
+      rows: ps.flatMap(p => Array.from({ length: lessonUpTo(p) }, (_, i) => { const v = (plessons[p.id] || []).find(l => l.lesson === i + 1);
+        return { study_id: p.id, lesson: i + 1, lesson_title: null, opened: v ? 1 : 0, first_opened_at: v ? isoTime(v.first) : null, times_opened: v?.count ?? 0, watched_pct: v?.pct ?? 0, watched_90: v && v.pct >= 90 ? 1 : 0, survey_clicked_at: v?.survey ? isoTime(v.survey) : null }; })) };
+    const messages = { title: 'Messages', desc: 'Every automated message: the 3-day check-in and the monthly summary email. Emails never contain names or health information.', cols: [
+      ['study_id', 'text', 'Study ID'], ['created_at', 'text', 'When the daily job created the message (UTC, ISO 8601)'],
+      ['kind', 'text', 'Which message', 'nudge_3day = no logging for 3 days in a row, monthly_summary = monthly summary is ready'],
+      ['period', 'text', 'nudge_3day: last day with any activity before the quiet spell (never = had not logged yet); monthly_summary: month 1, 2, or 3 (weeks 1-4, 5-8, 9-12)'],
+      ['template_version', 'text', 'Version of the message wording used'],
+      ['status', 'text', 'What happened', 'sent = delivered to the mail server, not_sent = email sending not set up, no_email = no email on file, failed = mail server refused it'],
+      ['detail', 'text', 'Reason when not sent (never the email address)']],
+      rows: ps.flatMap(p => (pmsgs[p.id] || []).map(m => ({ study_id: p.id, created_at: isoTime(m.at), kind: m.kind, period: m.period, template_version: TEMPLATE_VERSION, status: m.status, detail: m.detail }))) };
     const history = { title: 'Edit history', desc: 'Every change or removal of logged data, with the values before and after. New entries are not listed here; they are in the other tabs. (Empty in this demo.)', cols: [['study_id', 'text', 'Study ID'], ['changed_at', 'text', 'When the change was saved (UTC, ISO 8601)'], ['data_type', 'text', 'Which kind of entry changed', 'meal_entries, daily_logs, symptom_entries, med_doses'], ['change', 'text', 'UPDATE = edited, DELETE = removed'], ['before', 'text', 'Values before the change (JSON)'], ['after', 'text', 'Values after the change (JSON); blank for removals']], rows: [] };
-    const tables = { participants, daily, meals, weekly, medication, history };
+    const tables = { participants, daily, meals, weekly, medication, lessons, messages, history };
     Object.values(tables).forEach(t => { t.cols = t.cols.map(([key, kind, desc, values]) => ({ key, kind, desc, values })); });
     tables.dictionary = { title: 'Data dictionary', desc: 'What every column in every report means.', cols: [{ key: 'report', kind: 'text' }, { key: 'column', kind: 'text' }, { key: 'description', kind: 'text' }, { key: 'values', kind: 'text' }],
       rows: REPORT_ORDER.flatMap(k => tables[k].cols.map(c => ({ report: tables[k].title, column: c.key, description: c.desc, values: c.values ?? (c.kind === 'date' ? 'YYYY-MM-DD' : c.kind === 'number' ? 'number' : null) }))) };
     return tables;
   }
-  const REPORT_ORDER = ['participants', 'daily', 'meals', 'weekly', 'medication', 'history'];
+  const REPORT_ORDER = ['participants', 'daily', 'meals', 'weekly', 'medication', 'lessons', 'messages', 'history'];
   const safeText = v => /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
   function toCsv(t) {
     const cell = (v, kind) => { if (v === null || v === undefined) return ''; const s2 = kind === 'text' && typeof v === 'string' ? safeText(v) : String(v); return /[",\r\n]/.test(s2) ? `"${s2.replace(/"/g, '""')}"` : s2; };
@@ -958,7 +1082,9 @@ table.data .id { font-weight: 700; color: var(--primary); }
     const mealEl = b.closest('[data-meal]'), m = mealEl && x?.meals.find(z => z.id === +mealEl.dataset.meal);
     switch (a) {
       case 'set-day': S.day = +b.dataset.day; break;
-      case 'meal-toggle': if (m) { x.meals = x.meals.filter(z => z !== m); delete S.open[m.id]; } else addMeal(x, b.closest('[data-kind]').dataset.kind); break;
+      case 'meal-toggle': if (m) S.mconfirm = S.mconfirm === m.id ? null : m.id; else addMeal(x, b.closest('[data-kind]').dataset.kind); break;
+      case 'meal-remove': x.meals = x.meals.filter(z => z !== m); delete S.open[m.id]; S.mconfirm = null; break;
+      case 'meal-keep': S.mconfirm = null; break;
       case 'add-snack': addMeal(x, 'snack'); break;
       case 'meal-open': S.open[m.id] = !S.open[m.id]; break;
       case 'protein': { const before = proteinOf(x); m.protein = v === 'true' ? Math.max(1, m.protein || 0) : 0; render(); proteinFeedback(x, before); return; }
@@ -986,7 +1112,11 @@ table.data .id { font-weight: 700; color: var(--primary); }
         y.weight = +val.toFixed(1); S.wsel = S.wday; render(); toast(S.wday === TODAY ? 'Weight saved.' : `Weight saved for ${wDayLabel(S.wday)}.`); return;
       }
       case 'week': S.week = +v; break;
-      case 'lesson': S.lesson = +v; render(); scrollTo(0, 0); return;
+      case 'lesson': {
+        S.lesson = +v; const L = plessons['BRX-014'], seen = L.find(l => l.lesson === +v);
+        if (seen) seen.count++; else { L.push({ lesson: +v, first: TODAY + 15 * 3600e3, count: 1, pct: 0, survey: null }); L.sort((a, b) => a.lesson - b.lesson); }
+        render(); scrollTo(0, 0); return;
+      }
       case 'lesson-back': S.lesson = null; break;
       case 'route': S.dose.route = v; break;
       case 'rx': S.dose.changed = v === 'true'; break;
@@ -1002,9 +1132,9 @@ table.data .id { font-weight: 700; color: var(--primary); }
       }
       case 'theme': v ? document.documentElement.setAttribute('data-theme', v) : document.documentElement.removeAttribute('data-theme'); break;
       case 'to-admin': S.mode = 'admin'; break;
-      case 'anav': S.admin.view = v; S.admin.err = {}; break;
+      case 'anav': S.admin.view = v; S.admin.err = {}; S.admin.confirm = null; break;
       case 'sort': { const [k, dir] = S.admin.sort; S.admin.sort = [v, k === v ? -dir : 1]; break; }
-      case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; S.admin.err = {}; S.admin.openPanel = null; S.admin.justAdded = null; break;
+      case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; S.admin.err = {}; S.admin.openPanel = null; S.admin.justAdded = null; S.admin.confirm = null; break;
       case 'pweek': S.admin.pweek = +v; break;
       case 'impersonate': if (v === 'BRX-014') { S.mode = 'app'; S.tab = 'dashboard'; render(); scrollTo(0, 0); toast('Viewing as BRX-014. Read-only on the real site.'); } else toast("Opens this participant's view of the website, read-only. Try it on BRX-014."); return;
       case 'reset-pw': toast('Sets a new password to give the participant. Their old one stops working.'); return;
@@ -1012,6 +1142,15 @@ table.data .id { font-weight: 700; color: var(--primary); }
       case 'dl': download(b.dataset.report, b.dataset.fmt, b.dataset.p); return;
       case 'admin-signout': S.admin.authed = false; S.admin.view = 'home'; break;
       case 'dose-del': med.doses.splice(+v, 1); render(); toast('Dose removed.'); return;
+      case 'ask': S.admin.confirm = v || null; break;
+      case 'restore': { const p = all().find(x => x.id === v); p.ended = null; p.reason = null; S.admin.confirm = null; render(); toast('Access restored. They can sign in again with their password.'); return; }
+      case 'remove-admin': {
+        S.admin.confirm = null;
+        if (S.admin.admins.length <= 1) { render(); toast('The study needs at least one admin.'); return; }
+        S.admin.admins = S.admin.admins.filter(a => a.user !== v); render(); toast('Admin removed. They can no longer sign in.'); return;
+      }
+      case 'month': S.month = +v; render(); scrollTo(0, 0); return;
+      case 'month-back': S.month = null; break;
       default: return;
     }
     render();
@@ -1061,7 +1200,22 @@ table.data .id { font-weight: 700; color: var(--primary); }
       const g = id => $('#' + id).value.trim(), user = g('na-user').toLowerCase();
       const err = !/^[a-z0-9._-]{3,40}$/.test(user) ? 'Use 3 to 40 letters, numbers, dots, dashes, or underscores for the username.' : !g('na-first') ? 'Enter a first name.' : $('#na-pw').value.length < 12 ? 'Admin passwords need at least 12 characters.' : $('#na-pw').value !== $('#na-pw2').value ? 'The two passwords do not match.' : S.admin.admins.some(a => a.user === user) ? 'That username is taken.' : null;
       if (err) { S.admin.err = { na: err }; render(); return; }
-      S.admin.admins.push({ user, first: g('na-first'), last: 'Never' }); S.admin.err = {}; render(); toast(`Admin "${user}" added.`); return;
+      S.admin.admins.push({ user, first: g('na-first'), last: 'Never' }); S.admin.err = {}; render(); toast(`Admin "${user}" added. They can sign in now with that username and password.`); return;
+    }
+    if (e.target.id === 'my-pw-form') {
+      const next = $('#my-pw').value, err = {};
+      if (!$('#my-cur').value) err['my-cur'] = 'Your current password is not right.';
+      else if (next.length < 12) err['my-pw'] = 'Admin passwords need at least 12 characters.';
+      else if (next !== $('#my-pw2').value) err['my-pw2'] = 'The two passwords do not match.';
+      S.admin.err = err; render();
+      if (!Object.keys(err).length) toast('Password changed. Your other devices are signed out.');
+      return;
+    }
+    if (e.target.id === 'end-form') {
+      const p = all().find(x => x.id === S.admin.pid), reason = $('#ea-reason').value.trim(); S.admin.openPanel = 'end';
+      if (reason.length > 200) { S.admin.err = { 'ea-reason': 'Keep the reason under 200 characters.' }; render(); return; }
+      p.ended = TODAY; p.reason = reason || null; S.admin.err = {}; S.admin.openPanel = null; render(); scrollTo(0, 0);
+      toast('Access ended. They are signed out on every device. Their data is kept and still in every download.'); return;
     }
     if (e.target.id === 'add-form') {
       const g = id => $('#' + id).value.trim(), err = {}, id = g('np-id').toUpperCase();
@@ -1074,7 +1228,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       const start = Date.parse(g('np-start') || '2027-02-01');
       if (!g('np-first')) err['np-first'] = 'Enter a first name.';
       if (Object.keys(err).length) { S.admin.err = err; render(); $('#' + Object.keys(err)[0])?.focus(); return; }
-      S.admin.added.push({ id, first: g('np-first'), start, baseline: +g('np-base'), ago: null }); pdays[id] = {}; pmeds[id] = { doses: [] };
+      S.admin.added.push({ id, first: g('np-first'), start, baseline: +g('np-base'), ago: null, hasEmail: !!g('np-email'), ended: null, reason: null }); pdays[id] = {}; pmeds[id] = { doses: [] }; plessons[id] = []; pmsgs[id] = [];
       S.admin.err = {}; S.admin.view = 'record'; S.admin.pid = id; S.admin.pweek = null; S.admin.justAdded = id; render(); scrollTo(0, 0);
     }
   });
