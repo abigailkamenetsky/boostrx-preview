@@ -24,6 +24,7 @@
   --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-img { background: #F4F2EC; border-radius: 12px; padding: 6px 10px; box-sizing: content-box; }
   :root:not([data-theme="light"]) {
     --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #AEB8C2;
     --primary: #86CBDD; --primary-soft: #1F3A46; --success: #9AD6B5; --success-soft: #1C362A;
@@ -31,6 +32,7 @@
     --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
   }
 }
+:root[data-theme="dark"] .logo-img { background: #F4F2EC; border-radius: 12px; padding: 6px 10px; box-sizing: content-box; }
 :root[data-theme="dark"] {
   --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #AEB8C2;
   --primary: #86CBDD; --primary-soft: #1F3A46; --success: #9AD6B5; --success-soft: #1C362A;
@@ -97,8 +99,7 @@ button, input, select { font: inherit; color: inherit; }
 /* Sign in */
 .signin { max-width: 960px; margin: 0 auto; padding: 40px 16px 60px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; }
 .logo { display: inline-flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.6rem; letter-spacing: -.01em; }
-.logo-mark { width: 48px; height: 48px; border-radius: 14px; background: var(--primary); display: grid; place-items: center; flex: none; }
-.logo-mark svg { width: 28px; height: 28px; stroke: var(--surface); }
+.logo-img { display: block; height: 76px; width: auto; }
 .signin h1 { font-size: 2.3rem; font-weight: 800; letter-spacing: -.02em; margin-top: 22px; }
 .signin .lede { font-size: 1.1rem; color: var(--ink-muted); margin-top: 14px; max-width: 34em; }
 .facts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
@@ -125,6 +126,7 @@ button, input, select { font: inherit; color: inherit; }
 .goal .f { stroke: var(--primary); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .5s ease; }
 .goal.met .f { stroke: var(--success); }
 .goal text { fill: var(--ink); font: 700 15px var(--font); }
+.goal > b { font-size: 1rem; line-height: 1.2; }
 .goal span { font-size: .85rem; color: var(--ink-muted); line-height: 1.25; }
 
 /* Day and week pickers */
@@ -157,11 +159,13 @@ button, input, select { font: inherit; color: inherit; }
 /* Servings */
 .tokens { display: grid; gap: 10px; }
 .tokens.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.tokens.eight { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tokens.eight, .tokens.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .tok { height: 64px; min-width: 0; border-radius: 16px; border: 2px dashed var(--line); background: transparent; cursor: pointer; display: grid; place-items: center; }
 .tok svg { width: 28px; height: 28px; stroke: var(--line); }
 .tok.full { background: var(--primary-soft); border: 2px solid var(--primary); }
 .tok.full svg { stroke: var(--primary); }
+.tok b { font-size: 1.05rem; color: var(--ink-muted); }
+.tok.full b { color: var(--ink); }
 .met .tok.full { background: var(--success-soft); border-color: var(--success); }
 .met .tok.full svg { stroke: var(--success); }
 .serve-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -172,9 +176,9 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Symptoms */
 .sym-detail { padding: 0 18px 18px 68px; display: grid; gap: 8px; }
-.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.scale button { min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 700; }
-.scale button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+.sev input[type="range"] { width: 100%; height: 48px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+.sev.unrated input[type="range"] { accent-color: var(--line); }
+.sev-ticks { display: flex; justify-content: space-between; padding: 0 6px; font-weight: 700; font-size: .95rem; }
 .scale-ends { display: flex; justify-content: space-between; gap: 12px; font-size: .86rem; color: var(--ink-muted); line-height: 1.3; }
 .scale-ends span:last-child { text-align: right; }
 
@@ -222,6 +226,9 @@ button, input, select { font: inherit; color: inherit; }
 .stat b small { font-size: 1rem; font-weight: 600; color: var(--ink-muted); }
 .stat span { font-size: .92rem; color: var(--ink-muted); line-height: 1.3; }
 .stat .tag { justify-self: start; margin-top: 4px; }
+.stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.back { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; }
+.back svg { width: 20px; height: 20px; stroke: currentColor; }
 
 /* Lessons */
 .lesson { display: flex; gap: 14px; align-items: center; padding: 14px 18px; width: 100%; background: none; border: 0; text-align: left; cursor: pointer; min-height: 76px; }
@@ -247,7 +254,7 @@ nav.tabs button[aria-selected="true"] .pill { background: var(--primary-soft); }
 /* Admin */
 .admin-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .admin-top .logo { font-size: 1.3rem; }
-.admin-top .logo-mark { width: 40px; height: 40px; }
+.admin-top .logo-img { height: 48px; }
 .admin-nav { display: flex; gap: 6px; flex-wrap: wrap; }
 .admin-nav button { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: none; cursor: pointer; font-weight: 600; color: var(--ink-muted); }
 .admin-nav button[aria-current="page"] { background: var(--primary-soft); color: var(--ink); }
@@ -330,8 +337,10 @@ table.data .id { font-weight: 700; color: var(--primary); }
     leaf: svg('<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/>'), cup: svg('<path d="M6 4h12l-1.5 15a2 2 0 0 1-2 1.8h-5A2 2 0 0 1 7.5 19z"/><path d="M6.6 9h10.8"/>'),
     today: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'), move: svg('<circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-6 3 2v4M6 12l3-4 4 1 3 3h3M11 15l2-6"/>'),
     scale: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 10a5 5 0 0 1 7 0M12 10l1.5-2"/>'), chart: svg('<path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/>'), more: svg('<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'),
-    play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', logo: svg('<path d="M4 14l4-4 3 3 7-7"/><path d="M14 6h4v4"/>', 2.6), dl: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
+    play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', dl: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
   };
+  // Study team's logo (from Cielo), embedded so the single-file demo needs no extra files. Same artwork as web/src/app/boostrx-logo.png.
+  const LOGO = '<img class="logo-img" alt="Boost Rx" src="data:image/png;base64,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">';
   let tt;
   const toast = msg => { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3600); };
   function celebrate(text) {
@@ -359,69 +368,59 @@ table.data .id { font-weight: 700; color: var(--primary); }
   const NOW_WEEK = weekOf(TODAY), EDIT_FROM = weekStart(NOW_WEEK - 1);
   const editable = t => t >= EDIT_FROM && t <= TODAY;
 
-  const SLOTS = [['b', 'Breakfast', 0], ['ams', 'Morning snack', 1], ['l', 'Lunch', 0], ['pms', 'Afternoon snack', 1], ['d', 'Dinner', 0], ['evs', 'Evening snack', 1]];
+  // Same keys and labels as the real app (web/src/lib/program.ts).
+  const MEALS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner']];
+  const MAX_SNACKS = 8, PROTEIN_GOAL = 8; // protein: servings of about 10 g; goal stated as 8 to 10, met at 8 or more
   const REASONS = ['Habit or routine', 'Emotional reasons', 'Social situation', 'Food cravings or desire to eat', 'Other'];
-  const SYMPTOMS = ['Nausea or upset stomach', 'Constipation', 'Abdominal pain or bloating', 'Cramping', 'Vomiting', 'Diarrhea', 'Heartburn or reflux', 'Tiredness or fatigue', 'Headache', 'Dizziness'];
-  const ACTS = ['Aerobics class or video', 'Bicycling', 'Dancing', 'Elliptical or stair stepper', 'High impact aerobics or HIIT', 'Pickleball', 'Running', 'Sport (tennis, soccer, basketball)', 'Lap swimming', 'Water aerobics', 'Weight lifting', 'Yoga or Pilates', 'Other'];
+  const SYMPTOMS = [['nausea', 'Nausea'], ['vomiting', 'Vomiting'], ['diarrhea', 'Diarrhea'], ['constipation', 'Constipation'], ['abdominal_pain', 'Abdominal pain or cramping'], ['bloating', 'Bloating or excessive fullness'],
+    ['heartburn', 'Heartburn or reflux'], ['burping', 'Excessive burping'], ['fatigue', 'Fatigue or low energy'], ['dizziness', 'Dizziness or lightheadedness'], ['eating_enough', 'Difficulty eating enough food']];
+  const SEV_TEXT = ['', '1, very mild', '2', '3', '4', '5, very severe'];
+  const ACTS = ['Aerobics class or video', 'Brisk walking', 'Bicycling', 'Dancing', 'Elliptical or stair stepper', 'High impact aerobics or HIIT (burpees, mountain climbers, tabata, squat jumps)', 'Pickleball', 'Running', 'Sport (tennis, soccer, basketball)', 'Lap swimming', 'Water aerobics', 'Weight lifting', 'Yoga or Pilates', 'Other'];
+  // Two partial sessions (upper or lower body only) count as one full-body session toward the weekly goal of 2.
+  const STRENGTH = [['full', 'Full body (upper and lower body)'], ['upper', 'Upper body only'], ['lower', 'Lower body only']];
+  const strengthEq = types => types.filter(t => t === 'full').length + Math.floor(types.filter(t => t === 'upper' || t === 'lower').length / 2);
+  const ROUTES = [['oral', 'Oral (pill)'], ['injection', 'Injection']];
   const BASELINE = 80;
 
   /* ---------- sample participant data (BRX-014, Linda) ---------- */
   const days = {};
-  const blankDay = () => ({ meals: {}, fv: 0, bev: 0, sym: {}, ex: null, mins: 0, acts: [], actOther: '', strength: false, weight: null });
+  const KIND_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+  const byKind = (a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.id - b.id;
+  let mealSeq = 1;
+  const meal = (kind, protein, hunger, reason = null) => ({ id: mealSeq++, kind, protein, hunger, reason, other: '' });
+  const blankDay = () => ({ meals: [], fv: 0, bev: 0, sym: {}, ex: null, mins: 0, acts: [], actOther: '', strength: null, weight: null });
+  const proteinOf = d => d.meals.reduce((a, m) => a + (m.protein || 0), 0);
+  // Breakfast, lunch, and dinner most days, plus 0 to 3 snacks.
+  function fakeMeals(d, snackOdds) {
+    [['breakfast', .92], ['snack', snackOdds], ['lunch', .92], ['snack', snackOdds], ['dinner', .92], ['snack', snackOdds * .7]].forEach(([kind, odds]) => {
+      if (rnd() >= odds) return;
+      const hungry = rnd() < .6, prot = kind === 'snack' ? [0, 0, 1, 1, 2][Math.floor(rnd() * 5)] : [0, 1, 2, 2, 3, 3, 4][Math.floor(rnd() * 7)];
+      d.meals.push(meal(kind, prot, hungry ? 'Yes' : 'No', hungry ? null : REASONS[Math.floor(rnd() * 4)]));
+    });
+    d.meals.sort(byKind);
+  }
   const W0 = 212.4;
   for (let t = START; t < TODAY; t += DAY) {
     const d = blankDay(), n = dayNum(t);
-    SLOTS.forEach(([id, , snack]) => {
-      if (rnd() < (snack ? .55 : .93)) { const hungry = rnd() < .6; d.meals[id] = { eaten: true, protein: rnd() < (snack ? .45 : .7) ? 'Yes' : 'No', hunger: hungry ? 'Yes' : 'No', reason: hungry ? null : REASONS[Math.floor(rnd() * 4)], other: '' }; }
-    });
+    fakeMeals(d, .55);
     d.fv = Math.floor(rnd() * 5) + 1; d.bev = Math.floor(rnd() * 5) + 3;
-    if (rnd() < .3) d.sym[Math.floor(rnd() * 4)] = Math.ceil(rnd() * 3);
-    d.ex = rnd() < .6; if (d.ex) { d.mins = [20, 25, 30, 35, 40][Math.floor(rnd() * 5)]; d.acts = [ACTS[[1, 6, 11, 0][Math.floor(rnd() * 4)]]]; } else d.ex = false;
-    d.strength = [2, 5, 9, 12].includes(n);
+    if (rnd() < .3) d.sym[SYMPTOMS[Math.floor(rnd() * 6)][0]] = Math.ceil(rnd() * 3);
+    d.ex = rnd() < .6; if (d.ex) { d.mins = [20, 25, 30, 35, 40][Math.floor(rnd() * 5)]; d.acts = [ACTS[[2, 7, 12, 1][Math.floor(rnd() * 4)]]]; } else d.ex = false;
+    d.strength = { 2: 'full', 5: 'upper', 6: 'lower', 9: 'full', 12: 'full' }[n] ?? null;
     if ([1, 3, 5, 8, 10, 12, 15].includes(n)) d.weight = +(W0 - n * .38 - rnd() * .6).toFixed(1);
     days[t] = d;
   }
-  days[TODAY] = Object.assign(blankDay(), { meals: { b: { eaten: true, protein: 'Yes', hunger: 'Yes', reason: null, other: '' } }, fv: 2, bev: 3 });
+  days[TODAY] = Object.assign(blankDay(), { meals: [meal('breakfast', 3, 'Yes')], fv: 2, bev: 3 });
   Object.assign(days[TODAY - DAY], { ex: true, mins: 30, acts: ['Bicycling'] });
-  const med = { plan: { day: 'Monday', dose: '5 mg' }, doses: [{ date: '2027-01-04', time: '08:15', dose: '5 mg' }, { date: '2027-01-11', time: '08:40', dose: '5 mg' }, { date: '2027-01-18', time: '09:05', dose: '5 mg' }] };
+  const dose = (date, time, d, rxDetails = '') => ({ date, time, dose: d, route: 'injection', rxChanged: !!rxDetails, rxDetails });
+  const med = { doses: [dose('2027-01-04', '08:15', '2.5 mg'), dose('2027-01-11', '08:40', '5 mg', 'Went up from 2.5 mg to 5 mg'), dose('2027-01-18', '09:05', '5 mg')] };
   const lessons = Array.from({ length: 14 }, (_, i) => ({ n: i + 1 }));
 
   /* ---------- state ---------- */
-  const S = { mode: 'app', tab: 'today', day: TODAY, open: {}, actDay: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
-    admin: { authed: false, step: 'pw', view: 'home', sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
-      admins: [{ user: 'admin1', first: 'Alex', set: true, last: 'Today' }, { user: 'admin2', first: 'Jordan', set: true, last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', set: false, last: 'Never' }] } };
-  const API_BASE = 'http://localhost:4000';
-  const DEMO_USER_MAP = {
-    'BRX-014': 'linda@boostrx.test',
-    'BRX-2107': 'marcos@boostrx.test',
-    admin: 'admin@boostrx.test',
-    demo: 'admin@boostrx.test'
-  };
-  function getStoredToken() { return localStorage.getItem('boostrx_token') || ''; }
-  function setStoredToken(token) { if (token) localStorage.setItem('boostrx_token', token); else localStorage.removeItem('boostrx_token'); }
-  async function apiRequest(path, options = {}) {
-    const token = getStoredToken();
-    const response = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
-      ...options
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(body.error || 'Request failed');
-    }
-    return body;
-  }
-  async function loginWithBackend({ email, password }) {
-    if (!email || !password) throw new Error('Email and password required');
-    const payload = await apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    setStoredToken(payload.token);
-    return payload;
-  }
-  function ensureDemoAuth() {
-    const token = getStoredToken();
-    if (!token) return false;
-    return true;
-  }
+  const S = { mode: 'app', tab: 'dashboard', day: TODAY, open: {}, actDay: TODAY, actDone: {}, strOn: {}, wday: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
+    dose: { date: iso(TODAY - DAY), time: '09:00', dose: null, route: null, changed: null, details: '' },
+    admin: { authed: false, view: 'home', sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
+      admins: [{ user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
   const dayData = t => days[t] || (days[t] = blankDay());
 
   // Re-render everything on change, then put focus back on the same control (matched by data-k).
@@ -439,45 +438,47 @@ table.data .id { font-weight: 700; color: var(--primary); }
   function viewSignin() {
     return `<div class="signin">
       <div>
-        <span class="logo"><span class="logo-mark">${I.logo}</span>Boost Rx</span>
+        <span class="logo">${LOGO}</span>
         <h1>Build healthy habits while on a GLP-1 medication.</h1>
-        <p class="lede">Boost Rx is a 14-week research program from the Weight Control and Diabetes Research Center at Brown University Health. Each day you check off meals, activity, and how you feel, and watch your progress grow week by week.</p>
+        <p class="lede">Boost Rx is a 14-week behavioral lifestyle program for individuals taking GLP-1 medications. This program was developed by researchers at Brown University Health and is designed to minimize medication-related side effects, promote healthy eating habits, and develop sustainable physical activity behaviors that support long-term weight loss and overall health.</p>
         <div class="facts"><span class="tag dim">14 weeks</span><span class="tag dim">About 3 minutes a day</span><span class="tag dim">Private and secure</span></div>
-        <p class="foot" style="margin-top:18px;padding:0">Logo placeholder. The study team is sending the real logo.</p>
       </div>
       <form class="signin-card" id="signin-form" novalidate>
         <h2>Sign in</h2>
-        <div class="field"><label for="si-id">Study ID</label><input class="input" id="si-id" data-k="si-id" autocomplete="username" value="BRX-014" autocapitalize="characters"><small>Printed on the card the study team gave you.</small></div>
-        <div class="field"><label for="si-pw">Password</label><input class="input" id="si-pw" data-k="si-pw" type="password" autocomplete="current-password" value="patient123"></div>
+        <div class="field"><label for="si-id">Study ID</label><input class="input" id="si-id" data-k="si-id" autocomplete="username" value="BRX-014" autocapitalize="characters"><small>Sent to you via email by the study team.</small></div>
+        <div class="field"><label for="si-pw">Password</label><input class="input" id="si-pw" data-k="si-pw" type="password" autocomplete="current-password" value="sample-pass"></div>
         <button class="btn" type="submit" data-k="si-go">Sign in</button>
-        <p class="muted" style="font-size:.95rem">You'll stay signed in on this device until the program ends.</p>
-        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:8px">
-          <button type="button" class="linkish" data-act="forgot">Forgot password?</button>
+        <p class="muted" style="font-size:.95rem">Forgot password? Please email the study team.</p>
+        <p class="muted" style="font-size:.95rem">You'll stay signed in on this device until the program ends. Your browser can save your password for you.</p>
+        <div style="display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:8px">
           <button type="button" class="linkish" data-act="to-admin">Study staff sign in</button>
         </div>
       </form></div>`;
   }
 
   /* ---------- participant app ---------- */
-  const TABS = [['today', 'Today', I.today], ['activity', 'Activity', I.move], ['weight', 'Weight', I.scale], ['progress', 'Progress', I.chart], ['more', 'More', I.more]];
+  const TABS = [['dashboard', 'Dashboard', I.today], ['activity', 'Activity', I.move], ['weight', 'Weight', I.scale], ['summaries', 'Summaries', I.chart], ['more', 'More', I.more]];
   $('#tabs-inner').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; S.tab = b.dataset.tab; S.lesson = null; render(); scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); });
 
-  function ring(label, v, goal) {
+  function ring(label, v, goal, unit) {
     const C = 2 * Math.PI * 24, met = v >= goal;
-    return `<div class="goal ${met ? 'met' : ''}"><svg viewBox="0 0 56 56" aria-hidden="true"><circle class="t" cx="28" cy="28" r="24"/><circle class="f" cx="28" cy="28" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, v / goal))}"/><text x="28" y="33" text-anchor="middle">${met ? '✓' : v}</text></svg><span>${label}</span><span class="sr">${v} of ${goal}${met ? ', goal met' : ''}</span></div>`;
+    return `<div class="goal ${met ? 'met' : ''}"><svg viewBox="0 0 56 56" aria-hidden="true"><circle class="t" cx="28" cy="28" r="24"/><circle class="f" cx="28" cy="28" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, v / goal))}"/>${met ? '<text x="28" y="33" text-anchor="middle">✓</text>' : ''}</svg><b aria-hidden="true">${v}/${goal}</b><span aria-hidden="true">${label}</span><span class="sr">${label}: ${v} of ${goal} ${unit}${met ? ', goal met' : ''}</span></div>`;
   }
   const weekDays = w => Array.from({ length: 7 }, (_, i) => weekStart(w) + i * DAY);
   const weekMins = w => weekDays(w).reduce((a, t) => a + (days[t]?.mins || 0), 0);
-  const weekStrength = w => weekDays(w).filter(t => days[t]?.strength).length;
+  const weekTypes = w => weekDays(w).map(t => days[t]?.strength ?? null);
 
+  // The rings follow the day being viewed: that day's eating goals and that day's program week for activity.
   function header(title) {
-    const dd = days[TODAY], meals = Object.values(dd.meals).filter(m => m.eaten), prot = meals.filter(m => m.protein === 'Yes').length;
+    const dash = S.tab === 'dashboard', d = dayData(S.day), w = weekOf(S.day), isToday = S.day === TODAY;
     return `<header class="hello">
       <div class="hello-top"><div><p class="date">${fmt(TODAY, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${title}</h1></div><span class="tag sample">Sample data</span></div>
-      ${S.tab === 'today' ? `<div class="study">
+      ${dash ? `<div class="study">
+        <p style="margin:0">Good morning, Linda.</p>
         <div class="study-row"><strong>Week ${NOW_WEEK} of 14</strong><span class="muted" style="font-size:1rem">Day ${dayNum(TODAY)}</span></div>
         <div class="weeks" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<span class="${i + 1 < NOW_WEEK ? 'done' : i + 1 === NOW_WEEK ? 'now' : ''}"></span>`).join('')}</div>
-        <div class="goals" aria-label="Today's goals">${ring('Fruit + veg', dd.fv, 5)}${ring('Drinks', dd.bev, 8)}${ring('Protein', prot, Math.max(meals.length, 1))}${ring('Active', weekMins(NOW_WEEK), mvpaGoal(BASELINE, NOW_WEEK))}</div>
+        <div class="goals" aria-label="${isToday ? "Today's goals" : `Goals for ${fmt(S.day, { weekday: 'long', month: 'long', day: 'numeric' })}`}">${ring('Fruit + veg', d.fv, 5, 'servings')}${ring('Hydration', d.bev, 8, 'cups')}${ring('Protein', proteinOf(d), PROTEIN_GOAL, 'servings')}${ring('Activity', weekMins(w), mvpaGoal(BASELINE, w), 'minutes this week')}</div>
+        <p class="muted" style="font-size:.92rem;margin:0">${isToday ? "Today's" : `${fmt(S.day, { weekday: 'long' })}'s`} totals. Activity counts minutes for the whole week, and your activity goal goes up every 2 weeks.</p>
       </div>` : ''}</header>`;
   }
 
@@ -490,40 +491,46 @@ table.data .id { font-weight: 700; color: var(--primary); }
   }
 
   function viewApp() {
-    const T = { today: ['Good morning, Linda', viewToday], activity: ['Activity', viewActivity], weight: ['Weight', viewWeight], progress: ['My progress', viewProgress], more: ['More', viewMore] }[S.tab];
+    const T = S.tab === 'more' && S.lesson ? [`Lesson ${S.lesson}`, viewLesson]
+      : { dashboard: ['Participant Dashboard', viewDashboard], activity: ['Activity', viewActivity], weight: ['Weight', viewWeight], summaries: ['Weekly Summaries', viewSummaries], more: ['More', viewMore] }[S.tab];
     return `<div class="wrap">${header(T[0])}${T[1]()}</div>`;
   }
 
-  function viewToday() {
-    const x = dayData(S.day), eaten = SLOTS.filter(([id]) => x.meals[id]?.eaten).length;
+  function viewDashboard() {
+    const x = dayData(S.day), isToday = S.day === TODAY, prot = proteinOf(x), snacks = x.meals.filter(m => m.kind === 'snack');
     return `${dayBar(S.day, 'set-day')}
-    <section class="section"><div class="section-head"><h2>Meals and snacks</h2><span class="count">${eaten} of 6 logged</span></div>
-      <div class="group">${SLOTS.map(([id, name, snack]) => mealRow(x, id, name, snack)).join('')}</div></section>
-    ${serve(x, 'fv', 'Fruits and vegetables', 'Tap a circle for each serving. Goal: 5.', 5, 'leaf', ['serving', 'servings'])}
-    ${serve(x, 'bev', 'Drinks without added sugar', 'Water, plain tea, black coffee. One cup is 8 ounces. Goal: 8.', 8, 'cup', ['cup', 'cups'])}
-    <section class="section"><div class="section-head"><h2>Side effects</h2></div><p class="hint">Tap any you had ${S.day === TODAY ? 'today' : 'this day'}, then rate how strong.</p>
-      <div class="group">${SYMPTOMS.map((n, i) => symRow(x, n, i)).join('')}</div>
-      <p class="foot">The study team is finalizing this list of 10.</p></section>`;
+    <section class="section"><div class="section-head"><h2>Meals and snacks</h2><span class="count ${prot >= PROTEIN_GOAL ? 'met' : ''}">${prot} of ${PROTEIN_GOAL} protein servings</span></div>
+      <p class="hint">Each time you eat, tap the meal or snack to mark it done, then answer the questions. Protein goal: 8 to 10 servings a day (1 serving is about 10 g).</p>
+      <div class="group">${MEALS.map(([k, name]) => mealRow(x.meals.find(m => m.kind === k), k, name)).join('')}${snacks.map((m, i) => mealRow(m, 'snack', `Snack ${i + 1}`)).join('')}</div>
+      ${snacks.length < MAX_SNACKS ? '<button class="btn ghost" style="justify-self:start" data-k="add-snack" data-act="add-snack">+ Add snack</button>' : ''}</section>
+    ${serve(x, 'fv', 'Fruits and vegetables', 'One serving = 1 cup of raw fruits or vegetables, ½ cup of cooked vegetables, or 1 medium piece of fruit. Goal: 5 servings.', 5, 'leaf', ['serving', 'servings'])}
+    ${serve(x, 'bev', 'Sugar-free drinks', 'Water, seltzer, unsweetened tea, black coffee, and diet or zero-sugar drinks. One cup = 8 ounces. Goal: 8 cups.', 8, 'cup', ['cup', 'cups'])}
+    <section class="section"><div class="section-head"><h2>Potential side effects</h2></div><p class="hint">Check off any symptoms you experienced ${isToday ? 'today' : 'this day'}.</p>
+      <div class="group">${SYMPTOMS.map(([k, n]) => symRow(x, k, n, isToday)).join('')}</div>
+      <p class="foot">This is a working list. The study team may add more.</p></section>`;
   }
 
-  function mealRow(x, id, name, snack) {
-    const m = x.meals[id], on = !!m?.eaten, open = on && S.open[id + S.day];
+  function mealRow(m, kind, name) {
+    const on = !!m, open = on && S.open[m.id], what = kind === 'snack' ? 'snack' : 'meal', k = on ? m.id : kind;
     let sub = 'Tap if you ate this';
-    if (on) sub = [`Protein goal: ${m.protein ? m.protein.toLowerCase() : 'not answered'}`, m.hunger === 'Yes' ? 'hungry' : m.hunger === 'No' ? (m.reason || 'reason not answered').toLowerCase() : null].filter(Boolean).join(', ');
-    const needs = on && (!m.protein || !m.hunger || (m.hunger === 'No' && !m.reason));
-    return `<div class="row ${on ? 'on' : ''}" data-meal="${id}">
+    if (on) sub = [m.protein === null ? 'Protein: not answered' : m.protein === 0 ? 'Little or no protein' : `${m.protein} serving${m.protein === 1 ? '' : 's'} of protein`,
+      m.hunger === 'Yes' ? 'hungry' : m.hunger === 'No' ? (m.reason || 'reason not answered').toLowerCase() : null].filter(Boolean).join(', ');
+    const needs = on && (m.protein === null || !m.hunger || (m.hunger === 'No' && !m.reason));
+    return `<div class="row ${on ? 'on' : ''}" data-kind="${kind}" ${on ? `data-meal="${m.id}"` : ''}>
       <div style="display:flex;align-items:center">
-        <button class="row-btn" style="flex:1" data-k="meal-${id}" data-act="meal-toggle" aria-pressed="${on}"><span class="check">${I.check}</span><span class="row-text"><span class="row-title">${name}</span><span class="row-sub">${esc(sub)}</span></span></button>
-        ${on ? `<button class="minus" style="margin-right:14px" data-k="meal-open-${id}" data-act="meal-open" aria-expanded="${!!open}">${open ? 'Done' : needs ? 'Answer' : 'Edit'}</button>` : ''}
+        <button class="row-btn" style="flex:1" data-k="meal-${k}" data-act="meal-toggle" aria-pressed="${on}"><span class="check">${I.check}</span><span class="row-text"><span class="row-title">${esc(name)}</span><span class="row-sub">${esc(sub)}</span></span></button>
+        ${on ? `<button class="minus" style="margin-right:14px" data-k="meal-open-${m.id}" data-act="meal-open" aria-expanded="${!!open}">${open ? 'Done' : needs ? 'Answer' : 'Edit'}</button>` : ''}
       </div>
       ${open ? `<div class="detail">
-        <div class="q"><span class="q-label">Did this ${snack ? 'snack' : 'meal'} have ${snack ? '10' : '20'} grams of protein or more?</span>
-          <div class="seg">${['Yes', 'No'].map(v => `<button data-k="p-${id}-${v}" data-act="protein" data-v="${v}" aria-pressed="${m.protein === v}">${v}</button>`).join('')}</div></div>
-        <div class="q"><span class="q-label">Did you eat mostly because you were hungry?</span>
-          <div class="seg">${['Yes', 'No'].map(v => `<button data-k="h-${id}-${v}" data-act="hunger" data-v="${v}" aria-pressed="${m.hunger === v}">${v}</button>`).join('')}</div></div>
-        ${m.hunger === 'No' ? `<div class="q"><span class="q-label">What was your main reason for eating? Pick one.</span>
-          <div class="chips">${REASONS.map(r => `<button class="chip" data-k="r-${id}-${r}" data-act="reason" data-v="${esc(r)}" aria-pressed="${m.reason === r}">${m.reason === r ? I.check : ''}${esc(r)}</button>`).join('')}</div>
-          ${m.reason === 'Other' ? `<input class="input" data-k="ro-${id}" data-act="reason-other" placeholder="Tell us in a few words" value="${esc(m.other)}" aria-label="Other reason">` : ''}</div>` : ''}
+        <div class="q"><span class="q-label" id="pq-${m.id}">Did this ${what} include a significant source of protein (about 10 g or more)?</span>
+          <div class="seg" role="group" aria-labelledby="pq-${m.id}">${[['Yes', true], ['No', false]].map(([l, v]) => `<button data-k="p-${m.id}-${l}" data-act="protein" data-v="${v}" aria-pressed="${m.protein === null ? false : (m.protein > 0) === v}">${l}</button>`).join('')}</div></div>
+        ${m.protein ? `<div class="q"><span class="q-label" id="ps-${m.id}">About how much protein? Tap one for each 10 g.</span>
+          <div class="tokens four" role="group" aria-labelledby="ps-${m.id}">${[1, 2, 3, 4].map(n => `<button class="tok ${n <= m.protein ? 'full' : ''}" data-k="ps-${m.id}-${n}" data-act="protein-n" data-v="${n}" aria-pressed="${n <= m.protein}" aria-label="${n * 10} grams, ${n} serving${n > 1 ? 's' : ''}"><b>${n * 10}g</b></button>`).join('')}</div></div>` : ''}
+        <div class="q"><span class="q-label" id="hq-${m.id}">Did you eat mostly because you were hungry?</span>
+          <div class="seg" role="group" aria-labelledby="hq-${m.id}">${['Yes', 'No'].map(v => `<button data-k="h-${m.id}-${v}" data-act="hunger" data-v="${v}" aria-pressed="${m.hunger === v}">${v}</button>`).join('')}</div></div>
+        ${m.hunger === 'No' ? `<div class="q"><span class="q-label" id="rq-${m.id}">What was your main reason for eating? Pick one.</span>
+          <div class="chips" role="group" aria-labelledby="rq-${m.id}">${REASONS.map(r => `<button class="chip" data-k="r-${m.id}-${r}" data-act="reason" data-v="${esc(r)}" aria-pressed="${m.reason === r}">${m.reason === r ? I.check : ''}${esc(r)}</button>`).join('')}</div>
+          ${m.reason === 'Other' ? `<input class="input" data-k="ro-${m.id}" data-act="reason-other" placeholder="Tell us in a few words" value="${esc(m.other)}" aria-label="Other reason">` : ''}</div>` : ''}
       </div>` : ''}</div>`;
   }
 
@@ -533,66 +540,81 @@ table.data .id { font-weight: 700; color: var(--primary); }
       <div class="group pad ${met ? 'met' : ''}" data-serve="${key}" data-goal="${goal}">
         <div class="tokens ${goal === 8 ? 'eight' : 'five'}">${Array.from({ length: goal }, (_, i) => `<button class="tok ${i < v ? 'full' : ''}" data-k="${key}-${i}" data-act="tok" data-n="${i + 1}" aria-label="${i + 1} ${i ? many : one}" aria-pressed="${i < v}">${I[icon]}</button>`).join('')}</div>
         <div class="serve-foot"><p class="${met ? 'met' : ''}" aria-live="polite">${met ? `Goal met: ${v} ${many}` : `${v} of ${goal} ${many}`}</p>
-        <button class="minus" data-k="${key}-minus" data-act="tok-minus" ${v === 0 ? 'disabled' : ''}>Undo one</button></div></div></section>`;
+        <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="minus" data-k="${key}-minus" data-act="tok-minus" ${v === 0 ? 'disabled' : ''}>Undo one</button>${met ? `<button class="minus" data-k="${key}-plus" data-act="tok-plus" aria-label="Add another ${one}">+1 more</button>` : ''}</span></div></div></section>`;
   }
 
-  function symRow(x, name, i) {
-    const sev = x.sym[i], on = sev !== undefined;
-    return `<div class="row ${on ? 'on' : ''}" data-sym="${i}">
-      <button class="row-btn" data-k="sym-${i}" data-act="sym" aria-pressed="${on}"><span class="check sq">${I.check}</span><span class="row-text"><span class="row-title">${esc(name)}</span>${on ? `<span class="row-sub">${sev ? `Strength ${sev} of 5` : 'How strong was it?'}</span>` : ''}</span></button>
-      ${on ? `<div class="sym-detail" role="group" aria-label="How strong was it?"><div class="scale">${[1, 2, 3, 4, 5].map(n => `<button data-k="sev-${i}-${n}" data-act="sev" data-v="${n}" aria-pressed="${sev === n}">${n}</button>`).join('')}</div>
-        <div class="scale-ends"><span>1 Very minimal, did not affect my day</span><span>5 Severe, greatly limited my day</span></div></div>` : ''}</div>`;
+  function symRow(x, k, name, isToday) {
+    const on = k in x.sym, sev = x.sym[k] ?? null;
+    return `<div class="row ${on ? 'on' : ''}" data-sym="${k}">
+      <button class="row-btn" data-k="sym-${k}" data-act="sym" aria-pressed="${on}"><span class="check sq">${I.check}</span><span class="row-text"><span class="row-title">${esc(name)}</span>${on ? `<span class="row-sub">${sev ? `Severity ${sev} of 5` : 'Not rated yet'}</span>` : ''}</span></button>
+      ${on ? `<div class="sym-detail sev ${sev ? '' : 'unrated'}"><label class="q-label" for="sev-${k}">How severe was this symptom ${isToday ? 'today' : 'that day'}?</label>
+        <input id="sev-${k}" data-k="sev-${k}" data-act="sev" type="range" min="1" max="5" step="1" value="${sev ?? 3}" aria-valuetext="${sev ? SEV_TEXT[sev] : 'Not rated yet'}">
+        <div class="sev-ticks" aria-hidden="true">${[1, 2, 3, 4, 5].map(n => `<span>${n}</span>`).join('')}</div>
+        <div class="scale-ends"><span>1 = Very mild</span><span>5 = Very severe</span></div></div>` : ''}</div>`;
   }
 
   function viewActivity() {
-    const w = weekOf(S.actDay), goal = mvpaGoal(BASELINE, w), total = weekMins(w), x = dayData(S.actDay);
-    const max = Math.max(45, ...weekDays(w).map(t => days[t]?.mins || 0)), str = weekStrength(w);
-    return `${dayBar(S.actDay, 'act-day')}
-    <section class="section"><div class="section-head"><h2>Week ${w} active minutes</h2><span class="count ${total >= goal ? 'met' : ''}">Goal: ${goal}</span></div>
+    const t = S.actDay, w = weekOf(t), goal = mvpaGoal(BASELINE, w), total = weekMins(w), x = dayData(t), dayWord = t === TODAY ? 'today' : 'that day';
+    const max = Math.max(45, ...weekDays(w).map(d => days[d]?.mins || 0)), types = weekTypes(w), str = strengthEq(types), partials = types.filter(v => v === 'upper' || v === 'lower').length;
+    // A day that is already answered opens collapsed to its summary; once edited it stays open until Done.
+    const done = (S.actDone[t] ?? (x.ex === false || (x.ex === true && x.mins > 0))) && x.ex !== null, strOn = S.strOn[t] ?? x.strength !== null;
+    const chosen = ACTS.filter(a => x.acts.includes(a)).map(a => a === 'Other' && x.actOther ? x.actOther : a);
+    return `${dayBar(t, 'act-day')}
+    <section class="section"><div class="section-head"><h2>Week ${w} aerobic activity minutes</h2><span class="count ${total >= goal ? 'met' : ''}">Goal: ${goal}</span></div>
       <div class="group pad">
         <div class="total"><b>${total}</b><span class="muted">of <strong>${goal}</strong> minutes</span></div>
-        <div class="meter ${total >= goal ? 'done' : ''}" role="progressbar" aria-label="Active minutes this week" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${total}"><span style="width:${Math.min(100, total / goal * 100)}%"></span></div>
-        <p class="muted" style="font-size:1rem">${total >= goal ? 'Goal met this week. Wonderful work!' : `${goal - total} minutes to go. Tap a day to log it.`}</p>
-        <div class="bars">${weekDays(w).map(t => { const m = days[t]?.mins || 0, off = t > TODAY || !editable(t); return `<button class="bar-col ${t === S.actDay ? 'sel' : ''}" data-k="bar-${t}" data-act="act-day" data-day="${t}" ${off ? 'disabled' : ''} aria-label="${fmt(t, { weekday: 'long' })}, ${m} minutes${days[t]?.strength ? ', strength session' : ''}"><span class="bar-track" aria-hidden="true"><span style="height:${m / max * 100}%"></span></span><b>${t > TODAY ? '' : m}</b><small>${fmt(t, { weekday: 'short' })}${days[t]?.strength ? ' •' : ''}</small></button>`; }).join('')}</div>
-        <p class="foot" style="padding:0">• marks a strength session.</p>
+        <div class="meter ${total >= goal ? 'done' : ''}" role="progressbar" aria-label="Aerobic activity minutes this week" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${total}"><span style="width:${Math.min(100, total / goal * 100)}%"></span></div>
+        <p class="muted" style="font-size:1rem">${total >= goal ? 'Goal met this week. Wonderful work!' : `${goal - total} minutes to go.`} Tap each day to indicate whether you exercised (yes or no).</p>
+        <div class="bars">${weekDays(w).map(d => { const y = days[d], m = y?.mins || 0, off = d > TODAY || !editable(d), ans = y && y.ex !== null; return `<button class="bar-col ${d === t ? 'sel' : ''}" data-k="bar-${d}" data-act="act-day" data-day="${d}" ${off ? 'disabled' : ''} aria-label="${fmt(d, { weekday: 'long' })}, ${ans ? `${m} minutes` : 'not answered'}${y?.strength ? ', strength training' : ''}"><span class="bar-track" aria-hidden="true"><span style="height:${m / max * 100}%"></span></span><b>${d > TODAY ? '' : ans ? m : '?'}</b><small>${fmt(d, { weekday: 'short' })}${y?.strength ? ' •' : ''}</small></button>`; }).join('')}</div>
+        <p class="foot" style="padding:0">• marks a day with strength training.</p>
       </div></section>
 
-    <section class="section"><div class="section-head"><h2>${S.actDay === TODAY ? 'Today' : fmt(S.actDay, { weekday: 'long', month: 'short', day: 'numeric' })}</h2></div>
-      <div class="group pad">
-        <div class="q"><span class="q-label">Did you exercise?</span>
-          <div class="seg">${[['Yes', true], ['No', false]].map(([l, v]) => `<button data-k="ex-${l}" data-act="ex" data-v="${v}" aria-pressed="${x.ex === v}">${l}</button>`).join('')}</div></div>
-        ${x.ex ? `<div class="q"><label class="q-label" for="mins">Minutes of moderate or harder activity</label>
+    <section class="section"><div class="section-head"><h2>${t === TODAY ? 'Today' : fmt(t, { weekday: 'long', month: 'short', day: 'numeric' })}</h2></div>
+      ${done ? `<div class="group pad"><p style="margin:0">${x.ex ? `<strong>${x.mins || 0} minutes</strong> of aerobic exercise${chosen.length ? `: ${esc(chosen.join(', '))}` : ''}.` : 'No moderate-to-vigorous exercise.'}</p>
+        <button class="minus" style="justify-self:start" data-k="act-edit" data-act="act-edit">Edit</button></div>`
+      : `<div class="group pad">
+        <div class="q"><span class="q-label" id="q-ex">Did you do any moderate-to-vigorous intensity exercise ${dayWord}?</span>
+          <div class="seg" role="group" aria-labelledby="q-ex">${[['Yes', true], ['No', false]].map(([l, v]) => `<button data-k="ex-${l}" data-act="ex" data-v="${v}" aria-pressed="${x.ex === v}">${l}</button>`).join('')}</div></div>
+        ${x.ex ? `<div class="q"><label class="q-label" for="mins">Minutes of aerobic exercise</label>
           <div class="inline"><input class="input" id="mins" data-k="mins" data-act="mins" inputmode="numeric" maxlength="3" value="${x.mins || ''}" placeholder="0"><span class="muted">minutes</span></div>
-          <small class="muted" style="font-size:.92rem">Moderate means you breathe harder and can talk, though not sing. Brisk walking counts. The team will refine this wording.</small></div>
-        <div class="q"><span class="q-label">What did you do? Choose any.</span>
-          <div class="chips">${ACTS.map(a => `<button class="chip" data-k="act-${a}" data-act="act" data-v="${esc(a)}" aria-pressed="${x.acts.includes(a)}">${x.acts.includes(a) ? I.check : ''}${esc(a)}</button>`).join('')}</div>
+          <small class="muted" style="font-size:.92rem">Only count activity that was at least moderate intensity, such as brisk walking, and that elevated your heart rate.</small></div>
+        <div class="q"><span class="q-label" id="q-types">What did you do? Choose any.</span>
+          <div class="chips" role="group" aria-labelledby="q-types">${ACTS.map(a => `<button class="chip" data-k="act-${a}" data-act="act" data-v="${esc(a)}" aria-pressed="${x.acts.includes(a)}">${x.acts.includes(a) ? I.check : ''}${esc(a)}</button>`).join('')}</div>
           ${x.acts.includes('Other') ? `<input class="input" data-k="act-other" data-act="act-other" placeholder="What activity?" value="${esc(x.actOther)}" aria-label="Other activity">` : ''}</div>` : ''}
-      </div></section>
+        ${x.ex !== null ? '<button class="btn small" style="justify-self:start" data-k="act-done" data-act="act-done">Done</button>' : ''}
+      </div>`}</section>
 
     <section class="section"><div class="section-head"><h2>Strength training</h2><span class="count ${str >= 2 ? 'met' : ''}">${str} of 2 this week</span></div>
-      <div class="group"><div class="row ${x.strength ? 'on' : ''}"><button class="row-btn" data-k="strength" data-act="strength" aria-pressed="${x.strength}"><span class="check sq">${I.check}</span><span class="row-text"><span class="row-title">I did a full-body strength session</span><span class="row-sub">${x.strength ? 'Logged' : 'Tap to log'}</span></span></button></div></div>
-      <p class="foot">A full-body session is 30 minutes or more working all major muscle groups. Only did upper or lower body? The team will add guidance here.</p></section>
+      <div class="group"><div class="row ${strOn ? 'on' : ''}"><button class="row-btn" data-k="strength" data-act="strength" aria-pressed="${strOn}"><span class="check sq">${I.check}</span><span class="row-text"><span class="row-title">I did strength training ${dayWord}</span><span class="row-sub">${!strOn ? 'Tap to log' : x.strength ? STRENGTH.find(s => s[0] === x.strength)[1] : 'Choose the type below'}</span></span></button>
+        ${strOn ? `<div class="detail"><div class="q"><span class="q-label" id="q-str">What type of strength training did you do?</span>
+          <div class="chips" role="group" aria-labelledby="q-str">${STRENGTH.map(([k, l]) => `<button class="chip" data-k="st-${k}" data-act="strength-type" data-v="${k}" aria-pressed="${x.strength === k}">${x.strength === k ? I.check : ''}${l}</button>`).join('')}</div></div></div>` : ''}</div></div>
+      <p class="foot">A full-body session is 30 minutes or more, working all major muscle groups. Two partial sessions (upper body or lower body only) count as one full-body session.${partials % 2 === 1 ? ' You have 1 partial session this week waiting for a second one.' : ''}</p></section>
 
-    <section class="section"><div class="section-head"><h2>How your goal grows</h2></div>
-      <p class="hint">Your starting goal is ${BASELINE < 100 ? 100 : 125} minutes. It rises by 25 minutes every 2 weeks, up to 250.</p>
+    <section class="section"><div class="section-head"><h2>How your aerobic exercise goal progresses</h2></div>
+      <p class="hint">Your exercise goal increases by 25 minutes every 2 weeks until it reaches 250 minutes/week.</p>
       <div class="group" style="padding:16px"><div class="ladder">${[1, 3, 5, 7, 9, 11, 13].map(wk => `<div class="rung ${w >= wk && w <= wk + 1 ? 'now' : ''}"><b>${mvpaGoal(BASELINE, wk)}</b><span>Wk ${wk}-${wk + 1}</span></div>`).join('')}</div></div></section>`;
   }
 
+  const wDayLabel = t => t === TODAY ? 'Today' : t === TODAY - DAY ? 'Yesterday' : fmt(t, { weekday: 'long', month: 'short', day: 'numeric' });
   function viewWeight() {
     const pts = Object.keys(days).map(Number).sort((a, b) => a - b).filter(t => days[t].weight).map(t => ({ t, w: days[t].weight }));
     const first = pts[0], last = pts[pts.length - 1], lost = +(first.w - last.w).toFixed(1), pct = (lost / first.w * 100).toFixed(1);
     const thisWeek = weekDays(NOW_WEEK).filter(t => days[t]?.weight).length, sel = pts.find(p => p.t === S.wsel) || last;
+    const opts = []; for (let t = TODAY; t >= EDIT_FROM; t -= DAY) opts.push(t);
     const W = 600, H = 260, L = 46, R = 16, Tp = 16, B = 34, x0 = START, x1 = weekStart(NOW_WEEK) + 6 * DAY;
     const lo = Math.floor(Math.min(...pts.map(p => p.w)) - 1), hi = Math.ceil(Math.max(...pts.map(p => p.w)) + 1);
     const X = t => L + (t - x0) / (x1 - x0) * (W - L - R), Y = v => Tp + (hi - v) / (hi - lo) * (H - Tp - B);
     const step = Math.max(1, Math.round((hi - lo) / 4)), ticks = []; for (let v = lo; v <= hi; v += step) ticks.push(v);
     const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.w).toFixed(1)}`).join('');
     const area = `${path}L${X(last.t).toFixed(1)},${H - B}L${X(first.t).toFixed(1)},${H - B}Z`;
-    return `<section class="section"><div class="section-head"><h2>Today's weight</h2><span class="count ${thisWeek >= 2 ? 'met' : ''}">${thisWeek} of 2 weigh-ins this week</span></div>
+    return `<section class="section"><div class="section-head"><h2>Log your weight</h2><span class="count ${thisWeek >= 2 ? 'met' : ''}">${thisWeek} of 2 weigh-ins this week</span></div>
+      <p class="hint">Aim to weigh yourself at least 2 times per week, ideally first thing in the morning before eating or drinking. You can log every day if you like.</p>
       <div class="group pad">
-        <div class="inline"><input class="input" id="w-today" data-k="w-today" inputmode="decimal" placeholder="000.0" value="${days[TODAY].weight ?? ''}" aria-label="Today's weight in pounds"><span class="muted">pounds</span>
+        <div class="field"><label for="w-date">Day</label><select class="input" id="w-date" data-k="w-date" data-act="w-date">${opts.map(t => `<option value="${t}" ${t === S.wday ? 'selected' : ''}>${wDayLabel(t)}${days[t]?.weight ? ` (${days[t].weight} lb)` : ''}</option>`).join('')}</select>
+          <small>To log an earlier day, choose it here. You can go back to the start of last week.</small></div>
+        <label class="q-label" for="w-val">Your weight</label>
+        <div class="inline"><input class="input" id="w-val" data-k="w-val" inputmode="decimal" placeholder="000.0" value="${days[S.wday]?.weight ?? ''}"><span class="muted">pounds</span>
         <button class="btn small" data-k="w-save" data-act="weight-save">Save</button></div>
-        <p class="foot" style="padding:0">Weigh yourself at least 2 times a week, ideally in the morning before eating.</p>
       </div></section>
     <section class="section"><div class="section-head"><h2>Since you started</h2></div>
       <div class="group pad">
@@ -603,57 +625,63 @@ table.data .id { font-weight: 700; color: var(--primary); }
           <path class="area" d="${area}"/><path class="line" d="${path}"/>
           ${pts.map(p => `<circle class="pt ${p.t === sel.t ? 'sel' : ''}" cx="${X(p.t)}" cy="${Y(p.w)}" r="${p.t === sel.t ? 7 : 5}"/><circle class="hit" cx="${X(p.t)}" cy="${Y(p.w)}" r="16" data-act="wpt" data-t="${p.t}"/>`).join('')}
         </svg></div>
-        <p aria-live="polite" style="font-size:1rem"><strong>${fmt(sel.t, { weekday: 'long', month: 'long', day: 'numeric' })}:</strong> ${sel.w} lb${sel.t !== first.t ? `, ${(first.w - sel.w).toFixed(1)} lb below your start` : ', your starting weight'}. <span class="muted">Tap a dot to see that day.</span></p>
+        <p aria-live="polite" style="font-size:1rem"><strong>${fmt(sel.t, { weekday: 'long', month: 'long', day: 'numeric' })}:</strong> ${sel.w} lb${sel.t !== first.t ? `, ${(first.w - sel.w).toFixed(1)} lb below your first weigh-in` : ', your first weigh-in'}. <span class="muted">Tap a dot to see weight from that day.</span></p>
       </div></section>`;
   }
 
-  function weekSummary(w) {
-    const ds = weekDays(w).filter(t => t <= TODAY).map(t => days[t]).filter(Boolean);
-    let meals = 0, mealsP = 0, snacks = 0, snacksP = 0;
-    ds.forEach(x => SLOTS.forEach(([id, , snack]) => { const m = x.meals[id]; if (!m?.eaten) return; if (snack) { snacks++; if (m.protein === 'Yes') snacksP++; } else { meals++; if (m.protein === 'Yes') mealsP++; } }));
-    const avg = k => ds.length ? (ds.reduce((a, x) => a + x[k], 0) / ds.length).toFixed(1) : '0';
-    return { n: ds.length, pm: meals ? Math.round(mealsP / meals * 100) : 0, ps: snacks ? Math.round(snacksP / snacks * 100) : 0, fv: avg('fv'), bev: avg('bev'), mins: weekMins(w), goal: mvpaGoal(BASELINE, w), str: weekStrength(w), wi: ds.filter(x => x.weight).length };
-  }
-  function viewProgress() {
-    const w = S.week, s = weekSummary(w), cur = w === NOW_WEEK;
-    const stat = (v, label, ok) => `<div class="stat"><b>${v}</b><span>${label}</span>${ok === undefined ? '' : ok ? '<span class="tag ok">Goal met</span>' : '<span class="tag dim">Keep going</span>'}</div>`;
+  // Only a met goal gets a tag. An unmet goal shows just the number, so a finished week never tells someone to "keep going".
+  function viewSummaries() {
+    const w = S.week, cur = w === NOW_WEEK, s = summarize(PEOPLE.find(p => p.id === 'BRX-014'), w), n = weekDays(w).filter(t => t <= TODAY).length, dash = '–';
+    const stat = (v, of, label, met) => `<div class="stat"><b>${v}${of !== undefined ? `<small> / ${of}</small>` : ''}</b><span>${label}</span>${met ? '<span class="tag ok">Goal met</span>' : ''}</div>`;
     return `<div class="weekpick"><button class="arrow" data-k="wk-prev" data-act="week" data-v="${w - 1}" ${w <= 1 ? 'disabled' : ''} aria-label="Previous week">${I.left}</button>
       <div class="pick-label">Week ${w}<small>${fmt(weekStart(w), { month: 'short', day: 'numeric' })} to ${fmt(weekStart(w) + 6 * DAY, { month: 'short', day: 'numeric' })}${cur ? ' (so far)' : ''}</small></div>
       <button class="arrow" data-k="wk-next" data-act="week" data-v="${w + 1}" ${w >= NOW_WEEK ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
-    <section class="section"><div class="section-head"><h2>Eating</h2></div><div class="group"><div class="stats">
-      ${stat(s.pm + '%', 'of meals met the protein goal')}${stat(s.ps + '%', 'of snacks met the protein goal')}
-      ${stat(s.fv, 'fruit and vegetable servings a day, on average', +s.fv >= 5)}${stat(s.bev, 'cups of sugar-free drinks a day, on average', +s.bev >= 8)}
+    <p class="hint" style="text-align:center">You logged ${s.daysLogged} of ${n} days${cur ? ' so far' : ''}. Daily numbers are averages of the days you logged.</p>
+    <section class="section"><div class="section-head"><h2>Protein, Hydration, and Fruit and Vegetable Goals</h2></div><div class="group"><div class="stats">
+      ${stat(s.avgProt ?? dash, PROTEIN_GOAL, 'protein servings a day, on average', s.avgProt !== null && s.avgProt >= PROTEIN_GOAL)}
+      ${stat(s.avgBev ?? dash, 8, 'cups of sugar-free drinks a day, on average', s.avgBev !== null && s.avgBev >= 8)}
+      ${stat(s.avgFv ?? dash, 5, 'fruit and vegetable servings a day, on average', s.avgFv !== null && s.avgFv >= 5)}
     </div></div></section>
-    <section class="section"><div class="section-head"><h2>Moving</h2></div><div class="group"><div class="stats">
-      ${stat(`${s.mins}<small> / ${s.goal}</small>`, 'active minutes', s.mins >= s.goal)}${stat(`${s.str}<small> / 2</small>`, 'strength sessions', s.str >= 2)}
+    <section class="section"><div class="section-head"><h2>Exercise Goals</h2></div><div class="group"><div class="stats">
+      ${stat(s.mins, s.goal, 'aerobic activity minutes', s.goalMet)}${stat(s.str, 2, `full-body strength sessions${s.strPartial ? `, counting ${s.strPartial} partial session${s.strPartial === 1 ? '' : 's'} (2 partial = 1 full)` : ''}`, s.strMet)}
     </div></div></section>
-    <section class="section"><div class="section-head"><h2>Logging</h2></div><div class="group"><div class="stats">
-      ${stat(`${s.n}<small> / ${cur ? s.n : 7}</small>`, 'days logged')}${stat(`${s.wi}<small> / 2</small>`, 'weigh-ins', s.wi >= 2)}
+    <section class="section"><div class="section-head"><h2>Self-Weighing Goals</h2></div><div class="group"><div class="stats">
+      ${stat(s.weighIns, 2, 'weigh-ins', s.weighIns >= 2)}
     </div></div></section>
-    <div class="banner info">${s.mins >= s.goal ? 'You met your activity goal this week. That consistency is what builds the habit.' : 'Every week counts, including the busy ones. Small steps add up.'}</div>`;
+    <div class="banner info">${s.goalMet ? 'You met your activity goal this week. That consistency is what builds the habit.' : 'Every week counts, including the busy ones. Small steps add up.'}</div>`;
   }
 
   function viewMore() {
-    return `<section class="section"><div class="section-head"><h2>Weekly lessons</h2></div>
-      <p class="hint">A new lesson opens each week. Past lessons stay here.</p>
+    const last = med.doses[med.doses.length - 1], D = S.dose, route = D.route ?? last?.route ?? null;
+    return `<section class="section"><div class="section-head"><h2>Weekly Lessons and Surveys</h2></div>
+      <p class="hint">Watch the new lesson each week (posted on Mondays) and complete the brief survey. You can always go back and re-watch previous lessons at any time.</p>
       <div class="group">${lessons.map(l => { const open = l.n <= NOW_WEEK; return `<div class="row" style="display:flex;gap:14px;align-items:center;padding:14px 18px;min-height:76px">
         <span class="num" style="flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:var(${open ? '--primary-soft' : '--sunk'});color:var(${open ? '--primary' : '--ink-muted'})">${open ? l.n : I.lock.replace('<svg', '<svg width="22" height="22" stroke="currentColor"')}</span>
-        <span class="row-text"><span class="row-title">Lesson ${l.n}</span><span class="row-sub">${open ? 'Video coming soon' : `Opens ${fmt(weekStart(l.n), { month: 'short', day: 'numeric' })}`}</span></span></div>`; }).join('')}</div>
-      <p class="foot">The study team is sending the 14 videos and survey links. Each lesson will get Watch and Survey buttons.</p></section>
+        <span class="row-text" style="flex:1"><span class="row-title">Lesson ${l.n}</span><span class="row-sub">${open ? 'Video coming soon' : `Opens ${fmt(weekStart(l.n), { weekday: 'long', month: 'short', day: 'numeric' })}`}</span></span>
+        ${open ? `<button class="btn small" data-k="lesson-${l.n}" data-act="lesson" data-v="${l.n}" aria-label="Open Lesson ${l.n}">Open</button>` : ''}</div>`; }).join('')}</div></section>
     <section class="section"><div class="section-head"><h2>Medication</h2></div>
-      <div class="group pad"><h3>Your plan for January</h3>
-        <div class="form-grid"><div class="field"><label for="plan-day">Injection day</label><select class="input" id="plan-day" data-k="plan-day" data-act="plan-day">${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(x => `<option ${x === med.plan.day ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
-        <div class="field"><label for="plan-dose">Planned dose</label><input class="input" id="plan-dose" data-k="plan-dose" data-act="plan-dose" value="${esc(med.plan.dose)}"></div></div>
-        <p class="foot" style="padding:0">On the 1st of each month you'll be asked to set this again.</p></div>
       <div class="group pad"><h3>Log a dose you took</h3>
-        <div class="form-grid"><div class="field"><label for="dose-date">Date</label><input class="input" id="dose-date" data-k="dose-date" type="date" min="${iso(EDIT_FROM)}" max="${iso(TODAY)}" value="${iso(TODAY - DAY)}"></div>
-        <div class="field"><label for="dose-time">Time</label><input class="input" id="dose-time" data-k="dose-time" type="time" value="09:00"></div>
-        <div class="field"><label for="dose-amt">Dose taken</label><input class="input" id="dose-amt" data-k="dose-amt" value="${esc(med.plan.dose)}"></div></div>
+        <div class="q"><span class="q-label" id="q-route">Route</span>
+          <div class="seg" role="group" aria-labelledby="q-route">${ROUTES.map(([k, l]) => `<button data-k="route-${k}" data-act="route" data-v="${k}" aria-pressed="${route === k}">${l}</button>`).join('')}</div>
+          <small class="muted" style="font-size:.92rem">Oral medication is usually taken daily. Injections are usually weekly.</small></div>
+        <div class="form-grid"><div class="field"><label for="dose-date">Date</label><input class="input" id="dose-date" data-k="dose-date" data-act="dose-field" data-f="date" type="date" min="${iso(EDIT_FROM)}" max="${iso(TODAY)}" value="${D.date}"></div>
+        <div class="field"><label for="dose-time">Time</label><input class="input" id="dose-time" data-k="dose-time" data-act="dose-field" data-f="time" type="time" value="${D.time}"></div>
+        <div class="field"><label for="dose-amt">Dose taken</label><input class="input" id="dose-amt" data-k="dose-amt" data-act="dose-field" data-f="dose" maxlength="40" placeholder="For example 5 mg" value="${esc(D.dose ?? last?.dose ?? '')}"></div></div>
+        <div class="q"><span class="q-label" id="q-rx">Any changes to your prescription (dosage)?</span>
+          <div class="seg" role="group" aria-labelledby="q-rx">${[['Yes', true], ['No', false]].map(([l, v]) => `<button data-k="rx-${l}" data-act="rx" data-v="${v}" aria-pressed="${D.changed === v}">${l}</button>`).join('')}</div>
+          ${D.changed ? `<div class="field"><label for="rx-details">What changed?</label><input class="input" id="rx-details" data-k="rx-details" data-act="dose-field" data-f="details" maxlength="500" placeholder="For example, went from 5 mg to 7.5 mg" value="${esc(D.details)}"></div>` : ''}</div>
         <button class="btn" data-k="dose-save" data-act="dose-save">Save dose</button></div>
-      <div class="group">${med.doses.map((x, i) => [x, i]).reverse().map(([x, i]) => `<div class="row" style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>${fmt(Date.parse(x.date), { weekday: 'short', month: 'short', day: 'numeric' })}</strong> at ${esc(x.time)}, ${esc(x.dose)}</span>${editable(Date.parse(x.date)) ? `<button class="minus" data-act="dose-del" data-v="${i}" data-k="dd-${i}" aria-label="Remove dose from ${fmt(Date.parse(x.date), { month: 'long', day: 'numeric' })}">Remove</button>` : ''}</div>`).join('')}</div></section>
+      <div class="group">${med.doses.map((x, i) => [x, i]).reverse().map(([x, i]) => `<div class="row" style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>${fmt(Date.parse(x.date), { weekday: 'short', month: 'short', day: 'numeric' })}</strong> at ${esc(x.time)}, ${esc(x.dose)}, ${ROUTES.find(r => r[0] === x.route)[1].toLowerCase()}${x.rxChanged ? `<br><span class="muted">Prescription changed: ${esc(x.rxDetails)}</span>` : ''}</span>${editable(Date.parse(x.date)) ? `<button class="minus" data-act="dose-del" data-v="${i}" data-k="dd-${i}" aria-label="Remove dose from ${fmt(Date.parse(x.date), { month: 'long', day: 'numeric' })}">Remove</button>` : ''}</div>`).join('')}</div></section>
     <section class="section"><div class="section-head"><h2>Look and feel</h2></div>
       <div class="group pad"><div class="chips">${[['light', 'Light'], ['dark', 'Dark'], ['', 'Match device']].map(([v, l]) => `<button class="chip" data-k="th-${l}" data-act="theme" data-v="${v}" aria-pressed="${(document.documentElement.dataset.theme || '') === v}">${l}</button>`).join('')}</div>
       <p class="muted" style="font-size:1rem">Every text color reaches 7:1 contrast, the strictest accessibility level. The font, Atkinson Hyperlegible Next, was made by the Braille Institute for easy reading.</p></div></section>`;
+  }
+
+  function viewLesson() {
+    return `<p style="margin:0"><button class="linkish back" data-k="lesson-back" data-act="lesson-back">${I.left} Weekly Lessons and Surveys</button></p>
+    <section class="section" aria-label="Lesson video"><div class="banner info">This week's video is coming soon. It will play right here in the app's own player, with captions and no ads.</div></section>
+    <section class="section"><div class="section-head"><h2>This week's survey</h2></div>
+      <div class="group pad"><p style="margin:0">After you watch, please complete the brief survey. It opens in a new tab.</p><p class="muted" style="margin:0">The survey link is coming soon.</p></div></section>`;
   }
 
   function feedback(key, v, goal, label) {
@@ -663,10 +691,8 @@ table.data .id { font-weight: 700; color: var(--primary); }
 
   /* ---------- admin ---------- */
   // Codes match the real app's database and downloads exactly (web/src/lib/program.ts and reports.ts).
-  const SLOT_KEYS = { b: 'breakfast', ams: 'am_snack', l: 'lunch', pms: 'pm_snack', d: 'dinner', evs: 'eve_snack' };
   const REASON_KEYS = { 'Habit or routine': 'habit', 'Emotional reasons': 'emotional', 'Social situation': 'social', 'Food cravings or desire to eat': 'cravings', 'Other': 'other' };
-  const SYM_KEYS = ['nausea', 'constipation', 'abdominal_pain', 'cramping', 'vomiting', 'diarrhea', 'heartburn', 'fatigue', 'headache', 'dizziness'];
-  const ACT_KEYS = ['aerobics_class', 'bicycling', 'dancing', 'elliptical', 'hiit', 'pickleball', 'running', 'sport', 'lap_swimming', 'water_aerobics', 'weight_lifting', 'yoga_pilates', 'other'];
+  const ACT_KEYS = ['aerobics_class', 'brisk_walking', 'bicycling', 'dancing', 'elliptical', 'hiit', 'pickleball', 'running', 'sport', 'lap_swimming', 'water_aerobics', 'weight_lifting', 'yoga_pilates', 'other'];
   const actKey = a => ACT_KEYS[ACTS.indexOf(a)] ?? a;
 
   const firsts = ['Linda', 'Robert', 'Carol', 'James', 'Denise', 'Michael', 'Patricia', 'Thomas', 'Angela', 'Gary', 'Sharon', 'Frank', 'Teresa', 'Paul'];
@@ -677,46 +703,46 @@ table.data .id { font-weight: 700; color: var(--primary); }
   // Every sample participant gets a full, consistent history, so the table, the record, and the downloads agree.
   PEOPLE.forEach(p => {
     if (p.id === 'BRX-014') { pdays[p.id] = days; pmeds[p.id] = med; return; }
-    pdays[p.id] = {}; pmeds[p.id] = { plan: { day: 'Monday', dose: '5 mg' }, doses: [] };
+    pdays[p.id] = {}; pmeds[p.id] = { doses: [] };
     if (p.ago === null) return;
     seed = 900 + p.id.charCodeAt(6) * 17 + p.id.charCodeAt(5) * 3;
     const last = Math.min(TODAY - p.ago * DAY, p.start + 97 * DAY), w0 = 190 + Math.round(rnd() * 40);
     for (let t = p.start; t <= last; t += DAY) {
       if (rnd() < .12) continue;
       const d = blankDay();
-      SLOTS.forEach(([sid, , snack]) => { if (rnd() < (snack ? .5 : .92)) { const hungry = rnd() < .6; d.meals[sid] = { eaten: true, protein: rnd() < (snack ? .45 : .7) ? 'Yes' : 'No', hunger: hungry ? 'Yes' : 'No', reason: hungry ? null : REASONS[Math.floor(rnd() * 4)], other: '' }; } });
+      fakeMeals(d, .5);
       d.fv = 1 + Math.floor(rnd() * 6); d.bev = 3 + Math.floor(rnd() * 6);
-      if (rnd() < .3) d.sym[Math.floor(rnd() * 4)] = 1 + Math.floor(rnd() * 3);
-      d.ex = rnd() < .6; if (d.ex) { d.mins = [20, 25, 30, 40, 45][Math.floor(rnd() * 5)]; d.acts = [ACTS[[1, 6, 11, 0, 5][Math.floor(rnd() * 5)]]]; }
-      d.strength = rnd() < .28;
+      if (rnd() < .3) d.sym[SYMPTOMS[Math.floor(rnd() * 6)][0]] = 1 + Math.floor(rnd() * 3);
+      d.ex = rnd() < .6; if (d.ex) { d.mins = [20, 25, 30, 40, 45][Math.floor(rnd() * 5)]; d.acts = [ACTS[[2, 7, 12, 0, 6, 1][Math.floor(rnd() * 6)]]]; }
+      d.strength = rnd() < .28 ? ['full', 'full', 'upper', 'lower'][Math.floor(rnd() * 4)] : null;
       if (rnd() < .35) d.weight = +(w0 - (t - p.start) / DAY * .3 - rnd()).toFixed(1);
       pdays[p.id][t] = d;
     }
-    for (let t = p.start; t <= last; t += 7 * DAY) pmeds[p.id].doses.push({ date: iso(t), time: '08:30', dose: '5 mg' });
+    for (let t = p.start, i = 0; t <= last; t += 7 * DAY, i++) pmeds[p.id].doses.push(dose(iso(t), '08:30', i >= 4 ? '7.5 mg' : '5 mg', i === 4 ? 'Went up from 5 mg to 7.5 mg' : ''));
   });
   PEOPLE.sort((a, b) => a.id.localeCompare(b.id));
   const all = () => PEOPLE.concat(S.admin.added);
   const pWeek = p => TODAY < p.start ? 'NS' : TODAY >= p.start + 98 * DAY ? 'C' : Math.floor((TODAY - p.start) / DAY / 7) + 1;
-  const isLogged = d => !!d && (Object.keys(d.meals).length > 0 || d.fv > 0 || d.bev > 0 || d.ex !== null || d.strength || d.weight !== null || Object.keys(d.sym).length > 0);
+  const isLogged = d => !!d && (d.meals.length > 0 || d.fv > 0 || d.bev > 0 || d.ex !== null || d.strength !== null || d.weight !== null || Object.keys(d.sym).length > 0);
   const lastLogged = p => { const D = pdays[p.id] || {}; const ts = Object.keys(D).map(Number).filter(t => isLogged(D[t])); return ts.length ? Math.max(...ts) : null; };
   const pDates = (p, w) => Array.from({ length: 7 }, (_, i) => p.start + ((w - 1) * 7 + i) * DAY);
   const avg1 = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 10) / 10 : null;
   /** Same math as the real app's weekly summary (web/src/lib/summary.ts). */
   function summarize(p, w) {
     const ds = pDates(p, w).filter(t => t <= TODAY).map(t => pdays[p.id]?.[t]).filter(Boolean);
-    let meals = 0, mp = 0, snacks = 0, sp = 0, dpm = 0;
-    ds.forEach(d => { let pt = false; SLOTS.forEach(([sid, , snack]) => { const m = d.meals[sid]; if (!m?.eaten) return; if (snack) { snacks++; if (m.protein === 'Yes') sp++; } else { meals++; if (m.protein === 'Yes') { mp++; pt = true; } } }); if (pt) dpm++; });
-    const L = ds.filter(isLogged), fvs = L.map(d => d.fv), bevs = L.map(d => d.bev), wts = ds.filter(d => d.weight !== null);
-    const mins = ds.reduce((a, d) => a + (d.mins || 0), 0), goal = mvpaGoal(p.baseline, w), str = ds.filter(d => d.strength).length;
-    return { daysLogged: L.length, meals, mealsP: mp, pctMeals: meals ? Math.round(mp / meals * 100) : null, snacks, snacksP: sp, pctSnacks: snacks ? Math.round(sp / snacks * 100) : null, daysProteinMeal: dpm,
+    const L = ds.filter(isLogged), meals = ds.flatMap(d => d.meals), prot = ds.filter(d => d.meals.length).map(proteinOf);
+    const fvs = L.map(d => d.fv), bevs = L.map(d => d.bev), wts = ds.filter(d => d.weight !== null), types = ds.map(d => d.strength);
+    const mins = ds.reduce((a, d) => a + (d.mins || 0), 0), goal = mvpaGoal(p.baseline, w), str = strengthEq(types);
+    return { daysLogged: L.length, meals: meals.filter(m => m.kind !== 'snack').length, snacks: meals.filter(m => m.kind === 'snack').length, avgProt: avg1(prot), protGoal: prot.filter(n => n >= PROTEIN_GOAL).length,
       avgFv: avg1(fvs), fvAny: fvs.filter(n => n > 0).length, fvGoal: fvs.filter(n => n >= 5).length, avgBev: avg1(bevs), bevAny: bevs.filter(n => n > 0).length, bevGoal: bevs.filter(n => n >= 8).length,
-      mins, goal, goalMet: mins >= goal, str, strMet: str >= 2, weighIns: wts.length, lastWeight: wts.length ? wts[wts.length - 1].weight : null, symDays: ds.filter(d => Object.keys(d.sym).length).length };
+      mins, goal, goalMet: mins >= goal, strFull: types.filter(t => t === 'full').length, strPartial: types.filter(t => t === 'upper' || t === 'lower').length, str, strMet: str >= 2,
+      weighIns: wts.length, lastWeight: wts.length ? wts[wts.length - 1].weight : null, symDays: ds.filter(d => Object.keys(d.sym).length).length };
   }
   function rowsForHome() {
     return all().map(p => { const wk = pWeek(p), prior = wk === 'C' ? 14 : typeof wk === 'number' && wk > 1 ? wk - 1 : null; return { ...p, wk, last: lastLogged(p), s: prior ? summarize(p, prior) : null }; });
   }
   const COLS = [['id', 'Study ID', p => p.id], ['wk', 'Week', p => p.wk === 'NS' ? -1 : p.wk === 'C' ? 99 : p.wk], ['start', 'Start date', p => p.start], ['last', 'Last logged', p => p.last ?? -1],
-    ['mvpa', 'MVPA min', p => p.s?.mins ?? -1, 1], ['str', 'Strength', p => p.s?.str ?? -1, 1], ['prot', 'Protein days', p => p.s?.daysProteinMeal ?? -1, 1], ['fv', 'F+V days', p => p.s?.fvAny ?? -1, 1], ['bev', 'Drink days', p => p.s?.bevAny ?? -1, 1]];
+    ['mvpa', 'MVPA min', p => p.s?.mins ?? -1, 1], ['str', 'Strength', p => p.s?.str ?? -1, 1], ['prot', 'Protein days', p => p.s?.protGoal ?? -1, 1], ['fv', 'F+V days', p => p.s?.fvAny ?? -1, 1], ['bev', 'Drink days', p => p.s?.bevAny ?? -1, 1]];
   const late = p => typeof p.wk === 'number' && (p.last === null || TODAY - p.last >= 3 * DAY);
   const lastCell = p => { if (p.last === null) return `<span class="tag ${late(p) ? 'bad' : 'dim'}">Never</span>`; const ago = Math.round((TODAY - p.last) / DAY), txt = fmt(p.last, { month: 'short', day: 'numeric' }); return late(p) ? `<span class="tag bad">${txt}, ${ago} days ago</span>` : txt; };
   const wkCell = p => p.wk === 'NS' ? '<span class="tag dim">NS</span>' : p.wk === 'C' ? '<span class="tag ok">C</span>' : p.wk;
@@ -725,21 +751,16 @@ table.data .id { font-weight: 700; color: var(--primary); }
 
   function viewAdmin() {
     if (!S.admin.authed) return `<div class="wrap" style="max-width:480px;padding-top:40px">
-      <span class="logo"><span class="logo-mark">${I.logo}</span>Boost Rx <span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
-      ${S.admin.step === 'code' ? `<form class="signin-card" id="admin-code-form" novalidate><h2>Enter your code</h2>
-          <p class="muted" style="font-size:1rem">Open your authenticator app and type the 6-digit code for Boost Rx. The first time, admins scan a QR code to set this up.</p>
-          ${S.admin.err.code ? `<p class="err-msg" role="alert">${S.admin.err.code}</p>` : ''}
-          <div class="field"><label for="a-code">6-digit code</label><input class="input" id="a-code" data-k="a-code" inputmode="numeric" maxlength="7" style="font-size:1.6rem;letter-spacing:.3em;text-align:center" placeholder="000000"></div>
-          <button class="btn" type="submit" data-k="a-code-go">Sign in</button><p class="foot" style="padding:0">Demo: type any 6 digits.</p></form>`
-        : `<form class="signin-card" id="admin-pw-form" novalidate><h2>Study staff sign in</h2>
-          ${S.admin.err.pw ? `<p class="err-msg" role="alert">${S.admin.err.pw}</p>` : ''}
-          <div class="field"><label for="a-user">Username</label><input class="input" id="a-user" data-k="a-user" autocomplete="username" value="admin@boostrx.test"></div>
-          <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="admin123"></div>
-          <button class="btn" type="submit" data-k="a-pw-go">Continue</button><p class="foot" style="padding:0">Demo: any username and password. The real site checks both, then asks for the code.</p></form>`}
+      <span class="logo">${LOGO}<span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
+      <form class="signin-card" id="admin-pw-form" novalidate><h2>Study staff sign in</h2>
+        ${S.admin.err.pw ? `<p class="err-msg" role="alert">${S.admin.err.pw}</p>` : ''}
+        <div class="field"><label for="a-user">Username</label><input class="input" id="a-user" data-k="a-user" autocomplete="username" value="demo"></div>
+        <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="demo-password"></div>
+        <button class="btn" type="submit" data-k="a-pw-go">Sign in</button><p class="foot" style="padding:0">Demo: any username and password. The real site checks both.</p></form>
     </div>`;
     const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['reports', 'Reports'], ['admins', 'Admins']];
     return `<div class="wrap wide">
-      <div class="admin-top"><span class="logo"><span class="logo-mark">${I.logo}</span>Boost Rx <span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
+      <div class="admin-top"><span class="logo">${LOGO}<span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
         <nav class="admin-nav" aria-label="Admin sections">${nav.map(([id, l]) => `<button data-k="an-${id}" data-act="anav" data-v="${id}" ${v === id || (id === 'home' && v === 'record') ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
         <span style="display:flex;gap:10px;align-items:center"><span class="tag sample">Sample data</span><button class="btn small ghost" data-act="admin-signout" data-k="a-out">Sign out</button></span></div>
       ${v === 'record' ? adminRecord() : v === 'add' ? adminAdd() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : adminHome()}</div>`;
@@ -757,19 +778,20 @@ table.data .id { font-weight: 700; color: var(--primary); }
         <tr><th colspan="4" class="grp"></th><th colspan="5" class="grp prior">Last full week</th></tr>
         <tr>${COLS.map(th).join('')}</tr></thead><tbody>
         ${rows.map(p => `<tr class="click" data-act="open-p" data-v="${p.id}" tabindex="0" data-k="row-${p.id}"><td class="id">${p.id}</td><td>${wkCell(p)}</td><td>${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</td><td>${lastCell(p)}</td>
-          ${['mins', 'str', 'daysProteinMeal', 'fvAny', 'bevAny'].map(k => `<td class="num prior">${p.s ? p.s[k] : dash}</td>`).join('')}</tr>`).join('')}
+          ${['mins', 'str', 'protGoal', 'fvAny', 'bevAny'].map(k => `<td class="num prior">${p.s ? p.s[k] : dash}</td>`).join('')}</tr>`).join('')}
       </tbody></table></div></section>
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center">
-      <p class="foot" style="max-width:680px">Week: NS = not started, 1 to 14 = current week, C = complete. Red = no logging in 3 or more days. Last full week columns count days (protein = at least one meal met the goal; F+V and drinks = at least one serving).</p>
+      <p class="foot" style="max-width:680px">Week: NS = not started, 1 to 14 = current week, C = complete. Red = no logging in 3 or more days. Last full week columns: strength = full-body sessions (2 partial = 1 full); protein = days with 8 or more servings; F+V and drinks = days with at least one serving.</p>
       <span style="display:flex;gap:10px;align-items:center"><span class="muted" style="font-size:.92rem">All data:</span>${dlButtons('all', '', false)}</span></div>`;
   }
   const yn = v => v === 'Yes' ? 'Y' : v === 'No' ? 'N' : '?';
+  const label = (list, k) => list.find(x => x[0] === k)?.[1] ?? k;
   function adminRecord() {
     const p = all().find(x => x.id === S.admin.pid), wk = pWeek(p), last = lastLogged(p);
     const maxW = wk === 'C' ? 14 : typeof wk === 'number' ? wk : 0, w = S.admin.pweek ?? maxW, D = pdays[p.id] || {};
     const dates = w ? pDates(p, w) : [], s = w ? summarize(p, w) : null, e = S.admin.err;
     const doses = (pmeds[p.id]?.doses || []).filter(d => w && d.date >= iso(dates[0]) && d.date <= iso(dates[6]));
-    const f = (id, label, type, val, hint) => `<div class="field"><label for="${id}">${label}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="${type}" value="${esc(val ?? '')}">${e[id] ? `<span class="err-msg">${e[id]}</span>` : hint ? `<small>${hint}</small>` : ''}</div>`;
+    const f = (id, lbl, type, val, hint) => `<div class="field"><label for="${id}">${lbl}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="${type}" value="${esc(val ?? '')}">${e[id] ? `<span class="err-msg">${e[id]}</span>` : hint ? `<small>${hint}</small>` : ''}</div>`;
     return `<button class="linkish" data-k="rec-back" data-act="anav" data-v="home" style="justify-self:start">← All participants</button>
     ${S.admin.added.some(x => x.id === p.id) && S.admin.justAdded === p.id ? `<p class="banner info">${p.id} was added. Give them their study ID and password.</p>` : ''}
     <section class="group pad"><div class="record-head"><h2>${p.id}</h2><span>First name: <strong>${esc(p.first)}</strong></span><span>Week: <strong>${wk}</strong></span><span>Start: <strong>${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</strong></span><span>Baseline: <strong>${p.baseline}</strong> min/week</span><span>Email: <span class="tag dim">encrypted, on file</span></span><span>Last logged: <strong>${last ? fmt(last, { month: 'short', day: 'numeric', year: 'numeric' }) : 'never'}</strong></span></div>
@@ -777,15 +799,15 @@ table.data .id { font-weight: 700; color: var(--primary); }
     ${w ? `<div class="weekpick" style="max-width:460px"><button class="arrow" data-k="pw-prev" data-act="pweek" data-v="${w - 1}" ${w <= 1 ? 'disabled' : ''} aria-label="Previous week">${I.left}</button>
       <div class="pick-label">Week ${w}<small>${fmt(dates[0], { month: 'short', day: 'numeric' })} to ${fmt(dates[6], { month: 'short', day: 'numeric' })}, MVPA goal ${mvpaGoal(p.baseline, w)}</small></div>
       <button class="arrow" data-k="pw-next" data-act="pweek" data-v="${w + 1}" ${w >= maxW ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
-    <div class="kpis"><div class="kpi"><b>${s.mins} / ${s.goal}</b><span>MVPA minutes</span></div><div class="kpi"><b>${s.str} / 2</b><span>strength sessions</span></div>
-      <div class="kpi"><b>${s.pctMeals ?? '–'}${s.pctMeals !== null ? '%' : ''} / ${s.pctSnacks ?? '–'}${s.pctSnacks !== null ? '%' : ''}</b><span>meals / snacks with protein goal</span></div><div class="kpi"><b>${s.daysLogged} / ${dates.filter(t => t <= TODAY).length}</b><span>days logged</span></div></div>
-    <section class="group"><div class="table-wrap"><table class="data"><thead><tr><th>Day</th><th>Meals and snacks (protein, hungry, reason)</th><th class="num">F+V</th><th class="num">Drinks</th><th class="num">MVPA</th><th>Activity</th><th>Strength</th><th>Side effects (1-5)</th><th class="num">Weight</th></tr></thead><tbody>
+    <div class="kpis"><div class="kpi"><b>${s.mins} / ${s.goal}</b><span>MVPA minutes</span></div><div class="kpi"><b>${s.str} / 2</b><span>strength sessions (full-body equivalents, ${s.strPartial} partial)</span></div>
+      <div class="kpi"><b>${s.avgProt ?? '–'} / ${PROTEIN_GOAL}</b><span>protein servings a day, average (${s.protGoal} days met)</span></div><div class="kpi"><b>${s.daysLogged} / ${dates.filter(t => t <= TODAY).length}</b><span>days logged</span></div></div>
+    <section class="group"><div class="table-wrap"><table class="data"><thead><tr><th>Day</th><th>Meals and snacks (protein servings, hungry, reason)</th><th class="num">F+V</th><th class="num">Drinks</th><th class="num">MVPA</th><th>Activity</th><th>Strength</th><th>Side effects (1-5)</th><th class="num">Weight</th></tr></thead><tbody>
       ${dates.map(t => { const d = D[t]; return `<tr><td><strong>${fmt(t, { weekday: 'short', month: 'short', day: 'numeric' })}</strong></td>${t > TODAY ? '<td colspan="8" class="muted">Upcoming</td>' : !isLogged(d) ? '<td colspan="8" class="muted">Nothing logged</td>' :
-        `<td style="white-space:normal;min-width:260px">${SLOTS.filter(([sid]) => d.meals[sid]?.eaten).map(([sid, name]) => { const m = d.meals[sid]; return `<div>${name}: P ${yn(m.protein)}, H ${yn(m.hunger)}${m.reason ? `, ${esc(m.reason)}${m.other ? ` (${esc(m.other)})` : ''}` : ''}</div>`; }).join('') || dash}</td>
+        `<td style="white-space:normal;min-width:260px">${d.meals.map((m, i) => `<div>${m.kind === 'snack' ? `Snack ${i + 1 - d.meals.filter(x => x.kind !== 'snack').length}` : label(MEALS, m.kind)}: P ${m.protein ?? '?'}, H ${yn(m.hunger)}${m.reason ? `, ${esc(m.reason)}${m.other ? ` (${esc(m.other)})` : ''}` : ''}</div>`).join('')}${d.meals.length ? `<div><strong>Protein: ${proteinOf(d)} servings</strong></div>` : dash}</td>
         <td class="num">${d.fv}</td><td class="num">${d.bev}</td><td class="num">${d.ex === false ? 0 : d.mins || dash}</td><td style="white-space:normal;min-width:140px">${d.acts.map(a => a === 'Other' && d.actOther ? `Other (${esc(d.actOther)})` : esc(a)).join(', ') || dash}</td>
-        <td>${d.strength ? 'Yes' : dash}</td><td style="white-space:normal;min-width:160px">${Object.entries(d.sym).map(([i, v]) => `${SYMPTOMS[i]} (${v ?? '?'})`).join(', ') || '<span class="muted">None</span>'}</td><td class="num">${d.weight ?? dash}</td>`}</tr>`; }).join('')}
+        <td>${d.strength ? label(STRENGTH, d.strength) : dash}</td><td style="white-space:normal;min-width:160px">${Object.entries(d.sym).map(([k, v]) => `${label(SYMPTOMS, k)} (${v ?? '?'})`).join(', ') || '<span class="muted">None</span>'}</td><td class="num">${d.weight ?? dash}</td>`}</tr>`; }).join('')}
     </tbody></table></div></section>
-    <p class="foot">P = protein goal met, H = ate mostly because hungry, Y/N/? = yes, no, not answered. Doses this week: ${doses.length ? doses.map(d => `${fmt(Date.parse(d.date), { weekday: 'short', month: 'short', day: 'numeric' })} ${d.time} ${esc(d.dose)}`).join('; ') : 'none logged'}.${p.id === 'BRX-014' ? ' This is the same data as the Participant app tab: change something there and it shows up here.' : ''}</p>`
+    <p class="foot">P = protein servings (about 10 g each), H = ate mostly because hungry, Y/N/? = yes, no, not answered. Doses this week: ${doses.length ? doses.map(d => `${fmt(Date.parse(d.date), { weekday: 'short', month: 'short', day: 'numeric' })} ${d.time} ${esc(d.dose)} ${d.route}${d.rxChanged ? ` (prescription changed: ${esc(d.rxDetails)})` : ''}`).join('; ') : 'none logged'}.${p.id === 'BRX-014' ? ' This is the same data as the Participant app tab: change something there and it shows up here.' : ''}</p>`
     : '<div class="banner info">This participant has not started yet. Their data appears here from their start date.</div>'}
     <details class="group pad" ${S.admin.openPanel === 'settings' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Change settings (name, start date, baseline, email)</summary>
       <form id="settings-form" novalidate style="display:grid;gap:16px;margin-top:12px"><div class="form-grid">
@@ -809,10 +831,11 @@ table.data .id { font-weight: 700; color: var(--primary); }
       </div><button class="btn" type="submit" style="justify-self:start" data-k="np-go">Add participant</button></form></section>`;
   }
   const REPORT_CARDS = [
-    ['daily', 'Daily report', 'One row per participant per program day, every item they logged: each meal and snack (protein, hunger, reason), fruit and vegetables, drinks, activity minutes and types, strength, weight, and each side effect with its severity. Blank days are included so missing data is visible.'],
-    ['weekly', 'Weekly summary', "One row per participant per program week: percent of meals and snacks meeting the protein goal, average servings, MVPA minutes against that week's goal, strength sessions, weigh-ins, weight change, side effect days, and doses."],
+    ['daily', 'Daily report', 'One row per participant per program day, every item they logged: breakfast, lunch, and dinner (protein servings, hunger, reason), snack and protein totals, fruit and vegetables, sugar-free drinks, aerobic minutes and activity types, strength type, weight, and each side effect with its severity. Blank days are included so missing data is visible.'],
+    ['meals', 'Meals', 'One row per meal or snack logged, including every snack: protein servings, hunger, and reason for eating.'],
+    ['weekly', 'Weekly summary', "One row per participant per program week: average protein servings and days meeting the protein goal, average servings, aerobic minutes against that week's goal, strength sessions (two partial sessions = one full-body), weigh-ins, weight change, side effect days, and doses."],
     ['participants', 'Participants', 'One row per participant: start and end dates, current week (NS, 1 to 14, C), baseline and starting goal, days logged, and last logged date.'],
-    ['medication', 'Medication', 'Each monthly plan (injection day, dose) and each dose taken (date, time, dose).'],
+    ['medication', 'Medication', 'Each dose taken: date, time, dose, route (oral or injection), and any reported prescription change.'],
     ['history', 'Edit history', 'Every change or removal of logged data, with the values before and after.'],
     ['dictionary', 'Data dictionary', 'What every column in every report means, with codes and units.'],
   ];
@@ -824,24 +847,27 @@ table.data .id { font-weight: 700; color: var(--primary); }
   }
   function adminAdmins() {
     return `<section class="group pad" style="max-width:820px"><h2>Study admins</h2>
-      <div class="table-wrap"><table class="data"><thead><tr><th>Username</th><th>First name</th><th>Authenticator app</th><th>Last sign in</th></tr></thead><tbody>
-        ${S.admin.admins.map(a => `<tr><td>${esc(a.user)}</td><td>${esc(a.first)}</td><td>${a.set ? '<span class="tag ok">Set up</span>' : '<span class="tag warn">Not set up yet</span>'}</td><td>${a.last}</td></tr>`).join('')}
+      <div class="table-wrap"><table class="data"><thead><tr><th>Username</th><th>First name</th><th>Last sign in</th></tr></thead><tbody>
+        ${S.admin.admins.map(a => `<tr><td>${esc(a.user)}</td><td>${esc(a.first)}</td><td>${a.last}</td></tr>`).join('')}
       </tbody></table></div>
       <h3 style="margin-top:8px">Add an admin</h3>
       ${S.admin.err.na ? `<p class="err-msg" role="alert">${S.admin.err.na}</p>` : ''}
       <form id="admin-add-form" novalidate style="display:grid;gap:16px"><div class="form-grid"><div class="field"><label for="na-user">Username</label><input class="input" id="na-user" data-k="na-user"><small>Lowercase, for example jsmith</small></div><div class="field"><label for="na-first">First name</label><input class="input" id="na-first" data-k="na-first"></div>
-      <div class="field"><label for="na-pw">Password</label><input class="input" id="na-pw" data-k="na-pw" type="password"><small>At least 12 characters. They set up an authenticator app at first sign in.</small></div><div class="field"><label for="na-pw2">Confirm password</label><input class="input" id="na-pw2" data-k="na-pw2" type="password"></div></div>
+      <div class="field"><label for="na-pw">Password</label><input class="input" id="na-pw" data-k="na-pw" type="password"><small>At least 12 characters.</small></div><div class="field"><label for="na-pw2">Confirm password</label><input class="input" id="na-pw2" data-k="na-pw2" type="password"></div></div>
       <button class="btn small" style="justify-self:start" type="submit" data-k="na-go">Add admin</button></form></section>`;
   }
 
   /* ---------- downloads (same columns as web/src/lib/reports.ts) ---------- */
   const FLAG = '1 = yes, 0 = no, blank = not answered';
+  const PROTEIN_VALS = '0 = little or no protein, 1 to 4 = servings of about 10 g; blank = not answered';
+  const REASON_VALS = Object.entries(REASON_KEYS).map(([l, c]) => `${c} = ${l}`).join('; ');
   const fl = b => b === null || b === undefined ? null : b ? 1 : 0;
   const ynFlag = v => v === 'Yes' ? 1 : v === 'No' ? 0 : null;
   function buildTables(onlyId) {
     const ps = all().filter(p => !onlyId || p.id === onlyId);
     const progDates = p => { const lastT = Math.min(TODAY, p.start + 97 * DAY), out = []; for (let t = p.start; t <= lastT; t += DAY) out.push(t); return out; };
     const firstW = p => { const D = pdays[p.id] || {}; const t = Object.keys(D).map(Number).sort((a, b) => a - b).find(t => D[t].weight !== null); return t === undefined ? null : D[t].weight; };
+    const wkOf = (p, t) => Math.floor((t - p.start) / DAY / 7) + 1;
     const participants = { title: 'Participants', desc: 'One row per participant.', cols: [
       ['study_id', 'text', "Study ID (also the participant's username)"], ['first_name', 'text', 'First name, as entered by an admin'], ['start_date', 'date', 'Program day 1'],
       ['end_date', 'date', 'Last program day (day 98). Access ends the next day.'], ['current_week', 'text', 'Program week today', 'NS = not started, 1 to 14, C = complete'],
@@ -850,49 +876,59 @@ table.data .id { font-weight: 700; color: var(--primary); }
       ['email_on_file', 'flag', 'Whether an encrypted email is stored. The email itself is never exported.', FLAG]],
       rows: ps.map(p => { const l = lastLogged(p); return { study_id: p.id, first_name: p.first, start_date: iso(p.start), end_date: iso(p.start + 97 * DAY), current_week: String(pWeek(p)), baseline_mvpa_min: p.baseline, starting_mvpa_goal: mvpaGoal(p.baseline, 1), days_logged: progDates(p).filter(t => isLogged(pdays[p.id]?.[t])).length, last_logged: l ? iso(l) : null, email_on_file: 1 }; }) };
     const dcols = [['study_id', 'text', 'Study ID'], ['date', 'date', 'Calendar date'], ['study_week', 'number', 'Program week, 1 to 14'], ['study_day', 'number', 'Program day, 1 to 98'], ['logged_anything', 'flag', 'Any entry at all for this day', '1 = yes, 0 = no']];
-    SLOTS.forEach(([sid, name, snack]) => { const k = SLOT_KEYS[sid]; dcols.push([`${k}_eaten`, 'flag', `${name}: eaten`, '1 = eaten, 0 = not logged as eaten'], [`${k}_protein_met`, 'flag', `${name}: had ${snack ? 10 : 20} g of protein or more`, FLAG], [`${k}_mostly_hungry`, 'flag', `${name}: eaten mostly because of hunger`, FLAG], [`${k}_main_reason`, 'text', `${name}: main reason for eating when not mostly hungry`, Object.entries(REASON_KEYS).map(([l, c]) => `${c} = ${l}`).join('; ')], [`${k}_reason_other`, 'text', `${name}: participant's words when the reason is "other"`]); });
-    dcols.push(['meals_eaten', 'number', 'Meals eaten (breakfast, lunch, dinner), 0 to 3'], ['meals_protein_met', 'number', 'Meals that met the 20 g protein goal'], ['snacks_eaten', 'number', 'Snacks eaten (morning, afternoon, evening), 0 to 3'], ['snacks_protein_met', 'number', 'Snacks that met the 10 g protein goal'],
-      ['fruit_veg_servings', 'number', 'Servings of fruits and vegetables (goal 5). Blank = not entered.'], ['beverage_servings', 'number', '8 oz servings of non-sugar-sweetened beverages (goal 8). Blank = not entered.'], ['exercised', 'flag', 'Answered yes to exercising this day', FLAG],
-      ['mvpa_minutes', 'number', 'Minutes of moderate-to-vigorous activity'], ['activity_types', 'text', 'Activities chosen, separated by semicolons', ACT_KEYS.join('; ')], ['activity_other', 'text', `Participant's words when the activity is "other"`],
-      ['strength_session', 'flag', 'Did a full-body strength session', '1 = yes, 0 = no'], ['weight_lb', 'number', 'Weight in pounds. Blank = not weighed.'], ['symptoms_reported', 'number', 'Number of side effects reported']);
-    SYMPTOMS.forEach((l, i) => dcols.push([`symptom_${SYM_KEYS[i]}`, 'flag', `Side effect reported: ${l}`, '1 = reported, 0 = not reported'], [`symptom_${SYM_KEYS[i]}_severity`, 'number', `Severity of ${l.toLowerCase()}`, '1 = very minimal, did not affect functioning ... 5 = severe, greatly impaired daily functioning; blank = not reported or not rated']));
-    const drows = [];
+    MEALS.forEach(([k, name]) => dcols.push([`${k}_eaten`, 'flag', `${name}: logged as eaten`, '1 = eaten, 0 = not logged as eaten'], [`${k}_protein_servings`, 'number', `${name}: protein servings`, PROTEIN_VALS], [`${k}_mostly_hungry`, 'flag', `${name}: eaten mostly because of hunger`, FLAG], [`${k}_main_reason`, 'text', `${name}: main reason for eating when not mostly hungry`, REASON_VALS], [`${k}_reason_other`, 'text', `${name}: participant's words when the reason is "other"`]));
+    dcols.push(['snacks_eaten', 'number', "Snacks logged (any number a day). Each snack's answers are in the Meals report."], ['snack_protein_servings', 'number', 'Protein servings from all snacks that day (unanswered counted as 0)'],
+      ['protein_servings', 'number', 'Protein servings from all meals and snacks (goal 8 to 10; unanswered counted as 0)'], ['protein_goal_met', 'flag', '8 or more protein servings', '1 = yes, 0 = no, blank = no meals logged'],
+      ['fruit_veg_servings', 'number', 'Servings of fruits and vegetables (goal 5). Blank = not entered.'], ['beverage_servings', 'number', '8 oz cups of sugar-free drinks (goal 8). Blank = not entered.'], ['exercised', 'flag', 'Answered yes to any moderate-to-vigorous intensity exercise this day', FLAG],
+      ['mvpa_minutes', 'number', 'Minutes of aerobic (moderate-to-vigorous) exercise'], ['activity_types', 'text', 'Activities chosen, separated by semicolons', ACT_KEYS.join('; ')], ['activity_other', 'text', `Participant's words when the activity is "other"`],
+      ['strength_type', 'text', 'Strength training that day. Two partial sessions count as one full-body session.', STRENGTH.map(([k, l]) => `${k} = ${l}`).join('; ') + '; blank = none'], ['weight_lb', 'number', 'Weight in pounds. Blank = not weighed.'], ['symptoms_reported', 'number', 'Number of side effects reported']);
+    SYMPTOMS.forEach(([k, l]) => dcols.push([`symptom_${k}`, 'flag', `Side effect reported: ${l}`, '1 = reported, 0 = not reported'], [`symptom_${k}_severity`, 'number', `Severity of ${l.toLowerCase()}`, '1 = very mild ... 5 = very severe; blank = not reported or not rated']));
+    const drows = [], mlrows = [];
     ps.forEach(p => progDates(p).forEach(t => {
-      const d = pdays[p.id]?.[t], logged = isLogged(d), r = { study_id: p.id, date: iso(t), study_week: Math.floor((t - p.start) / DAY / 7) + 1, study_day: Math.round((t - p.start) / DAY) + 1, logged_anything: logged ? 1 : 0 };
-      let me = 0, mp = 0, se = 0, sp = 0;
-      SLOTS.forEach(([sid, , snack]) => { const k = SLOT_KEYS[sid], m = logged ? d.meals[sid] : null, eaten = !!m?.eaten; if (eaten) { if (snack) { se++; if (m.protein === 'Yes') sp++; } else { me++; if (m.protein === 'Yes') mp++; } }
-        Object.assign(r, { [`${k}_eaten`]: eaten ? 1 : 0, [`${k}_protein_met`]: eaten ? ynFlag(m.protein) : null, [`${k}_mostly_hungry`]: eaten ? ynFlag(m.hunger) : null, [`${k}_main_reason`]: eaten && m.reason ? REASON_KEYS[m.reason] : null, [`${k}_reason_other`]: eaten && m.other ? m.other : null }); });
-      Object.assign(r, { meals_eaten: me, meals_protein_met: mp, snacks_eaten: se, snacks_protein_met: sp, fruit_veg_servings: logged ? d.fv : null, beverage_servings: logged ? d.bev : null, exercised: logged ? fl(d.ex) : null, mvpa_minutes: logged ? (d.ex === false ? 0 : d.mins || null) : null,
-        activity_types: logged && d.acts.length ? d.acts.map(actKey).join(';') : null, activity_other: logged && d.actOther ? d.actOther : null, strength_session: logged && d.strength ? 1 : 0, weight_lb: logged ? d.weight : null, symptoms_reported: logged ? Object.keys(d.sym).length : 0 });
-      SYM_KEYS.forEach((k, i) => { const on = logged && String(i) in d.sym; r[`symptom_${k}`] = on ? 1 : 0; r[`symptom_${k}_severity`] = on ? d.sym[i] ?? null : null; });
+      const d = pdays[p.id]?.[t], logged = isLogged(d), r = { study_id: p.id, date: iso(t), study_week: wkOf(p, t), study_day: Math.round((t - p.start) / DAY) + 1, logged_anything: logged ? 1 : 0 };
+      const ms = logged ? d.meals : [];
+      MEALS.forEach(([k]) => { const m = ms.find(x => x.kind === k);
+        Object.assign(r, { [`${k}_eaten`]: m ? 1 : 0, [`${k}_protein_servings`]: m?.protein ?? null, [`${k}_mostly_hungry`]: m ? ynFlag(m.hunger) : null, [`${k}_main_reason`]: m?.reason ? REASON_KEYS[m.reason] : null, [`${k}_reason_other`]: m?.other || null }); });
+      const sn = ms.filter(x => x.kind === 'snack'), prot = logged ? proteinOf(d) : 0;
+      Object.assign(r, { snacks_eaten: sn.length, snack_protein_servings: sn.reduce((a, x) => a + (x.protein || 0), 0), protein_servings: prot, protein_goal_met: ms.length ? (prot >= PROTEIN_GOAL ? 1 : 0) : null,
+        fruit_veg_servings: logged ? d.fv : null, beverage_servings: logged ? d.bev : null, exercised: logged ? fl(d.ex) : null, mvpa_minutes: logged ? (d.ex === false ? 0 : d.mins || null) : null,
+        activity_types: logged && d.acts.length ? d.acts.map(actKey).join(';') : null, activity_other: logged && d.actOther ? d.actOther : null, strength_type: logged ? d.strength : null, weight_lb: logged ? d.weight : null, symptoms_reported: logged ? Object.keys(d.sym).length : 0 });
+      SYMPTOMS.forEach(([k]) => { const on = logged && k in d.sym; r[`symptom_${k}`] = on ? 1 : 0; r[`symptom_${k}_severity`] = on ? d.sym[k] ?? null : null; });
       drows.push(r);
+      let n = 0;
+      ms.forEach(m => mlrows.push({ study_id: p.id, date: iso(t), study_week: wkOf(p, t), kind: m.kind, snack_number: m.kind === 'snack' ? ++n : null, protein_servings: m.protein, mostly_hungry: ynFlag(m.hunger), main_reason: m.reason ? REASON_KEYS[m.reason] : null, reason_other: m.other || null }));
     }));
     const daily = { title: 'Daily', desc: 'One row per participant per program day, from day 1 through today. Blank days are included so missing data is visible.', cols: dcols, rows: drows };
+    const meals = { title: 'Meals', desc: 'One row per meal or snack logged. Breakfast, lunch, and dinner appear at most once a day; snacks as many times as logged.', cols: [
+      ['study_id', 'text', 'Study ID'], ['date', 'date', 'Calendar date'], ['study_week', 'number', 'Program week, 1 to 14'], ['kind', 'text', 'Which meal', 'breakfast, lunch, dinner, snack'],
+      ['snack_number', 'number', 'Snacks only: 1 for the first snack logged that day, 2 for the second, and so on'], ['protein_servings', 'number', 'Protein servings', PROTEIN_VALS], ['mostly_hungry', 'flag', 'Eaten mostly because of hunger', FLAG],
+      ['main_reason', 'text', 'Main reason for eating when not mostly hungry', REASON_VALS], ['reason_other', 'text', `Participant's words when the reason is "other"`]], rows: mlrows };
     const wrows = [];
     ps.forEach(p => { const wk = pWeek(p), lastW = wk === 'C' ? 14 : typeof wk === 'number' ? wk : 0, fw = firstW(p);
       for (let w = 1; w <= lastW; w++) { const s = summarize(p, w), dts = pDates(p, w), ch = s.lastWeight !== null && fw !== null ? Math.round((s.lastWeight - fw) * 10) / 10 : null;
-        wrows.push({ study_id: p.id, study_week: w, week_start: iso(dts[0]), week_end: iso(dts[6]), week_complete: dts[6] < TODAY ? 1 : 0, days_logged: s.daysLogged, meals_eaten: s.meals, pct_meals_protein_met: s.pctMeals, snacks_eaten: s.snacks, pct_snacks_protein_met: s.pctSnacks, days_protein_meal: s.daysProteinMeal,
+        wrows.push({ study_id: p.id, study_week: w, week_start: iso(dts[0]), week_end: iso(dts[6]), week_complete: dts[6] < TODAY ? 1 : 0, days_logged: s.daysLogged, meals_eaten: s.meals, snacks_eaten: s.snacks, avg_protein_servings: s.avgProt, days_protein_goal: s.protGoal,
           avg_fruit_veg: s.avgFv, days_fruit_veg_any: s.fvAny, days_fruit_veg_goal: s.fvGoal, avg_beverages: s.avgBev, days_beverage_any: s.bevAny, days_beverage_goal: s.bevGoal, mvpa_minutes: s.mins, mvpa_goal: s.goal, mvpa_goal_met: s.goalMet ? 1 : 0,
-          strength_sessions: s.str, strength_goal_met: s.strMet ? 1 : 0, weigh_ins: s.weighIns, last_weight_lb: s.lastWeight, lb_change_from_first: ch, pct_change_from_first: ch !== null && fw ? Math.round(ch / fw * 1000) / 10 : null, symptom_days: s.symDays,
+          strength_full: s.strFull, strength_partial: s.strPartial, strength_sessions: s.str, strength_goal_met: s.strMet ? 1 : 0, weigh_ins: s.weighIns, last_weight_lb: s.lastWeight, lb_change_from_first: ch, pct_change_from_first: ch !== null && fw ? Math.round(ch / fw * 1000) / 10 : null, symptom_days: s.symDays,
           doses_logged: (pmeds[p.id]?.doses || []).filter(d => d.date >= iso(dts[0]) && d.date <= iso(dts[6])).length }); } });
     const weekly = { title: 'Weekly summary', desc: 'One row per participant per program week so far. Averages use days with an entry for that item; blank days are not counted as zero.', cols: [
       ['study_id', 'text', 'Study ID'], ['study_week', 'number', 'Program week, 1 to 14'], ['week_start', 'date', 'First day of the program week'], ['week_end', 'date', 'Last day of the program week'], ['week_complete', 'flag', 'The whole week is in the past', '1 = yes, 0 = week in progress'],
-      ['days_logged', 'number', 'Days with any entry'], ['meals_eaten', 'number', 'Meals logged as eaten'], ['pct_meals_protein_met', 'number', 'Percent of eaten meals that met 20 g protein'], ['snacks_eaten', 'number', 'Snacks logged as eaten'], ['pct_snacks_protein_met', 'number', 'Percent of eaten snacks that met 10 g protein'],
-      ['days_protein_meal', 'number', 'Days with at least one meal that met the protein goal'], ['avg_fruit_veg', 'number', 'Average daily fruit and vegetable servings (days entered)'], ['days_fruit_veg_any', 'number', 'Days with at least 1 fruit or vegetable serving'], ['days_fruit_veg_goal', 'number', 'Days with 5 or more servings'],
-      ['avg_beverages', 'number', 'Average daily 8 oz sugar-free drinks (days entered)'], ['days_beverage_any', 'number', 'Days with at least 1 serving'], ['days_beverage_goal', 'number', 'Days with 8 or more servings'], ['mvpa_minutes', 'number', 'Total MVPA minutes in the week'], ['mvpa_goal', 'number', "That week's MVPA goal"],
-      ['mvpa_goal_met', 'flag', 'MVPA minutes reached the goal', '1 = yes, 0 = no'], ['strength_sessions', 'number', 'Days with a full-body strength session'], ['strength_goal_met', 'flag', '2 or more strength sessions', '1 = yes, 0 = no'], ['weigh_ins', 'number', 'Days with a weight entered (goal 2)'],
-      ['last_weight_lb', 'number', 'Last weight entered that week'], ['lb_change_from_first', 'number', "Last weight that week minus the participant's first weight (negative = loss)"], ['pct_change_from_first', 'number', 'Percent change from first weight (negative = loss)'], ['symptom_days', 'number', 'Days with at least one side effect reported'], ['doses_logged', 'number', 'Medication doses logged with a date in this week']], rows: wrows };
+      ['days_logged', 'number', 'Days with any entry'], ['meals_eaten', 'number', 'Breakfasts, lunches, and dinners logged'], ['snacks_eaten', 'number', 'Snacks logged'], ['avg_protein_servings', 'number', 'Average daily protein servings (days with any meal or snack logged)'], ['days_protein_goal', 'number', 'Days with 8 or more protein servings'],
+      ['avg_fruit_veg', 'number', 'Average daily fruit and vegetable servings (days entered)'], ['days_fruit_veg_any', 'number', 'Days with at least 1 fruit or vegetable serving'], ['days_fruit_veg_goal', 'number', 'Days with 5 or more servings'],
+      ['avg_beverages', 'number', 'Average daily 8 oz sugar-free drinks (days entered)'], ['days_beverage_any', 'number', 'Days with at least 1 serving'], ['days_beverage_goal', 'number', 'Days with 8 or more servings'], ['mvpa_minutes', 'number', 'Total aerobic (MVPA) minutes in the week'], ['mvpa_goal', 'number', "That week's MVPA goal"],
+      ['mvpa_goal_met', 'flag', 'MVPA minutes reached the goal', '1 = yes, 0 = no'], ['strength_full', 'number', 'Days with a full-body strength session'], ['strength_partial', 'number', 'Days with an upper-body-only or lower-body-only session'], ['strength_sessions', 'number', 'Full-body equivalents: full sessions plus one for every two partial sessions'], ['strength_goal_met', 'flag', '2 or more full-body equivalents', '1 = yes, 0 = no'],
+      ['weigh_ins', 'number', 'Days with a weight entered (goal 2)'], ['last_weight_lb', 'number', 'Last weight entered that week'], ['lb_change_from_first', 'number', "Last weight that week minus the participant's first weight (negative = loss)"], ['pct_change_from_first', 'number', 'Percent change from first weight (negative = loss)'], ['symptom_days', 'number', 'Days with at least one side effect reported'], ['doses_logged', 'number', 'Medication doses logged with a date in this week']], rows: wrows };
     const mrows = [];
-    ps.forEach(p => { const M = pmeds[p.id]; if (!M) return; if (M.plan && pWeek(p) !== 'NS') mrows.push({ study_id: p.id, record_type: 'plan', month: iso(p.start).slice(0, 7) + '-01', planned_injection_day: M.plan.day, planned_dose: M.plan.dose, taken_date: null, taken_time: null, dose_taken: null });
-      M.doses.forEach(d => mrows.push({ study_id: p.id, record_type: 'dose', month: null, planned_injection_day: null, planned_dose: null, taken_date: d.date, taken_time: d.time, dose_taken: d.dose })); });
-    const medication = { title: 'Medication', desc: 'Monthly plans and each dose the participant reported taking.', cols: [['study_id', 'text', 'Study ID'], ['record_type', 'text', 'What this row is', 'plan = monthly plan, dose = dose taken'], ['month', 'date', 'Plan rows: first day of the month the plan is for'], ['planned_injection_day', 'text', 'Plan rows: planned day of the week'], ['planned_dose', 'text', 'Plan rows: planned dose, as typed'], ['taken_date', 'date', 'Dose rows: date taken'], ['taken_time', 'text', "Dose rows: time taken (24-hour, participant's local time)"], ['dose_taken', 'text', 'Dose rows: dose, as typed']], rows: mrows };
-    const history = { title: 'Edit history', desc: 'Every change or removal of logged data, with the values before and after. (Empty in this demo.)', cols: [['study_id', 'text', 'Study ID'], ['changed_at', 'text', 'When the change was saved (UTC, ISO 8601)'], ['data_type', 'text', 'Which kind of entry changed', 'meal_entries, daily_logs, symptom_entries, med_plans, med_doses'], ['change', 'text', 'UPDATE = edited, DELETE = removed'], ['before', 'text', 'Values before the change (JSON)'], ['after', 'text', 'Values after the change (JSON); blank for removals']], rows: [] };
-    const tables = { participants, daily, weekly, medication, history };
+    ps.forEach(p => (pmeds[p.id]?.doses || []).forEach(d => mrows.push({ study_id: p.id, taken_date: d.date, taken_time: d.time, dose_taken: d.dose, route: d.route, rx_changed: d.rxChanged ? 1 : 0, rx_change_details: d.rxChanged ? d.rxDetails : null })));
+    const medication = { title: 'Medication', desc: 'Each dose the participant reported taking.', cols: [['study_id', 'text', 'Study ID'], ['taken_date', 'date', 'Date taken'], ['taken_time', 'text', "Time taken (24-hour, participant's local time)"], ['dose_taken', 'text', 'Dose, as typed'],
+      ['route', 'text', 'How the medication is taken', ROUTES.map(([k, l]) => `${k} = ${l}`).join('; ')], ['rx_changed', 'flag', 'Answered yes to: Any changes to your prescription (dosage)?', '1 = yes, 0 = no'], ['rx_change_details', 'text', "Participant's description of the prescription change"]], rows: mrows };
+    const history = { title: 'Edit history', desc: 'Every change or removal of logged data, with the values before and after. New entries are not listed here; they are in the other tabs. (Empty in this demo.)', cols: [['study_id', 'text', 'Study ID'], ['changed_at', 'text', 'When the change was saved (UTC, ISO 8601)'], ['data_type', 'text', 'Which kind of entry changed', 'meal_entries, daily_logs, symptom_entries, med_doses'], ['change', 'text', 'UPDATE = edited, DELETE = removed'], ['before', 'text', 'Values before the change (JSON)'], ['after', 'text', 'Values after the change (JSON); blank for removals']], rows: [] };
+    const tables = { participants, daily, meals, weekly, medication, history };
     Object.values(tables).forEach(t => { t.cols = t.cols.map(([key, kind, desc, values]) => ({ key, kind, desc, values })); });
     tables.dictionary = { title: 'Data dictionary', desc: 'What every column in every report means.', cols: [{ key: 'report', kind: 'text' }, { key: 'column', kind: 'text' }, { key: 'description', kind: 'text' }, { key: 'values', kind: 'text' }],
-      rows: ['participants', 'daily', 'weekly', 'medication', 'history'].flatMap(k => tables[k].cols.map(c => ({ report: tables[k].title, column: c.key, description: c.desc, values: c.values ?? (c.kind === 'date' ? 'YYYY-MM-DD' : c.kind === 'number' ? 'number' : null) }))) };
+      rows: REPORT_ORDER.flatMap(k => tables[k].cols.map(c => ({ report: tables[k].title, column: c.key, description: c.desc, values: c.values ?? (c.kind === 'date' ? 'YYYY-MM-DD' : c.kind === 'number' ? 'number' : null) }))) };
     return tables;
   }
+  const REPORT_ORDER = ['participants', 'daily', 'meals', 'weekly', 'medication', 'history'];
   const safeText = v => /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
   function toCsv(t) {
     const cell = (v, kind) => { if (v === null || v === undefined) return ''; const s2 = kind === 'text' && typeof v === 'string' ? safeText(v) : String(v); return /[",\r\n]/.test(s2) ? `"${s2.replace(/"/g, '""')}"` : s2; };
@@ -903,7 +939,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
     const T = buildTables(pid || null), base = `boostrx_${report}_${pid || 'all-participants'}_${iso(TODAY)}`;
     if (format === 'csv') { saveBlob(new Blob([toCsv(T[report])], { type: 'text/csv;charset=utf-8' }), base + '.csv'); toast(`Downloading ${base}.csv`); return; }
     if (!window.XLSX) { toast('The Excel library did not load. Try CSV, or reload the page.'); return; }
-    const wb = XLSX.utils.book_new(), order = ['participants', 'daily', 'weekly', 'medication', 'history'];
+    const wb = XLSX.utils.book_new(), order = REPORT_ORDER;
     const sheets = report === 'all' ? [...order.map(k => T[k]), T.dictionary] : report === 'dictionary' ? [T.dictionary] : [T[report], T.dictionary];
     const about = XLSX.utils.aoa_to_sheet([['Study', 'Boost Rx'], ['Downloaded by', 'demo admin'], ['Participants', pid || 'All participants'], ['Note', 'DEMO FILE with made-up sample data. The real site exports the same columns.'], [], ['Tab', 'What it contains'], ...sheets.map(t => [t.title, t.desc])]);
     about['!cols'] = [{ wch: 24 }, { wch: 90 }]; XLSX.utils.book_append_sheet(wb, about, 'About');
@@ -914,89 +950,95 @@ table.data .id { font-weight: 700; color: var(--primary); }
 
   /* ---------- events ---------- */
   const root = $('#root');
+  const proteinFeedback = (x, before) => { if (S.day === TODAY && proteinOf(x) > before) feedback('prot' + S.day, proteinOf(x), PROTEIN_GOAL, 'You had 8 servings of protein today.'); };
+  const addMeal = (x, kind) => { const nm = meal(kind, null, null); x.meals.push(nm); x.meals.sort(byKind); S.open[nm.id] = true; };
   root.addEventListener('click', e => {
-    const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled || b.matches('input')) return;
     const a = b.dataset.act, v = b.dataset.v, x = S.mode === 'app' ? dayData(S.day) : null;
-    const mealId = b.closest('[data-meal]')?.dataset.meal, m = mealId && x.meals[mealId];
+    const mealEl = b.closest('[data-meal]'), m = mealEl && x?.meals.find(z => z.id === +mealEl.dataset.meal);
     switch (a) {
       case 'set-day': S.day = +b.dataset.day; break;
-      case 'meal-toggle': if (m?.eaten) { delete x.meals[mealId]; S.open[mealId + S.day] = false; } else { x.meals[mealId] = { eaten: true, protein: null, hunger: null, reason: null, other: '' }; S.open[mealId + S.day] = true; } break;
-      case 'meal-open': S.open[mealId + S.day] = !S.open[mealId + S.day]; break;
-      case 'protein': m.protein = v; break;
+      case 'meal-toggle': if (m) { x.meals = x.meals.filter(z => z !== m); delete S.open[m.id]; } else addMeal(x, b.closest('[data-kind]').dataset.kind); break;
+      case 'add-snack': addMeal(x, 'snack'); break;
+      case 'meal-open': S.open[m.id] = !S.open[m.id]; break;
+      case 'protein': { const before = proteinOf(x); m.protein = v === 'true' ? Math.max(1, m.protein || 0) : 0; render(); proteinFeedback(x, before); return; }
+      case 'protein-n': { const before = proteinOf(x); m.protein = +v; render(); proteinFeedback(x, before); return; }
       case 'hunger': m.hunger = v; if (v === 'Yes') m.reason = null; break;
       case 'reason': m.reason = v; break;
-      case 'tok': case 'tok-minus': {
+      case 'tok': case 'tok-minus': case 'tok-plus': {
         const box = b.closest('[data-serve]'), k = box.dataset.serve, goal = +box.dataset.goal, before = x[k];
-        x[k] = a === 'tok-minus' ? Math.max(0, x[k] - 1) : (+b.dataset.n === x[k] ? x[k] - 1 : +b.dataset.n);
-        render(); if (x[k] > before) feedback(k + S.day, x[k], goal, k === 'fv' ? 'You had 5 servings of fruits and vegetables.' : 'You drank 8 cups of sugar-free drinks.'); return;
+        x[k] = a === 'tok-minus' ? Math.max(0, x[k] - 1) : a === 'tok-plus' ? x[k] + 1 : (+b.dataset.n === x[k] ? x[k] - 1 : +b.dataset.n);
+        render(); if (x[k] > before && S.day === TODAY) feedback(k + S.day, x[k], goal, k === 'fv' ? 'You had 5 servings of fruits and vegetables today.' : 'You drank 8 cups of sugar-free drinks today.'); return;
       }
-      case 'sym': { const i = b.closest('[data-sym]').dataset.sym; if (x.sym[i] !== undefined) delete x.sym[i]; else x.sym[i] = null; break; }
-      case 'sev': x.sym[b.closest('[data-sym]').dataset.sym] = +v; break;
+      case 'sym': { const k = b.closest('[data-sym]').dataset.sym; if (k in x.sym) delete x.sym[k]; else x.sym[k] = null; break; }
       case 'act-day': S.actDay = +b.dataset.day; break;
-      case 'ex': { const y = dayData(S.actDay); y.ex = v === 'true'; if (!y.ex) { y.mins = 0; y.acts = []; } break; }
+      case 'ex': { const y = dayData(S.actDay); S.actDone[S.actDay] ??= false; y.ex = v === 'true'; if (!y.ex) { y.mins = 0; y.acts = []; y.actOther = ''; } break; }
       case 'act': { const y = dayData(S.actDay); y.acts = y.acts.includes(v) ? y.acts.filter(z => z !== v) : [...y.acts, v]; break; }
-      case 'strength': { const y = dayData(S.actDay), wk = weekOf(S.actDay); y.strength = !y.strength; render(); if (y.strength) feedback('str' + wk, weekStrength(wk), 2, 'You did 2 strength sessions this week.'); return; }
+      case 'act-done': { const inp = $('#mins'); if (inp) dayData(S.actDay).mins = Math.min(600, +inp.value.replace(/\D/g, '') || 0); S.actDone[S.actDay] = true; break; }
+      case 'act-edit': S.actDone[S.actDay] = false; break;
+      case 'strength': { const y = dayData(S.actDay), on = S.strOn[S.actDay] ?? y.strength !== null; S.strOn[S.actDay] = !on; if (on) y.strength = null; break; }
+      case 'strength-type': { const y = dayData(S.actDay), wk = weekOf(S.actDay), before = strengthEq(weekTypes(wk)); y.strength = v; render(); const after = strengthEq(weekTypes(wk)); if (after > before) feedback('str' + wk, after, 2, 'You did 2 full-body strength sessions this week.'); return; }
       case 'wpt': S.wsel = +b.dataset.t; break;
-      case 'weight-save': { const val = parseFloat($('#w-today').value); if (!(val > 60 && val < 700)) { toast('Type your weight in pounds, for example 205.4'); return; } days[TODAY].weight = +val.toFixed(1); S.wsel = TODAY; render(); toast('Weight saved.'); return; }
+      case 'weight-save': {
+        const raw = $('#w-val').value.trim(), val = parseFloat(raw), y = dayData(S.wday);
+        if (!raw) { y.weight = null; render(); toast('Weight cleared.'); return; }
+        if (!(val >= 60 && val <= 700)) { toast('Type your weight in pounds, for example 205.4'); return; }
+        y.weight = +val.toFixed(1); S.wsel = S.wday; render(); toast(S.wday === TODAY ? 'Weight saved.' : `Weight saved for ${wDayLabel(S.wday)}.`); return;
+      }
       case 'week': S.week = +v; break;
-      case 'dose-save': med.doses.push({ date: $('#dose-date').value, time: $('#dose-time').value, dose: $('#dose-amt').value }); med.doses.sort((p, q) => p.date.localeCompare(q.date)); render(); toast('Dose saved.'); return;
+      case 'lesson': S.lesson = +v; render(); scrollTo(0, 0); return;
+      case 'lesson-back': S.lesson = null; break;
+      case 'route': S.dose.route = v; break;
+      case 'rx': S.dose.changed = v === 'true'; break;
+      case 'dose-save': {
+        const D = S.dose, last = med.doses[med.doses.length - 1], route = D.route ?? last?.route ?? null, amount = (D.dose ?? last?.dose ?? '').trim();
+        if (!route) { toast('Choose oral or injection.'); return; }
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(D.time)) { toast('Pick the time you took it.'); return; }
+        if (!amount) { toast('Type the dose you took, for example 5 mg.'); return; }
+        if (D.changed === null) { toast('Answer whether your prescription changed.'); return; }
+        if (D.changed && !D.details.trim()) { toast('Tell us what changed in your prescription.'); return; }
+        med.doses.push({ date: D.date, time: D.time, dose: amount, route, rxChanged: D.changed, rxDetails: D.changed ? D.details.trim() : '' }); med.doses.sort((p, q) => p.date.localeCompare(q.date));
+        Object.assign(D, { changed: null, details: '' }); render(); toast('Dose saved.'); return;
+      }
       case 'theme': v ? document.documentElement.setAttribute('data-theme', v) : document.documentElement.removeAttribute('data-theme'); break;
-      case 'forgot': toast('Participants contact the study team, who set a new password in the admin portal.'); return;
       case 'to-admin': S.mode = 'admin'; break;
       case 'anav': S.admin.view = v; S.admin.err = {}; break;
       case 'sort': { const [k, dir] = S.admin.sort; S.admin.sort = [v, k === v ? -dir : 1]; break; }
       case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; S.admin.err = {}; S.admin.openPanel = null; S.admin.justAdded = null; break;
       case 'pweek': S.admin.pweek = +v; break;
-      case 'impersonate': if (v === 'BRX-014') { S.mode = 'app'; S.tab = 'today'; render(); scrollTo(0, 0); toast('Viewing as BRX-014. Read-only on the real site.'); } else toast("Opens this participant's app, read-only. Try it on BRX-014."); return;
+      case 'impersonate': if (v === 'BRX-014') { S.mode = 'app'; S.tab = 'dashboard'; render(); scrollTo(0, 0); toast('Viewing as BRX-014. Read-only on the real site.'); } else toast("Opens this participant's app, read-only. Try it on BRX-014."); return;
       case 'reset-pw': toast('Sets a new password to give the participant. Their old one stops working.'); return;
       case 'edit-start': toast('Opens a date picker. Their week numbers and goals shift to match.'); return;
       case 'dl': download(b.dataset.report, b.dataset.fmt, b.dataset.p); return;
-      case 'admin-signout': S.admin.authed = false; S.admin.step = 'pw'; S.admin.view = 'home'; break;
+      case 'admin-signout': S.admin.authed = false; S.admin.view = 'home'; break;
       case 'dose-del': med.doses.splice(+v, 1); render(); toast('Dose removed.'); return;
-      case 'add-admin': toast('Admin added. They set up their sign-in code app on first sign in.'); return;
       default: return;
     }
     render();
   });
   root.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-act]')) { e.preventDefault(); e.target.click(); } });
+  // Severity slider: starts in the middle and unrated; any touch or key press records the value shown.
+  function setSev(el) { const k = el.closest('[data-sym]').dataset.sym, x = dayData(S.day); if (x.sym[k] === +el.value) return; x.sym[k] = +el.value; render(); }
+  root.addEventListener('pointerup', e => { if (e.target.dataset?.act === 'sev') setSev(e.target); });
+  root.addEventListener('keyup', e => { if (e.target.dataset?.act === 'sev' && !e.key.startsWith('Arrow')) setSev(e.target); });
   root.addEventListener('change', e => {
     const a = e.target.dataset.act;
-    if (a === 'reason-other') dayData(S.day).meals[e.target.closest('[data-meal]').dataset.meal].other = e.target.value;
+    if (a === 'reason-other') { const id = +e.target.closest('[data-meal]').dataset.meal; dayData(S.day).meals.find(z => z.id === id).other = e.target.value; }
     else if (a === 'act-other') dayData(S.actDay).actOther = e.target.value;
-    else if (a === 'mins') { const y = dayData(S.actDay), w = weekOf(S.actDay), g = mvpaGoal(BASELINE, w); y.mins = Math.min(600, +e.target.value.replace(/\D/g, '') || 0); render(); feedback('mvpa' + w, weekMins(w), g, `You reached ${g} active minutes this week.`); }
-    else if (a === 'plan-day') med.plan.day = e.target.value;
-    else if (a === 'plan-dose') med.plan.dose = e.target.value;
+    else if (a === 'mins') { S.actDone[S.actDay] ??= false; const y = dayData(S.actDay), w = weekOf(S.actDay), g = mvpaGoal(BASELINE, w), before = weekMins(w); y.mins = Math.min(600, +e.target.value.replace(/\D/g, '') || 0); render(); if (weekMins(w) > before) feedback('mvpa' + w, weekMins(w), g, `You reached ${g} aerobic minutes this week.`); }
+    else if (a === 'sev') setSev(e.target);
+    else if (a === 'w-date') { S.wday = +e.target.value; render(); }
   });
-  root.addEventListener('input', e => { if (e.target.dataset.act === 'aq') { S.admin.q = e.target.value; render(); } });
-  root.addEventListener('submit', async e => {
+  root.addEventListener('input', e => {
+    const a = e.target.dataset.act;
+    if (a === 'aq') { S.admin.q = e.target.value; render(); }
+    else if (a === 'dose-field') S.dose[e.target.dataset.f] = e.target.value;
+  });
+  root.addEventListener('submit', e => {
     e.preventDefault();
-    if (e.target.id === 'signin-form') {
-      const studyId = $('#si-id').value.trim().toUpperCase();
-      const password = $('#si-pw').value.trim();
-      const email = DEMO_USER_MAP[studyId] || `${studyId.toLowerCase()}@boostrx.test`;
-      try {
-        const payload = await loginWithBackend({ email, password });
-        S.mode = 'app'; S.tab = 'today'; S.admin.authed = false; render(); toast(`Signed in as ${payload.user.name}.`); return;
-      } catch (error) {
-        toast('Local backend login failed. Falling back to the sample demo flow.');
-      }
-      S.mode = 'app'; S.tab = 'today'; render(); toast('Signed in. You will stay signed in on this device.'); return;
-    }
+    if (e.target.id === 'signin-form') { S.mode = 'app'; S.tab = 'dashboard'; render(); toast('Signed in. You will stay signed in on this device.'); return; }
     if (e.target.id === 'admin-pw-form') {
-      const user = $('#a-user').value.trim();
-      const password = $('#a-pw').value;
-      if (!user || !password) { S.admin.err = { pw: 'Enter your username and password.' }; render(); return; }
-      const email = user.includes('@') ? user : DEMO_USER_MAP[user.toLowerCase()] || 'admin@boostrx.test';
-      try {
-        const payload = await loginWithBackend({ email, password });
-        S.admin.err = {}; S.admin.authed = true; S.admin.view = 'home'; S.admin.step = 'pw'; render(); scrollTo(0, 0); toast(`Admin signed in as ${payload.user.name}.`); return;
-      } catch (error) {
-        toast('Admin login failed. Falling back to the mock admin flow.');
-      }
-      S.admin.err = {}; S.admin.step = 'code'; render(); $('#a-code')?.focus(); return;
-    }
-    if (e.target.id === 'admin-code-form') {
-      if (!/^\d{6}$/.test($('#a-code').value.replace(/\s/g, ''))) { S.admin.err = { code: 'That code did not match. Type the 6 digits from your authenticator app.' }; render(); $('#a-code')?.focus(); return; }
+      if (!$('#a-user').value.trim() || !$('#a-pw').value) { S.admin.err = { pw: 'Enter your username and password.' }; render(); return; }
       S.admin.err = {}; S.admin.authed = true; S.admin.view = 'home'; render(); scrollTo(0, 0); return;
     }
     if (e.target.id === 'settings-form') {
@@ -1019,7 +1061,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       const g = id => $('#' + id).value.trim(), user = g('na-user').toLowerCase();
       const err = !/^[a-z0-9._-]{3,40}$/.test(user) ? 'Use 3 to 40 letters, numbers, dots, dashes, or underscores for the username.' : !g('na-first') ? 'Enter a first name.' : $('#na-pw').value.length < 12 ? 'Admin passwords need at least 12 characters.' : $('#na-pw').value !== $('#na-pw2').value ? 'The two passwords do not match.' : S.admin.admins.some(a => a.user === user) ? 'That username is taken.' : null;
       if (err) { S.admin.err = { na: err }; render(); return; }
-      S.admin.admins.push({ user, first: g('na-first'), set: false, last: 'Never' }); S.admin.err = {}; render(); toast(`Admin "${user}" added. They set up their authenticator app the first time they sign in.`); return;
+      S.admin.admins.push({ user, first: g('na-first'), last: 'Never' }); S.admin.err = {}; render(); toast(`Admin "${user}" added.`); return;
     }
     if (e.target.id === 'add-form') {
       const g = id => $('#' + id).value.trim(), err = {}, id = g('np-id').toUpperCase();
@@ -1032,7 +1074,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       const start = Date.parse(g('np-start') || '2027-02-01');
       if (!g('np-first')) err['np-first'] = 'Enter a first name.';
       if (Object.keys(err).length) { S.admin.err = err; render(); $('#' + Object.keys(err)[0])?.focus(); return; }
-      S.admin.added.push({ id, first: g('np-first'), start, baseline: +g('np-base'), ago: null }); pdays[id] = {}; pmeds[id] = { plan: null, doses: [] };
+      S.admin.added.push({ id, first: g('np-first'), start, baseline: +g('np-base'), ago: null }); pdays[id] = {}; pmeds[id] = { doses: [] };
       S.admin.err = {}; S.admin.view = 'record'; S.admin.pid = id; S.admin.pweek = null; S.admin.justAdded = id; render(); scrollTo(0, 0);
     }
   });
