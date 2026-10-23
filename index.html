@@ -306,10 +306,10 @@ table.data .id { font-weight: 700; color: var(--primary); }
   <span class="lbl">Boost Rx design mockup, sample data only</span>
   <div class="opts">
     <button data-mode="signin" aria-pressed="false">Sign-in page</button>
-    <button data-mode="app" aria-pressed="true">Participant app</button>
+    <button data-mode="app" aria-pressed="true">Participant website</button>
     <button data-mode="admin" aria-pressed="false">Admin portal</button>
   </div>
-  <a class="switch-link" href="https://abigailkamenetsky.github.io/boostrx-preview/screens.html" target="_blank" rel="noopener">Screenshots of the real app</a>
+  <a class="switch-link" href="https://abigailkamenetsky.github.io/boostrx-preview/screens.html" target="_blank" rel="noopener">Screenshots of the real website</a>
 </div>
 <main id="root"></main>
 <nav class="tabs" id="tabs" aria-label="App sections"><div class="inner" role="tablist" id="tabs-inner"></div></nav>
@@ -368,7 +368,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   const NOW_WEEK = weekOf(TODAY), EDIT_FROM = weekStart(NOW_WEEK - 1);
   const editable = t => t >= EDIT_FROM && t <= TODAY;
 
-  // Same keys and labels as the real app (web/src/lib/program.ts).
+  // Same keys and labels as the real website (web/src/lib/program.ts).
   const MEALS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner']];
   const MAX_SNACKS = 8, PROTEIN_GOAL = 8; // protein: servings of about 10 g; goal stated as 8 to 10, met at 8 or more
   const REASONS = ['Habit or routine', 'Emotional reasons', 'Social situation', 'Food cravings or desire to eat', 'Other'];
@@ -456,7 +456,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       </form></div>`;
   }
 
-  /* ---------- participant app ---------- */
+  /* ---------- participant website ---------- */
   const TABS = [['dashboard', 'Dashboard', I.today], ['activity', 'Activity', I.move], ['weight', 'Weight', I.scale], ['summaries', 'Summaries', I.chart], ['more', 'More', I.more]];
   $('#tabs-inner').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; S.tab = b.dataset.tab; S.lesson = null; render(); scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); });
 
@@ -679,7 +679,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
 
   function viewLesson() {
     return `<p style="margin:0"><button class="linkish back" data-k="lesson-back" data-act="lesson-back">${I.left} Weekly Lessons and Surveys</button></p>
-    <section class="section" aria-label="Lesson video"><div class="banner info">This week's video is coming soon. It will play right here in the app's own player, with captions and no ads.</div></section>
+    <section class="section" aria-label="Lesson video"><div class="banner info">This week's video is coming soon. It will play right here in the website's own player, with captions and no ads.</div></section>
     <section class="section"><div class="section-head"><h2>This week's survey</h2></div>
       <div class="group pad"><p style="margin:0">After you watch, please complete the brief survey. It opens in a new tab.</p><p class="muted" style="margin:0">The survey link is coming soon.</p></div></section>`;
   }
@@ -690,7 +690,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   }
 
   /* ---------- admin ---------- */
-  // Codes match the real app's database and downloads exactly (web/src/lib/program.ts and reports.ts).
+  // Codes match the real website's database and downloads exactly (web/src/lib/program.ts and reports.ts).
   const REASON_KEYS = { 'Habit or routine': 'habit', 'Emotional reasons': 'emotional', 'Social situation': 'social', 'Food cravings or desire to eat': 'cravings', 'Other': 'other' };
   const ACT_KEYS = ['aerobics_class', 'brisk_walking', 'bicycling', 'dancing', 'elliptical', 'hiit', 'pickleball', 'running', 'sport', 'lap_swimming', 'water_aerobics', 'weight_lifting', 'yoga_pilates', 'other'];
   const actKey = a => ACT_KEYS[ACTS.indexOf(a)] ?? a;
@@ -727,7 +727,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   const lastLogged = p => { const D = pdays[p.id] || {}; const ts = Object.keys(D).map(Number).filter(t => isLogged(D[t])); return ts.length ? Math.max(...ts) : null; };
   const pDates = (p, w) => Array.from({ length: 7 }, (_, i) => p.start + ((w - 1) * 7 + i) * DAY);
   const avg1 = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 10) / 10 : null;
-  /** Same math as the real app's weekly summary (web/src/lib/summary.ts). */
+  /** Same math as the real website's weekly summary (web/src/lib/summary.ts). */
   function summarize(p, w) {
     const ds = pDates(p, w).filter(t => t <= TODAY).map(t => pdays[p.id]?.[t]).filter(Boolean);
     const L = ds.filter(isLogged), meals = ds.flatMap(d => d.meals), prot = ds.filter(d => d.meals.length).map(proteinOf);
@@ -807,7 +807,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
         <td class="num">${d.fv}</td><td class="num">${d.bev}</td><td class="num">${d.ex === false ? 0 : d.mins || dash}</td><td style="white-space:normal;min-width:140px">${d.acts.map(a => a === 'Other' && d.actOther ? `Other (${esc(d.actOther)})` : esc(a)).join(', ') || dash}</td>
         <td>${d.strength ? label(STRENGTH, d.strength) : dash}</td><td style="white-space:normal;min-width:160px">${Object.entries(d.sym).map(([k, v]) => `${label(SYMPTOMS, k)} (${v ?? '?'})`).join(', ') || '<span class="muted">None</span>'}</td><td class="num">${d.weight ?? dash}</td>`}</tr>`; }).join('')}
     </tbody></table></div></section>
-    <p class="foot">P = protein servings (about 10 g each), H = ate mostly because hungry, Y/N/? = yes, no, not answered. Doses this week: ${doses.length ? doses.map(d => `${fmt(Date.parse(d.date), { weekday: 'short', month: 'short', day: 'numeric' })} ${d.time} ${esc(d.dose)} ${d.route}${d.rxChanged ? ` (prescription changed: ${esc(d.rxDetails)})` : ''}`).join('; ') : 'none logged'}.${p.id === 'BRX-014' ? ' This is the same data as the Participant app tab: change something there and it shows up here.' : ''}</p>`
+    <p class="foot">P = protein servings (about 10 g each), H = ate mostly because hungry, Y/N/? = yes, no, not answered. Doses this week: ${doses.length ? doses.map(d => `${fmt(Date.parse(d.date), { weekday: 'short', month: 'short', day: 'numeric' })} ${d.time} ${esc(d.dose)} ${d.route}${d.rxChanged ? ` (prescription changed: ${esc(d.rxDetails)})` : ''}`).join('; ') : 'none logged'}.${p.id === 'BRX-014' ? ' This is the same data as the Participant website tab: change something there and it shows up here.' : ''}</p>`
     : '<div class="banner info">This participant has not started yet. Their data appears here from their start date.</div>'}
     <details class="group pad" ${S.admin.openPanel === 'settings' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Change settings (name, start date, baseline, email)</summary>
       <form id="settings-form" novalidate style="display:grid;gap:16px;margin-top:12px"><div class="form-grid">
@@ -824,7 +824,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
     const f = (id, label, type = 'text', small = '', val = '') => `<div class="field"><label for="${id}">${label}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="${type}" value="${esc(val)}" ${e[id] ? `aria-describedby="${id}-e" aria-invalid="true"` : ''}>${e[id] ? `<span class="err-msg" id="${id}-e">${e[id]}</span>` : small ? `<small>${small}</small>` : ''}</div>`;
     return `<section class="group pad" style="max-width:820px"><h2>Add a participant</h2>
       <form id="add-form" novalidate style="display:grid;gap:18px"><div class="form-grid">
-        ${f('np-id', 'Study ID (also their username)', 'text', 'For example BRX-014', `BRX-0${16 + S.admin.added.length}`)}${f('np-first', 'First name', 'text', 'Used to greet them in the app')}
+        ${f('np-id', 'Study ID (also their username)', 'text', 'For example BRX-014', `BRX-0${16 + S.admin.added.length}`)}${f('np-first', 'First name', 'text', 'Used to greet them on the website')}
         ${f('np-pw', 'Password', 'password', 'At least 10 characters. Write it on their sign-in card.')}${f('np-pw2', 'Confirm password', 'password')}
         ${f('np-email', 'Email (optional)', 'email', 'Encrypted as soon as it is saved. It is never shown or exported.')}${f('np-start', 'Program start date', 'date', 'Day 1 of their 14 weeks. Can be changed later.', '2027-02-01')}
         ${f('np-base', 'Usual active minutes per week before the program', 'number', 'Under 100 starts at a 100 minute goal; 100 or more starts at 125.')}
@@ -843,7 +843,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
     return `<section class="group pad"><h2>Everything in one Excel file</h2><p class="muted">All participants, all reports, one tab each, plus the data dictionary. Headers are frozen and filterable.</p>
         <div>${dlButtons('all', '', false)}</div><p class="foot" style="padding:0">For one participant, open their record from the Participants page and use the buttons there.</p></section>
       <div class="dl-grid">${REPORT_CARDS.map(([k, t, d]) => `<section class="group pad" style="align-content:start"><h3 style="font-size:1.15rem">${t}</h3><p class="muted" style="font-size:1rem">${d}</p><div>${dlButtons(k, '')}</div></section>`).join('')}</div>
-      <div class="banner info">These buttons make real files from this demo's sample data, with the same columns as the real app. Inside Claude's preview window downloads are blocked; they work on the public GitHub Pages version. On the real site, downloads contain protected health information and every one is recorded with who made it and when.</div>`;
+      <div class="banner info">These buttons make real files from this demo's sample data, with the same columns as the real website. Inside Claude's preview window downloads are blocked; they work on the public GitHub Pages version. On the real site, downloads contain protected health information and every one is recorded with who made it and when.</div>`;
   }
   function adminAdmins() {
     return `<section class="group pad" style="max-width:820px"><h2>Study admins</h2>
@@ -1006,7 +1006,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       case 'sort': { const [k, dir] = S.admin.sort; S.admin.sort = [v, k === v ? -dir : 1]; break; }
       case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; S.admin.err = {}; S.admin.openPanel = null; S.admin.justAdded = null; break;
       case 'pweek': S.admin.pweek = +v; break;
-      case 'impersonate': if (v === 'BRX-014') { S.mode = 'app'; S.tab = 'dashboard'; render(); scrollTo(0, 0); toast('Viewing as BRX-014. Read-only on the real site.'); } else toast("Opens this participant's app, read-only. Try it on BRX-014."); return;
+      case 'impersonate': if (v === 'BRX-014') { S.mode = 'app'; S.tab = 'dashboard'; render(); scrollTo(0, 0); toast('Viewing as BRX-014. Read-only on the real site.'); } else toast("Opens this participant's view of the website, read-only. Try it on BRX-014."); return;
       case 'reset-pw': toast('Sets a new password to give the participant. Their old one stops working.'); return;
       case 'edit-start': toast('Opens a date picker. Their week numbers and goals shift to match.'); return;
       case 'dl': download(b.dataset.report, b.dataset.fmt, b.dataset.p); return;
