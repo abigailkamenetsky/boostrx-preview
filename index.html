@@ -435,7 +435,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   /* ---------- state ---------- */
   const S = { mode: 'app', tab: 'dashboard', day: TODAY, open: {}, mconfirm: null, month: null, actDay: TODAY, actDone: {}, strOn: {}, wday: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
     dose: { date: iso(TODAY - DAY), time: '09:00', dose: null, route: null, changed: null, details: '' },
-    admin: { authed: false, view: 'home', lessonErr: {}, lessonDraft: {}, lessonOk: null, lessonOpen: {}, upload: {}, uploadErr: {}, sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
+    admin: { authed: false, view: 'home', audit: { show: 'all', q: '' }, lessonErr: {}, lessonDraft: {}, lessonOk: null, lessonOpen: {}, upload: {}, uploadErr: {}, sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
       confirm: null, // which two-step button is asking ("restore-BRX-009", "remove-admin2")
       admins: [{ user: 'demo', first: 'Demo', last: 'Today', me: true }, { user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
   const dayData = t => days[t] || (days[t] = blankDay());
@@ -901,12 +901,12 @@ table.data .id { font-weight: 700; color: var(--primary); }
         <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="demo-password"></div>
         <button class="btn" type="submit" data-k="a-pw-go">Sign in</button><p class="foot" style="padding:0">Demo: any username and password. The real site checks both.</p></form>
     </div>`;
-    const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['lessons', 'Lessons'], ['reports', 'Reports'], ['admins', 'Admins']];
+    const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['lessons', 'Lessons'], ['reports', 'Reports'], ['admins', 'Admins'], ['audit', 'Audit log']];
     return `<div class="wrap wide">
       <div class="admin-top"><span class="logo">${LOGO}<span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
         <nav class="admin-nav" aria-label="Admin sections">${nav.map(([id, l]) => `<button data-k="an-${id}" data-act="anav" data-v="${id}" ${v === id || (id === 'home' && v === 'record') ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
         <span style="display:flex;gap:10px;align-items:center"><span class="tag sample">Sample data</span><button class="btn small ghost" data-act="admin-signout" data-k="a-out">Sign out</button></span></div>
-      ${v === 'record' ? adminRecord() : v === 'add' ? adminAdd() : v === 'lessons' ? adminLessons() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : adminHome()}</div>`;
+      ${v === 'record' ? adminRecord() : v === 'add' ? adminAdd() : v === 'lessons' ? adminLessons() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : v === 'audit' ? adminAudit() : adminHome()}</div>`;
   }
   function adminHome() {
     const ps = rowsForHome(), active = ps.filter(p => typeof p.wk === 'number' && !p.ended);
@@ -1064,6 +1064,58 @@ table.data .id { font-weight: 700; color: var(--primary); }
       <div class="dl-grid">${REPORT_CARDS.map(([k, t, d]) => `<section class="group pad" style="align-content:start"><h3 style="font-size:1.15rem">${t}</h3><p class="muted" style="font-size:1rem">${d}</p><div>${dlButtons(k, '')}</div></section>`).join('')}</div>
       <div class="banner info">These buttons make real files from this demo's sample data, with the same columns as the real website. Inside Claude's preview window downloads are blocked; they work on the public GitHub Pages version. On the real site, downloads contain protected health information and every one is recorded with who made it and when.</div>`;
   }
+  // Audit log: same labels, filters, and CSV columns as web/src/lib/audit-log.ts and /admin/audit/export (sample entries).
+  const AUDIT_LABELS = { admin_login_ok: 'Staff signed in', admin_login_fail: 'Failed staff sign-in', logout: 'Staff signed out', login_ok: 'Participant signed in', participant_login_fail: 'Failed participant sign-in',
+    view_participants: 'Viewed the participant list', view_participant: 'Viewed a participant record', view_as_participant: 'Viewed as participant', view_audit_log: 'Viewed the audit log',
+    export: 'Downloaded data', export_audit: 'Downloaded the audit log', create_participant: 'Added a participant', update_participant: 'Changed participant settings',
+    reset_participant_password: "Reset a participant's password", end_participant_access: "Ended a participant's access", restore_participant_access: "Restored a participant's access",
+    create_admin: 'Added an admin', remove_admin: 'Removed an admin', change_password: 'Changed own password', change_password_fail: 'Wrong current password (password change)',
+    edit_lesson: 'Edited a lesson', move_lesson: 'Moved a lesson', upload_lesson_video: 'Uploaded a lesson video', upload_lesson_captions: 'Uploaded lesson captions',
+    remove_lesson_video: 'Removed a lesson video', remove_lesson_captions: 'Removed lesson captions', daily_jobs: 'Daily messages job ran' };
+  const AUDIT_GROUPS = { all: ['Everything', null], downloads: ['Data downloads', ['export', 'export_audit']], records: ['Records viewed', ['view_participants', 'view_participant', 'view_as_participant', 'view_audit_log']],
+    changes: ['Changes by staff', ['create_participant', 'update_participant', 'reset_participant_password', 'end_participant_access', 'restore_participant_access', 'create_admin', 'remove_admin', 'change_password', 'edit_lesson', 'move_lesson', 'upload_lesson_video', 'upload_lesson_captions', 'remove_lesson_video', 'remove_lesson_captions']],
+    signins: ['Sign-ins and sign-outs', ['admin_login_ok', 'login_ok', 'logout']], failed: ['Failed sign-ins', ['admin_login_fail', 'participant_login_fail', 'change_password_fail']], system: ['Automatic jobs', ['daily_jobs']] };
+  let auditSample = null;
+  function auditRows() {
+    if (!auditSample) {
+      const out = [], H = 36e5, base = TODAY + 15 * H; let k = 0;
+      const add = (hoursAgo, kind, who, action, target) => out.push({ id: ++k, at: base - hoursAgo * H, kind, who, action, target: target ?? null, ip: kind === 'system' ? null : (who || target || 'x').split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1e9, 7).toString(16).padStart(8, '0') });
+      add(0.2, 'admin', 'admin1', 'view_participants'); add(0.3, 'admin', 'admin1', 'admin_login_ok');
+      add(1, 'admin', 'admin1', 'export', 'all.xlsx'); add(1.1, 'admin', 'admin1', 'view_participant', 'BRX-014'); add(1.2, 'admin', 'admin1', 'view_as_participant', 'BRX-014 dashboard');
+      add(2, 'participant', 'BRX-014', 'login_ok'); add(2.1, 'anonymous', null, 'participant_login_fail', 'BRX-41');
+      add(5, 'system', null, 'daily_jobs', '{"participants":14,"nudge_not_sent":1}');
+      add(20, 'admin', 'admin2', 'upload_lesson_video', 'week 2'); add(20.2, 'admin', 'admin2', 'edit_lesson', 'week 2'); add(21, 'admin', 'admin2', 'admin_login_ok');
+      add(26, 'admin', 'admin1', 'end_participant_access', 'BRX-009'); add(26.1, 'admin', 'admin1', 'view_participant', 'BRX-009');
+      add(29, 'system', null, 'daily_jobs', '{"participants":15,"monthly_not_sent":1}'); add(30, 'anonymous', null, 'admin_login_fail', 'jsmth');
+      add(48, 'admin', 'admin1', 'export', 'daily.csv BRX-006'); add(49, 'admin', 'admin1', 'create_participant', 'BRX-015'); add(50, 'admin', 'admin1', 'admin_login_ok');
+      add(53, 'system', null, 'daily_jobs', '{"participants":14}');
+      auditSample = out;
+    }
+    const f = S.admin.audit, acts = AUDIT_GROUPS[f.show][1], q = f.q.trim().toLowerCase();
+    return auditSample.filter(r => (!acts || acts.includes(r.action)) && (!q || [r.who, r.target].some(x => x && x.toLowerCase().includes(q))));
+  }
+  const auditWho = r => r.kind === 'system' ? 'Automatic' : r.kind === 'anonymous' ? `Unknown${r.target ? ` (typed "${r.target}")` : ''}` : `${r.kind === 'admin' ? 'Staff' : 'Participant'} ${r.who}`;
+  const auditWhen = t => new Date(t).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  function adminAudit() {
+    const rows = auditRows(), f = S.admin.audit;
+    return `<section class="group pad" style="gap:12px"><h2>Audit log</h2>
+        <p style="margin:0">Every sign-in, every record viewed, every download, and every change made by staff, newest first. Times are Eastern. Opening or downloading this log is recorded here too.</p>
+        <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+          <div class="field"><label for="au-show">Show</label><select class="input" id="au-show" data-k="au-show" data-act="audit-show">${Object.entries(AUDIT_GROUPS).map(([k, [l]]) => `<option value="${k}" ${f.show === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+          <div class="field"><label for="au-q">Study ID or username</label><input class="input" id="au-q" data-k="au-q" data-act="audit-q" value="${esc(f.q)}" placeholder="For example BRX-014"></div>
+        </div><p class="foot" style="padding:0">Demo: sample entries. The real log also filters by date.</p></section>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><p class="muted" style="margin:0">${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}</p>
+        <button class="btn small ghost" data-k="au-dl" data-act="audit-dl">Download as CSV</button></div>
+      <section class="group"><div class="table-wrap" tabindex="0" role="region" aria-label="Table (scrolls sideways on small screens)"><table class="data"><thead><tr><th>When (Eastern)</th><th>Who</th><th>What</th><th>Details</th></tr></thead><tbody>
+        ${rows.map(r => `<tr><td>${auditWhen(r.at)}</td><td>${esc(auditWho(r))}</td><td>${AUDIT_LABELS[r.action] ?? r.action}</td><td style="white-space:normal;min-width:200px">${r.kind === 'anonymous' ? '' : esc(r.target ?? '')}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">Nothing matches these filters.</td></tr>'}
+      </tbody></table></div></section>`;
+  }
+  function auditCsv() {
+    const t = { cols: ['time_utc', 'time_eastern', 'who_type', 'who', 'action_code', 'action', 'details', 'connection'].map(key => ({ key, kind: 'text' })),
+      rows: auditRows().map(r => ({ time_utc: new Date(r.at).toISOString(), time_eastern: new Date(r.at).toLocaleString('en-US', { timeZone: 'America/New_York' }), who_type: r.kind, who: auditWho(r), action_code: r.action, action: AUDIT_LABELS[r.action] ?? r.action, details: r.target, connection: r.ip })) };
+    saveBlob(new Blob([toCsv(t)], { type: 'text/csv;charset=utf-8' }), `boostrx_audit_${iso(TODAY)}.csv`); toast(`Downloading boostrx_audit_${iso(TODAY)}.csv`);
+  }
+
   function adminAdmins() {
     const e = S.admin.err;
     const pf = (id, lbl, hint, ac) => `<div class="field"><label for="${id}">${lbl}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="password" autocomplete="${ac}">${e[id] ? `<span class="err-msg">${e[id]}</span>` : hint ? `<small>${hint}</small>` : ''}</div>`;
@@ -1263,6 +1315,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       case 'privacy': S.mode = 'privacy'; scrollTo(0, 0); break;
       case 'privacy-back': S.mode = 'signin'; scrollTo(0, 0); break;
       case 'anav': S.admin.view = v; S.admin.err = {}; S.admin.confirm = null; break;
+      case 'audit-dl': auditCsv(); return;
       case 'sort': { const [k, dir] = S.admin.sort; S.admin.sort = [v, k === v ? -dir : 1]; break; }
       case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; S.admin.err = {}; S.admin.openPanel = null; S.admin.justAdded = null; S.admin.confirm = null; break;
       case 'pweek': S.admin.pweek = +v; break;
@@ -1298,11 +1351,13 @@ table.data .id { font-weight: 700; color: var(--primary); }
     else if (a === 'sev') setSev(e.target);
     else if (a === 'w-date') { S.wday = +e.target.value; render(); }
     else if (a === 'lesson-file') lessonUpload(e.target);
+    else if (a === 'audit-show') { S.admin.audit.show = e.target.value; render(); }
   });
   root.addEventListener('input', e => {
     const a = e.target.dataset.act;
     if (a === 'aq') { S.admin.q = e.target.value; render(); }
     else if (a === 'dose-field') S.dose[e.target.dataset.f] = e.target.value;
+    else if (a === 'audit-q') { S.admin.audit.q = e.target.value; render(); }
   });
   root.addEventListener('submit', e => {
     e.preventDefault();
