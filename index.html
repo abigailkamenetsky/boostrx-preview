@@ -319,7 +319,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
     <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
     <h2 id="cel-title">Goal met!</h2>
     <p id="cel-text" class="muted"></p>
-    <button class="btn" id="cel-close">Keep going</button>
+    <button class="btn" id="cel-close">Close</button>
   </div>
 </div>
 
@@ -943,7 +943,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
     const sheets = report === 'all' ? [...order.map(k => T[k]), T.dictionary] : report === 'dictionary' ? [T.dictionary] : [T[report], T.dictionary];
     const about = XLSX.utils.aoa_to_sheet([['Study', 'Boost Rx'], ['Downloaded by', 'demo admin'], ['Participants', pid || 'All participants'], ['Note', 'DEMO FILE with made-up sample data. The real site exports the same columns.'], [], ['Tab', 'What it contains'], ...sheets.map(t => [t.title, t.desc])]);
     about['!cols'] = [{ wch: 24 }, { wch: 90 }]; XLSX.utils.book_append_sheet(wb, about, 'About');
-    sheets.forEach(t => { const ws = XLSX.utils.aoa_to_sheet([t.cols.map(c => c.key), ...t.rows.map(r => t.cols.map(c => { const v = r[c.key]; return v === null || v === undefined ? null : c.kind === 'text' && typeof v === 'string' ? safeText(v) : v; }))]);
+    sheets.forEach(t => { const ws = XLSX.utils.aoa_to_sheet([t.cols.map(c => c.key), ...t.rows.map(r => t.cols.map(c => { const v = r[c.key]; return v ?? null; }))]);
       ws['!cols'] = t.cols.map(c => ({ wch: Math.min(48, Math.max(10, c.key.length + 2)) })); if (t.rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; XLSX.utils.book_append_sheet(wb, ws, t.title.slice(0, 31)); });
     XLSX.writeFile(wb, base + '.xlsx'); toast(`Downloading ${base}.xlsx`);
   }
