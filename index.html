@@ -18,7 +18,7 @@
   --primary: #185A72; --primary-soft: #DCEBF0;
   --success: #24573F; --success-soft: #E1EEE6;
   --warn-ink: #5E3D00; --warn-soft: #F8EDD5;
-  --danger: #9A3324; --danger-soft: #F7E3DF;
+  --danger: #7F2A1D; --danger-soft: #F7E3DF; --link: #134C61;
   --line: #7B8794; --hair: #E4E2DB;
   --shadow: 0 1px 2px rgb(31 42 55 / .06), 0 4px 16px rgb(31 42 55 / .05);
   --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -27,7 +27,7 @@
   :root:not([data-theme="light"]) .logo-img { background: #F4F2EC; border-radius: 12px; padding: 6px 10px; box-sizing: content-box; }
   :root:not([data-theme="light"]) {
     --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #AEB8C2;
-    --primary: #86CBDD; --primary-soft: #1F3A46; --success: #9AD6B5; --success-soft: #1C362A;
+    --primary: #86CBDD; --primary-soft: #1F3A46; --link: #86CBDD; --success: #9AD6B5; --success-soft: #1C362A;
     --warn-ink: #F2C97D; --warn-soft: #33291A; --danger: #F4A595; --danger-soft: #3A2320; --line: #6B7785; --hair: #2A3641;
     --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
   }
@@ -35,7 +35,7 @@
 :root[data-theme="dark"] .logo-img { background: #F4F2EC; border-radius: 12px; padding: 6px 10px; box-sizing: content-box; }
 :root[data-theme="dark"] {
   --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #AEB8C2;
-  --primary: #86CBDD; --primary-soft: #1F3A46; --success: #9AD6B5; --success-soft: #1C362A;
+  --primary: #86CBDD; --primary-soft: #1F3A46; --link: #86CBDD; --success: #9AD6B5; --success-soft: #1C362A;
   --warn-ink: #F2C97D; --warn-soft: #33291A; --danger: #F4A595; --danger-soft: #3A2320; --line: #6B7785; --hair: #2A3641;
   --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
 }
@@ -106,7 +106,7 @@ button, input, select { font: inherit; color: inherit; }
 .signin .lede { font-size: 1.1rem; color: var(--ink-muted); margin-top: 14px; max-width: 34em; }
 .facts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
 .signin-card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 26px 22px; display: grid; gap: 16px; }
-.linkish { background: none; border: 0; color: var(--primary); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 8px 0; min-height: 44px; }
+.linkish { background: none; border: 0; color: var(--link, var(--primary)); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 8px 0; min-height: 44px; }
 @media (max-width: 760px) { .signin { grid-template-columns: 1fr; gap: 28px; padding-top: 28px; } .signin h1 { font-size: 1.9rem; } }
 
 /* Participant header */
