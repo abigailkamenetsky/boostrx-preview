@@ -309,6 +309,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
 .prose ul { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
 .card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 26px 22px; display: grid; }
 .note { background: var(--primary-soft); padding: 12px 16px; border-radius: 14px; }
+.ok-msg { padding: 12px 16px; border-radius: 14px; font-size: .98rem; font-weight: 600; background: var(--success-soft); color: var(--success); margin: 0; }
 </style>
 
 <div class="switcher" role="group" aria-label="Choose what to preview">
@@ -423,12 +424,18 @@ table.data .id { font-weight: 700; color: var(--primary); }
   Object.assign(days[TODAY - DAY], { ex: true, mins: 30, acts: ['Bicycling'] });
   const dose = (date, time, d, rxDetails = '') => ({ date, time, dose: d, route: 'injection', rxChanged: !!rxDetails, rxDetails });
   const med = { doses: [dose('2027-01-04', '08:15', '2.5 mg'), dose('2027-01-11', '08:40', '5 mg', 'Went up from 2.5 mg to 5 mg'), dose('2027-01-18', '09:05', '5 mg')] };
-  const lessons = Array.from({ length: 14 }, (_, i) => ({ n: i + 1 }));
+  // Same shape as the website's lessons table (managed on Admin > Lessons). Sorted by week (n).
+  const lessons = Array.from({ length: 14 }, (_, i) => ({ id: i + 1, n: i + 1, title: null, surveyUrl: null, video: null, captions: null, updated: 'Jan 4' }));
+  Object.assign(lessons[0], { title: 'Welcome to Boost Rx', surveyUrl: 'https://example.org/boostrx-survey-1', video: { name: 'lesson-1.mp4', bytes: 148 * 1024 ** 2 }, captions: { name: 'lesson-1.vtt' } });
+  Object.assign(lessons[1], { title: 'Protein at every meal', surveyUrl: 'https://example.org/boostrx-survey-2', video: { name: 'lesson-2.mp4', bytes: 162 * 1024 ** 2 }, updated: 'Jan 11' });
+  const lessonAt = n => lessons.find(l => l.n === n);
+  const lessonTitle = l => l.title ? `Lesson ${l.n}: ${l.title}` : `Lesson ${l.n}`;
+  const mb = b => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1)} GB` : `${Math.max(1, Math.round(b / 1024 ** 2))} MB`;
 
   /* ---------- state ---------- */
   const S = { mode: 'app', tab: 'dashboard', day: TODAY, open: {}, mconfirm: null, month: null, actDay: TODAY, actDone: {}, strOn: {}, wday: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
     dose: { date: iso(TODAY - DAY), time: '09:00', dose: null, route: null, changed: null, details: '' },
-    admin: { authed: false, view: 'home', sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
+    admin: { authed: false, view: 'home', lessonErr: {}, lessonDraft: {}, lessonOk: null, upload: {}, uploadErr: {}, sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
       confirm: null, // which two-step button is asking ("restore-BRX-009", "remove-admin2")
       admins: [{ user: 'demo', first: 'Demo', last: 'Today', me: true }, { user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
   const dayData = t => days[t] || (days[t] = blankDay());
@@ -541,7 +548,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   }
 
   function viewApp() {
-    const T = S.tab === 'more' && S.lesson ? [`Lesson ${S.lesson}`, viewLesson]
+    const T = S.tab === 'more' && S.lesson ? [lessonTitle(lessonAt(S.lesson)), viewLesson]
       : S.tab === 'summaries' && S.month ? [`Month ${S.month} summary`, viewMonth]
       : { dashboard: ['Participant Dashboard', viewDashboard], activity: ['Activity', viewActivity], weight: ['Weight', viewWeight], summaries: ['Weekly Summaries', viewSummaries], more: ['More', viewMore] }[S.tab];
     return `<div class="wrap">${header(T[0])}${T[1]()}</div>`;
@@ -761,8 +768,8 @@ table.data .id { font-weight: 700; color: var(--primary); }
       <p class="hint">Watch the new lesson each week (posted on Mondays) and complete the brief survey. You can always go back and re-watch previous lessons at any time.</p>
       <div class="group">${lessons.map(l => { const open = l.n <= NOW_WEEK; return `<div class="row" style="display:flex;gap:14px;align-items:center;padding:14px 18px;min-height:76px">
         <span class="num" style="flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:var(${open ? '--primary-soft' : '--sunk'});color:var(${open ? '--primary' : '--ink-muted'})">${open ? l.n : I.lock.replace('<svg', '<svg width="22" height="22" stroke="currentColor"')}</span>
-        <span class="row-text" style="flex:1"><span class="row-title">Lesson ${l.n}</span><span class="row-sub">${open ? 'Video coming soon' : `Opens ${fmt(weekStart(l.n), { weekday: 'long', month: 'short', day: 'numeric' })}`}</span></span>
-        ${open ? `<button class="btn small" data-k="lesson-${l.n}" data-act="lesson" data-v="${l.n}" aria-label="Open Lesson ${l.n}">Open</button>` : ''}</div>`; }).join('')}</div></section>
+        <span class="row-text" style="flex:1"><span class="row-title">${esc(lessonTitle(l))}</span><span class="row-sub">${open ? (l.video ? 'Video and survey' : 'Video coming soon') : `Opens ${fmt(weekStart(l.n), { weekday: 'long', month: 'short', day: 'numeric' })}`}</span></span>
+        ${open ? `<button class="btn small" data-k="lesson-${l.n}" data-act="lesson" data-v="${l.n}" aria-label="Open ${esc(lessonTitle(l))}">Open</button>` : ''}</div>`; }).join('')}</div></section>
     <section class="section"><div class="section-head"><h2>Medication</h2></div>
       <div class="group pad"><h3>Log a dose you took</h3>
         <div class="q"><span class="q-label" id="q-route">Route</span>
@@ -782,10 +789,15 @@ table.data .id { font-weight: 700; color: var(--primary); }
   }
 
   function viewLesson() {
+    const l = lessonAt(S.lesson);
     return `<p style="margin:0"><button class="linkish back" data-k="lesson-back" data-act="lesson-back">${I.left} Weekly Lessons and Surveys</button></p>
-    <section class="section" aria-label="Lesson video"><div class="banner info">This week's video is coming soon. It will play right here in the website's own player, with captions and no ads.</div></section>
+    <section class="section" aria-label="Lesson video">${l.video
+      ? `<div class="video" role="img" aria-label="Lesson video placeholder"><div><div class="play" aria-hidden="true">${I.play}</div>Demo: the lesson video plays here on the real website, in its own player${l.captions ? ' with captions' : ''} and no ads.</div></div>`
+      : `<div class="banner info">This week's video is coming soon.</div>`}</section>
     <section class="section"><div class="section-head"><h2>This week's survey</h2></div>
-      <div class="group pad"><p style="margin:0">After you watch, please complete the brief survey. It opens in a new tab.</p><p class="muted" style="margin:0">The survey link is coming soon.</p></div></section>`;
+      <div class="group pad"><p style="margin:0">After you watch, please complete the brief survey. It opens in a new tab.</p>${l.surveyUrl
+        ? `<a class="btn" style="justify-self:start" href="${esc(l.surveyUrl)}" target="_blank" rel="noopener noreferrer" data-act="survey" data-v="${l.n}">Take the survey</a>`
+        : '<p class="muted" style="margin:0">The survey link is coming soon.</p>'}</div></section>`;
   }
 
   function feedback(key, v, goal, label) {
@@ -889,12 +901,12 @@ table.data .id { font-weight: 700; color: var(--primary); }
         <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="demo-password"></div>
         <button class="btn" type="submit" data-k="a-pw-go">Sign in</button><p class="foot" style="padding:0">Demo: any username and password. The real site checks both.</p></form>
     </div>`;
-    const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['reports', 'Reports'], ['admins', 'Admins']];
+    const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['lessons', 'Lessons'], ['reports', 'Reports'], ['admins', 'Admins']];
     return `<div class="wrap wide">
       <div class="admin-top"><span class="logo">${LOGO}<span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
         <nav class="admin-nav" aria-label="Admin sections">${nav.map(([id, l]) => `<button data-k="an-${id}" data-act="anav" data-v="${id}" ${v === id || (id === 'home' && v === 'record') ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
         <span style="display:flex;gap:10px;align-items:center"><span class="tag sample">Sample data</span><button class="btn small ghost" data-act="admin-signout" data-k="a-out">Sign out</button></span></div>
-      ${v === 'record' ? adminRecord() : v === 'add' ? adminAdd() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : adminHome()}</div>`;
+      ${v === 'record' ? adminRecord() : v === 'add' ? adminAdd() : v === 'lessons' ? adminLessons() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : adminHome()}</div>`;
   }
   function adminHome() {
     const ps = rowsForHome(), active = ps.filter(p => typeof p.wk === 'number' && !p.ended);
@@ -938,7 +950,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       <div class="pick-label">Week ${w}<small>${fmt(dates[0], { month: 'short', day: 'numeric' })} to ${fmt(dates[6], { month: 'short', day: 'numeric' })}, MVPA goal ${mvpaGoal(p.baseline, w)}</small></div>
       <button class="arrow" data-k="pw-next" data-act="pweek" data-v="${w + 1}" ${w >= maxW ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
     <div class="kpis"><div class="kpi"><b>${s.mins} / ${s.goal}</b><span>MVPA minutes</span></div><div class="kpi"><b>${s.str} / 2</b><span>strength sessions (full-body equivalents, ${s.strPartial} partial)</span></div>
-      <div class="kpi"><b>${s.avgProt ?? '–'} / ${PROTEIN_GOAL}</b><span>protein servings a day, average (${s.protGoal} days met)</span></div><div class="kpi"><b>${s.daysLogged} / ${dates.filter(t => t <= TODAY).length}</b><span>days logged</span></div></div>
+      <div class="kpi"><b>${s.avgProt ?? '–'} / ${PROTEIN_GOAL}</b><span>protein servings a day, average (${s.protGoal} ${s.protGoal === 1 ? 'day' : 'days'} met)</span></div><div class="kpi"><b>${s.daysLogged} / ${dates.filter(t => t <= TODAY).length}</b><span>days logged</span></div></div>
     <section class="group"><div class="table-wrap"><table class="data"><thead><tr><th>Day</th><th>Meals and snacks (protein servings, hungry, reason)</th><th class="num">F+V</th><th class="num">Drinks</th><th class="num">MVPA</th><th>Activity</th><th>Strength</th><th>Side effects (1-5)</th><th class="num">Weight</th></tr></thead><tbody>
       ${dates.map(t => { const d = D[t]; return `<tr><td><strong>${fmt(t, { weekday: 'short', month: 'short', day: 'numeric' })}</strong></td>${t > TODAY ? '<td colspan="8" class="muted">Upcoming</td>' : !isLogged(d) ? '<td colspan="8" class="muted">Nothing logged</td>' :
         `<td style="white-space:normal;min-width:260px">${d.meals.map((m, i) => `<div>${m.kind === 'snack' ? `Snack ${i + 1 - d.meals.filter(x => x.kind !== 'snack').length}` : label(MEALS, m.kind)}: P ${m.protein ?? '?'}, H ${yn(m.hunger)}${m.reason ? `, ${esc(m.reason)}${m.other ? ` (${esc(m.other)})` : ''}` : ''}</div>`).join('')}${d.meals.length ? `<div><strong>Protein: ${proteinOf(d)} servings</strong></div>` : dash}</td>
@@ -948,7 +960,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
     <p class="foot">P = protein servings (about 10 g each), H = ate mostly because hungry, Y/N/? = yes, no, not answered. Doses this week: ${doses.length ? doses.map(d => `${fmt(Date.parse(d.date), { weekday: 'short', month: 'short', day: 'numeric' })} ${d.time} ${esc(d.dose)} ${d.route}${d.rxChanged ? ` (prescription changed: ${esc(d.rxDetails)})` : ''}`).join('; ') : 'none logged'}.${p.id === 'BRX-014' ? ' This is the same data as the Participant website tab: change something there and it shows up here.' : ''}</p>`
     : '<div class="banner info">This participant has not started yet. Their data appears here from their start date.</div>'}
     <section class="group pad" style="gap:10px"><h2 style="font-size:1.2rem">Lessons and messages</h2>
-      <p><strong>Lessons:</strong> ${(plessons[p.id] || []).length ? plessons[p.id].map(l => `${l.lesson} (watched ${l.pct}%${l.survey ? ', survey clicked' : ''})`).join('; ') : '<span class="muted">none opened yet</span>'}</p>
+      <p><strong>Lessons:</strong> ${(plessons[p.id] || []).length ? plessons[p.id].map(l => `Lesson ${l.lesson}: ${l.pct}% watched${l.survey ? ', survey clicked' : ''}`).join('; ') : '<span class="muted">none opened yet</span>'}</p>
       <p><strong>Automated messages:</strong> ${(pmsgs[p.id] || []).length ? [...pmsgs[p.id]].reverse().slice(0, 20).map(m => `${fmt(m.at, { month: 'short', day: 'numeric' })} ${m.kind === 'nudge_3day' ? '3-day check-in' : `month ${m.period} summary`} (${m.status.replace('_', ' ')})`).join('; ') : '<span class="muted">none yet</span>'}</p></section>
     <details class="group pad" ${S.admin.openPanel === 'settings' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Change settings (name, start date, baseline, email)</summary>
       <form id="settings-form" novalidate style="display:grid;gap:16px;margin-top:12px"><div class="form-grid">
@@ -986,6 +998,61 @@ table.data .id { font-weight: 700; color: var(--primary); }
     ['history', 'Edit history', 'Every change or removal of logged data, with the values before and after.'],
     ['dictionary', 'Data dictionary', 'What every column in every report means, with codes and units.'],
   ];
+  // Mirrors web/src/app/admin/(portal)/lessons/page.tsx and lesson-card.tsx. Uploads are simulated: only the file name and size are kept.
+  function adminLessons() {
+    const reached = Math.max(0, ...all().filter(p => !p.ended).map(lessonUpTo));
+    return `<section class="group pad" style="gap:10px"><h2>Weekly lessons</h2>
+        <p style="margin:0">Lesson 1 opens on each participant's first day, lesson 2 a week later, and so on. Participants can rewatch any lesson that has opened. Upload each video as an <strong>MP4</strong> (in Canva: Share, Download, MP4 video) and captions as <strong>.vtt or .srt</strong>.</p>
+        <p class="muted" style="margin:0;font-size:.95rem">${reached ? `Participants have reached up to week ${reached}. Changing or moving a lesson in those weeks changes what they see right away.` : 'No participant has started yet, so changes are safe to make.'} Every change is recorded in the audit log.</p></section>
+      ${lessons.map(l => lessonCard(l, l.n <= reached)).join('')}`;
+  }
+  function lessonCard(l, reached) {
+    const e = S.admin.lessonErr[l.id] || {}, d = S.admin.lessonDraft[l.id] || { title: l.title ?? '', surveyUrl: l.surveyUrl ?? '' };
+    return `<section class="group pad" aria-labelledby="lesson-${l.id}" style="gap:14px">
+      <div class="btn-row" style="justify-content:space-between"><h2 id="lesson-${l.id}" style="font-size:1.25rem">Week ${l.n}${l.title ? `: ${esc(l.title)}` : ''}${reached ? '<span class="tag dim" style="margin-left:10px">open for participants</span>' : ''}</h2>
+        <span class="btn-row"><button class="btn small ghost" data-k="lm-up-${l.id}" data-act="lesson-move" data-v="${l.id}" data-dir="-1" ${l.n === 1 ? 'disabled' : ''} aria-label="Move week ${l.n} lesson earlier">Move up</button>
+        <button class="btn small ghost" data-k="lm-down-${l.id}" data-act="lesson-move" data-v="${l.id}" data-dir="1" ${l.n === 14 ? 'disabled' : ''} aria-label="Move week ${l.n} lesson later">Move down</button></span></div>
+      <form class="lesson-form" data-id="${l.id}" novalidate style="display:grid;gap:14px">
+        ${S.admin.lessonOk === l.id ? '<p class="ok-msg" role="status">Saved.</p>' : ''}
+        <div class="form-grid">
+          <div class="field"><label for="lt-${l.id}">Short title (optional)</label><input class="input ${e.title ? 'err' : ''}" id="lt-${l.id}" data-k="lt-${l.id}" value="${esc(d.title)}">${e.title ? `<span class="err-msg">${e.title}</span>` : '<small>Shown as "Lesson 3: Your title".</small>'}</div>
+          <div class="field"><label for="ls-${l.id}">Survey link</label><input class="input ${e.surveyUrl ? 'err' : ''}" id="ls-${l.id}" data-k="ls-${l.id}" type="url" value="${esc(d.surveyUrl)}">${e.surveyUrl ? `<span class="err-msg">${e.surveyUrl}</span>` : '<small>The full link, starting with https://. It opens in a new tab under the video.</small>'}</div>
+        </div>
+        <button class="btn" type="submit" style="justify-self:start" data-k="lsave-${l.id}">Save title and link</button></form>
+      ${fileRow(l, 'video')}${fileRow(l, 'captions')}</section>`;
+  }
+  function fileRow(l, kind) {
+    const f = kind === 'video' ? l.video : l.captions, label = kind === 'video' ? 'Video' : 'Captions', key = `${l.id}-${kind}`, up = S.admin.upload[key], err = S.admin.uploadErr[key];
+    return `<div style="display:grid;gap:8px;border-top:1px solid var(--hair);padding-top:12px">
+      <div class="btn-row" style="justify-content:space-between"><span><strong>${label}:</strong> ${f ? `${kind === 'video' ? `${mb(f.bytes)} MP4` : 'WebVTT'}, updated ${l.updated}` : `<span class="muted">${kind === 'video' ? 'none yet (participants see "coming soon")' : 'none yet'}</span>`}</span>
+        <span class="btn-row"><label class="btn small" style="cursor:${up == null ? 'pointer' : 'wait'}">${f ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}<input type="file" class="sr" accept="${kind === 'video' ? 'video/mp4,.mp4' : '.vtt,.srt,text/vtt'}" data-act="lesson-file" data-id="${l.id}" data-kind="${kind}" ${up != null ? 'disabled' : ''} aria-label="${f ? 'Replace' : 'Upload'} week ${l.n} ${label.toLowerCase()}"></label>
+        ${f ? askButton(`rm-${key}`, 'Remove', `Remove the week ${l.n} ${label.toLowerCase()}?`, `Remove ${label.toLowerCase()}`, 'lesson-rm', key) : ''}</span></div>
+      ${up != null ? `<div class="meter" role="progressbar" aria-label="Uploading ${label.toLowerCase()}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${up}"><span style="width:${up}%"></span></div>` : ''}
+      ${err ? `<p class="err-msg" role="alert">${err}</p>` : ''}
+      ${kind === 'video' && f ? `<details><summary style="cursor:pointer;font-weight:600">Preview</summary><div class="video" style="margin-top:10px;max-width:560px"><div>Demo: the uploaded video plays here on the real website${l.captions ? ', with captions' : ''}.</div></div></details>` : ''}
+    </div>`;
+  }
+  function lessonUpload(input) {
+    const f = input.files?.[0], id = +input.dataset.id, kind = input.dataset.kind, key = `${id}-${kind}`, l = lessons.find(x => x.id === id);
+    input.value = '';
+    if (!f || !l) return;
+    const name = f.name.toLowerCase();
+    S.admin.uploadErr[key] = kind === 'video'
+      ? (!name.endsWith('.mp4') ? "That isn't an MP4 video. In Canva, download as MP4." : f.size > 2 * 1024 ** 3 ? 'That upload was cut off or larger than 2 GB. Please try again.' : null)
+      : (!/\.(vtt|srt)$/.test(name) ? 'Captions must be a .vtt or .srt file.' : f.size > 2 * 1024 ** 2 ? 'Caption files can be up to 2 MB.' : null);
+    if (S.admin.uploadErr[key]) { render(); return; }
+    S.admin.upload[key] = 0; render();
+    const tick = setInterval(() => {
+      S.admin.upload[key] = Math.min(100, S.admin.upload[key] + 25);
+      if (S.admin.upload[key] >= 100) {
+        clearInterval(tick); delete S.admin.upload[key];
+        if (kind === 'video') l.video = { name: f.name, bytes: f.size }; else l.captions = { name: f.name };
+        l.updated = fmt(TODAY, { month: 'short', day: 'numeric' });
+      }
+      render();
+    }, 150);
+  }
+
   function adminReports() {
     return `<section class="group pad"><h2>Everything in one Excel file</h2><p class="muted">All participants, all reports, one tab each, plus the data dictionary. Headers are frozen and filterable.</p>
         <div>${dlButtons('all', '', false)}</div><p class="foot" style="padding:0">For one participant, open their record from the Participants page and use the buttons there.</p></section>
@@ -1077,13 +1144,13 @@ table.data .id { font-weight: 700; color: var(--primary); }
     const medication = { title: 'Medication', desc: 'Each dose the participant reported taking.', cols: [['study_id', 'text', 'Study ID'], ['taken_date', 'date', 'Date taken'], ['taken_time', 'text', "Time taken (24-hour, participant's local time)"], ['dose_taken', 'text', 'Dose, as typed'],
       ['route', 'text', 'How the medication is taken', ROUTES.map(([k, l]) => `${k} = ${l}`).join('; ')], ['rx_changed', 'flag', 'Answered yes to: Any changes to your prescription (dosage)?', '1 = yes, 0 = no'], ['rx_change_details', 'text', "Participant's description of the prescription change"]], rows: mrows };
     const isoTime = t => new Date(t).toISOString();
-    const lessons = { title: 'Lessons', desc: 'One row per participant per lesson that has opened for them. Blank times = not opened or not clicked yet.', cols: [
-      ['study_id', 'text', 'Study ID'], ['lesson', 'number', 'Lesson number, 1 to 14 (opens at the start of that program week)'], ['lesson_title', 'text', 'Lesson title'],
+    const lessonsTab = { title: 'Lessons', desc: 'One row per participant per lesson that has opened for them. Blank times = not opened or not clicked yet.', cols: [
+      ['study_id', 'text', 'Study ID'], ['lesson', 'number', 'Lesson number, 1 to 14 (opens at the start of that program week)'], ['lesson_title', 'text', 'Title of the lesson they saw that week (lessons can be reordered on the Lessons page; this follows what they actually opened)'],
       ['opened', 'flag', 'Opened the lesson page at least once', '1 = yes, 0 = no'], ['first_opened_at', 'text', 'First time the lesson page was opened (UTC, ISO 8601)'],
       ['times_opened', 'number', 'Visits to the lesson page (opens less than a minute apart count once)'], ['watched_pct', 'number', 'Share of the video actually played, 0 to 100 (skipped parts are not counted)'],
       ['watched_90', 'flag', 'Watched 90% or more of the video', '1 = yes, 0 = no'], ['survey_clicked_at', 'text', 'First time the survey link was clicked (UTC, ISO 8601). Completing the survey is tracked in the survey tool.']],
       rows: ps.flatMap(p => Array.from({ length: lessonUpTo(p) }, (_, i) => { const v = (plessons[p.id] || []).find(l => l.lesson === i + 1);
-        return { study_id: p.id, lesson: i + 1, lesson_title: null, opened: v ? 1 : 0, first_opened_at: v ? isoTime(v.first) : null, times_opened: v?.count ?? 0, watched_pct: v?.pct ?? 0, watched_90: v && v.pct >= 90 ? 1 : 0, survey_clicked_at: v?.survey ? isoTime(v.survey) : null }; })) };
+        return { study_id: p.id, lesson: i + 1, lesson_title: (v?.lid ? lessons.find(x => x.id === v.lid) : lessonAt(i + 1))?.title ?? null, opened: v ? 1 : 0, first_opened_at: v ? isoTime(v.first) : null, times_opened: v?.count ?? 0, watched_pct: v?.pct ?? 0, watched_90: v && v.pct >= 90 ? 1 : 0, survey_clicked_at: v?.survey ? isoTime(v.survey) : null }; })) };
     const messages = { title: 'Messages', desc: 'Every automated message: the 3-day check-in and the monthly summary email. Emails never contain names or health information.', cols: [
       ['study_id', 'text', 'Study ID'], ['created_at', 'text', 'When the daily job created the message (UTC, ISO 8601)'],
       ['kind', 'text', 'Which message', 'nudge_3day = no logging for 3 days in a row, monthly_summary = monthly summary is ready'],
@@ -1093,7 +1160,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       ['detail', 'text', 'Reason when not sent (never the email address)']],
       rows: ps.flatMap(p => (pmsgs[p.id] || []).map(m => ({ study_id: p.id, created_at: isoTime(m.at), kind: m.kind, period: m.period, template_version: TEMPLATE_VERSION, status: m.status, detail: m.detail }))) };
     const history = { title: 'Edit history', desc: 'Every change or removal of logged data, with the values before and after. New entries are not listed here; they are in the other tabs. (Empty in this demo.)', cols: [['study_id', 'text', 'Study ID'], ['changed_at', 'text', 'When the change was saved (UTC, ISO 8601)'], ['data_type', 'text', 'Which kind of entry changed', 'meal_entries, daily_logs, symptom_entries, med_doses'], ['change', 'text', 'UPDATE = edited, DELETE = removed'], ['before', 'text', 'Values before the change (JSON)'], ['after', 'text', 'Values after the change (JSON); blank for removals']], rows: [] };
-    const tables = { participants, daily, meals, weekly, medication, lessons, messages, history };
+    const tables = { participants, daily, meals, weekly, medication, lessons: lessonsTab, messages, history };
     Object.values(tables).forEach(t => { t.cols = t.cols.map(([key, kind, desc, values]) => ({ key, kind, desc, values })); });
     tables.dictionary = { title: 'Data dictionary', desc: 'What every column in every report means.', cols: [{ key: 'report', kind: 'text' }, { key: 'column', kind: 'text' }, { key: 'description', kind: 'text' }, { key: 'values', kind: 'text' }],
       rows: REPORT_ORDER.flatMap(k => tables[k].cols.map(c => ({ report: tables[k].title, column: c.key, description: c.desc, values: c.values ?? (c.kind === 'date' ? 'YYYY-MM-DD' : c.kind === 'number' ? 'number' : null) }))) };
@@ -1161,10 +1228,18 @@ table.data .id { font-weight: 700; color: var(--primary); }
       case 'week': S.week = +v; break;
       case 'lesson': {
         S.lesson = +v; const L = plessons['BRX-014'], seen = L.find(l => l.lesson === +v);
-        if (seen) seen.count++; else { L.push({ lesson: +v, first: TODAY + 15 * 3600e3, count: 1, pct: 0, survey: null }); L.sort((a, b) => a.lesson - b.lesson); }
+        if (seen) seen.count++; else { L.push({ lesson: +v, lid: lessonAt(+v).id, first: TODAY + 15 * 3600e3, count: 1, pct: 0, survey: null }); L.sort((a, b) => a.lesson - b.lesson); }
         render(); scrollTo(0, 0); return;
       }
       case 'lesson-back': S.lesson = null; break;
+      case 'survey': { const L = plessons['BRX-014'], seen = L.find(l => l.lesson === +v); if (seen && !seen.survey) seen.survey = TODAY + 15 * 3600e3; return; }
+      case 'lesson-move': {
+        const l = lessons.find(x => x.id === +v), other = l && lessonAt(l.n + +b.dataset.dir);
+        if (!other) return;
+        [l.n, other.n] = [other.n, l.n]; l.updated = other.updated = fmt(TODAY, { month: 'short', day: 'numeric' });
+        lessons.sort((a, c) => a.n - c.n); S.admin.lessonOk = null; break;
+      }
+      case 'lesson-rm': { const [id, kind] = v.split('-'), l = lessons.find(x => x.id === +id); if (kind === 'video') l.video = null; else l.captions = null; l.updated = fmt(TODAY, { month: 'short', day: 'numeric' }); S.admin.confirm = null; break; }
       case 'route': S.dose.route = v; break;
       case 'rx': S.dose.changed = v === 'true'; break;
       case 'dose-save': {
@@ -1216,6 +1291,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
     else if (a === 'mins') { S.actDone[S.actDay] ??= false; const y = dayData(S.actDay), w = weekOf(S.actDay), g = mvpaGoal(BASELINE, w), before = weekMins(w); y.mins = Math.min(600, +e.target.value.replace(/\D/g, '') || 0); render(); if (weekMins(w) > before) feedback('mvpa' + w, weekMins(w), g, `You reached ${g} aerobic minutes this week.`); }
     else if (a === 'sev') setSev(e.target);
     else if (a === 'w-date') { S.wday = +e.target.value; render(); }
+    else if (a === 'lesson-file') lessonUpload(e.target);
   });
   root.addEventListener('input', e => {
     const a = e.target.dataset.act;
@@ -1224,6 +1300,14 @@ table.data .id { font-weight: 700; color: var(--primary); }
   });
   root.addEventListener('submit', e => {
     e.preventDefault();
+    if (e.target.matches('.lesson-form')) {
+      // Same checks and messages as LessonText in web/src/lib/lessons-admin.ts.
+      const id = +e.target.dataset.id, l = lessons.find(x => x.id === id), title = $(`#lt-${id}`).value.trim(), surveyUrl = $(`#ls-${id}`).value.trim(), err = {};
+      if (title.length > 120) err.title = 'Keep the title under 120 characters.';
+      if (surveyUrl) { let okUrl = surveyUrl.length <= 500; try { new URL(surveyUrl); } catch { okUrl = false; } if (!okUrl) err.surveyUrl = 'Paste the full survey link, starting with https://'; else if (!surveyUrl.startsWith('https://')) err.surveyUrl = 'Survey links must start with https://'; }
+      if (Object.keys(err).length) { S.admin.lessonErr[id] = err; S.admin.lessonDraft[id] = { title, surveyUrl }; S.admin.lessonOk = null; render(); return; }
+      l.title = title || null; l.surveyUrl = surveyUrl || null; delete S.admin.lessonErr[id]; delete S.admin.lessonDraft[id]; S.admin.lessonOk = id; render(); return;
+    }
     if (e.target.id === 'signin-form') { S.mode = 'app'; S.tab = 'dashboard'; render(); toast('Signed in. You will stay signed in on this device.'); return; }
     if (e.target.id === 'admin-pw-form') {
       if (!$('#a-user').value.trim() || !$('#a-pw').value) { S.admin.err = { pw: 'Enter your username and password.' }; render(); return; }
