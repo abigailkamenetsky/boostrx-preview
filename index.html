@@ -435,7 +435,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   /* ---------- state ---------- */
   const S = { mode: 'app', tab: 'dashboard', day: TODAY, open: {}, mconfirm: null, month: null, actDay: TODAY, actDone: {}, strOn: {}, wday: TODAY, week: NOW_WEEK, wsel: null, lesson: null, fired: {},
     dose: { date: iso(TODAY - DAY), time: '09:00', dose: null, route: null, changed: null, details: '' },
-    admin: { authed: false, view: 'home', lessonErr: {}, lessonDraft: {}, lessonOk: null, upload: {}, uploadErr: {}, sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
+    admin: { authed: false, view: 'home', lessonErr: {}, lessonDraft: {}, lessonOk: null, lessonOpen: {}, upload: {}, uploadErr: {}, sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
       confirm: null, // which two-step button is asking ("restore-BRX-009", "remove-admin2")
       admins: [{ user: 'demo', first: 'Demo', last: 'Today', me: true }, { user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
   const dayData = t => days[t] || (days[t] = blankDay());
@@ -1008,18 +1008,23 @@ table.data .id { font-weight: 700; color: var(--primary); }
   }
   function lessonCard(l, reached) {
     const e = S.admin.lessonErr[l.id] || {}, d = S.admin.lessonDraft[l.id] || { title: l.title ?? '', surveyUrl: l.surveyUrl ?? '' };
-    return `<section class="group pad" aria-labelledby="lesson-${l.id}" style="gap:14px">
+    // Collapsed like the website, so all 14 weeks are easy to scan; stays open while you work in it.
+    const open = S.admin.lessonOpen[l.id] || S.admin.lessonOk === l.id || Object.keys(e).length || Object.keys(S.admin.upload).concat(Object.keys(S.admin.uploadErr)).some(k => k.startsWith(l.id + '-'));
+    const tags = [['video', !!l.video], ['captions', !!l.captions], ['survey link', !!l.surveyUrl]].map(([k, on]) => `<span class="tag ${on ? 'ok' : 'warn'}">${on ? '✓' : 'No'} ${k}</span>`).join('');
+    return `<section class="group pad" aria-labelledby="lesson-${l.id}" style="gap:10px">
       <div class="btn-row" style="justify-content:space-between"><h2 id="lesson-${l.id}" style="font-size:1.25rem">Week ${l.n}${l.title ? `: ${esc(l.title)}` : ''}${reached ? '<span class="tag dim" style="margin-left:10px">open for participants</span>' : ''}</h2>
         <span class="btn-row"><button class="btn small ghost" data-k="lm-up-${l.id}" data-act="lesson-move" data-v="${l.id}" data-dir="-1" ${l.n === 1 ? 'disabled' : ''} aria-label="Move week ${l.n} lesson earlier">Move up</button>
         <button class="btn small ghost" data-k="lm-down-${l.id}" data-act="lesson-move" data-v="${l.id}" data-dir="1" ${l.n === 14 ? 'disabled' : ''} aria-label="Move week ${l.n} lesson later">Move down</button></span></div>
-      <form class="lesson-form" data-id="${l.id}" novalidate style="display:grid;gap:14px">
+      <p style="margin:0;display:flex;gap:8px;flex-wrap:wrap">${tags}</p>
+      <button type="button" class="linkish" style="justify-self:start;min-height:32px;padding:0" data-k="lo-${l.id}" data-act="lesson-open" data-v="${l.id}" aria-expanded="${!!open}">${open ? '▾' : '▸'} Edit week ${l.n}</button>
+      ${open ? `<form class="lesson-form" data-id="${l.id}" novalidate style="display:grid;gap:14px">
         ${S.admin.lessonOk === l.id ? '<p class="ok-msg" role="status">Saved.</p>' : ''}
         <div class="form-grid">
           <div class="field"><label for="lt-${l.id}">Short title (optional)</label><input class="input ${e.title ? 'err' : ''}" id="lt-${l.id}" data-k="lt-${l.id}" value="${esc(d.title)}">${e.title ? `<span class="err-msg">${e.title}</span>` : '<small>Shown as "Lesson 3: Your title".</small>'}</div>
           <div class="field"><label for="ls-${l.id}">Survey link</label><input class="input ${e.surveyUrl ? 'err' : ''}" id="ls-${l.id}" data-k="ls-${l.id}" type="url" value="${esc(d.surveyUrl)}">${e.surveyUrl ? `<span class="err-msg">${e.surveyUrl}</span>` : '<small>The full link, starting with https://. It opens in a new tab under the video.</small>'}</div>
         </div>
         <button class="btn" type="submit" style="justify-self:start" data-k="lsave-${l.id}">Save title and link</button></form>
-      ${fileRow(l, 'video')}${fileRow(l, 'captions')}</section>`;
+      ${fileRow(l, 'video')}${fileRow(l, 'captions')}` : ''}</section>`;
   }
   function fileRow(l, kind) {
     const f = kind === 'video' ? l.video : l.captions, label = kind === 'video' ? 'Video' : 'Captions', key = `${l.id}-${kind}`, up = S.admin.upload[key], err = S.admin.uploadErr[key];
@@ -1233,6 +1238,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
       }
       case 'lesson-back': S.lesson = null; break;
       case 'survey': { const L = plessons['BRX-014'], seen = L.find(l => l.lesson === +v); if (seen && !seen.survey) seen.survey = TODAY + 15 * 3600e3; return; }
+      case 'lesson-open': S.admin.lessonOpen[+v] = !S.admin.lessonOpen[+v]; break;
       case 'lesson-move': {
         const l = lessons.find(x => x.id === +v), other = l && lessonAt(l.n + +b.dataset.dir);
         if (!other) return;
