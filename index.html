@@ -302,6 +302,13 @@ table.data .id { font-weight: 700; color: var(--primary); }
 @keyframes rise { to { transform: translateY(-125vh) translateX(var(--drift)); } }
 @media (prefers-reduced-motion: reduce) { .balloon { display: none; } * { transition: none !important; } }
 @media (max-width: 380px) { .goal svg { width: 48px; height: 48px; } .sym-detail { padding-left: 18px; } }
+
+.prose { gap: 14px; line-height: 1.6; }
+.prose h1 { font-size: 1.9rem; }
+.prose h2 { font-size: 1.25rem; margin-top: 10px; }
+.prose ul { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+.card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 26px 22px; display: grid; }
+.note { background: var(--primary-soft); padding: 12px 16px; border-radius: 14px; }
 </style>
 
 <div class="switcher" role="group" aria-label="Choose what to preview">
@@ -430,7 +437,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
   function render() {
     const k = document.activeElement?.dataset?.k;
     document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode));
-    $('#root').innerHTML = S.mode === 'signin' ? viewSignin() : S.mode === 'admin' ? viewAdmin() : viewApp();
+    $('#root').innerHTML = S.mode === 'privacy' ? viewPrivacy() : S.mode === 'signin' ? viewSignin() : S.mode === 'admin' ? viewAdmin() : viewApp();
     $('#tabs').hidden = S.mode !== 'app';
     if (S.mode === 'app') $('#tabs-inner').innerHTML = TABS.map(([id, name, ic]) => `<button role="tab" data-k="tab-${id}" data-tab="${id}" aria-selected="${S.tab === id}"><span class="pill">${ic}</span>${name}</button>`).join('');
     if (k) document.querySelector(`[data-k="${CSS.escape(k)}"]`)?.focus();
@@ -438,6 +445,45 @@ table.data .id { font-weight: 700; color: var(--primary); }
   document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { S.mode = b.dataset.mode; render(); scrollTo(0, 0); }));
 
   /* ---------- sign in ---------- */
+  // Same text as web/src/app/privacy/page.tsx (copied in by hand; keep them in sync).
+  function viewPrivacy() {
+    return `<div class="wrap" style="max-width:720px"><article class="card prose">
+        <h1>Privacy and cookies</h1>
+        <p class="note">Draft: waiting for review by the study team and Brown University Health.</p>
+        <p>Boost Rx is a research website for a 14-week study run by researchers at Brown University Health. This page explains, in plain language, what the website stores and why. Your study consent form is the main description of how your study information is used; if anything here seems different, the consent form applies.</p>
+
+        <h2>What the website stores</h2>
+        <ul>
+          <li><strong>What you enter:</strong> meals and snacks, protein, fruits and vegetables, drinks, side effects, activity, weight, and medication doses.</li>
+          <li><strong>Lesson viewing:</strong> when you open a lesson, how much of the video you watch, and whether you open the survey link.</li>
+          <li><strong>Your account:</strong> your study ID, first name, and password (stored scrambled, so no one can read it). If the study team adds your email, it is stored encrypted.</li>
+          <li><strong>Your time zone:</strong> your phone or computer reports its time zone so your days match your own clock. It is saved with your account.</li>
+          <li><strong>Sign-in records:</strong> when you sign in, and a scrambled version of your network address, to protect your account from people guessing passwords.</li>
+        </ul>
+
+        <h2>Who can see it</h2>
+        <p>Only the Boost Rx study team at Brown University Health, for the research study you agreed to. Your information is never sold and never used for advertising.</p>
+
+        <h2>Cookies and storage on your device</h2>
+        <ul>
+          <li><strong>Sign-in cookie:</strong> keeps you signed in on your device until the program ends, so you don&#39;t have to type your password each day. It is removed when you sign out.</li>
+          <li><strong>A small note on your device:</strong> remembers which goal celebrations you have already seen, so they don&#39;t pop up twice. It stays on your device and is never sent to anyone.</li>
+          <li><strong>Study staff</strong> have their own sign-in cookie, which lasts 8 hours.</li>
+        </ul>
+        <p>That is all. The website has <strong>no advertising, analytics, or tracking cookies</strong>, and nothing on it comes from outside companies (even the lettering and lesson videos come from the Boost Rx website itself). The weekly survey links open the survey tool the study team uses, which has its own privacy terms. Because these cookies are needed for signing in, there is nothing to turn on or off. If your browser blocks all cookies, you won&#39;t be able to sign in.</p>
+
+        <h2>Emails</h2>
+        <p>If the study team has your email, you may get a short check-in after a few days without logging, and a note when your monthly summary is ready. These emails never include your name or any health information. They only invite you to sign in.</p>
+
+        <h2>Keeping it safe</h2>
+        <p>The website uses an encrypted connection, runs on servers managed by Brown University Health, and keeps a record of every time study staff view or download information.</p>
+
+        <h2>Questions</h2>
+        <p>Please email the study team. You can stop taking part in the study at any time, as described in your consent form.</p>
+        <p><button type="button" class="linkish" data-act="privacy-back">Back to sign in</button></p>
+      </article></div>`;
+  }
+
   function viewSignin() {
     return `<div class="signin">
       <div>
@@ -455,6 +501,7 @@ table.data .id { font-weight: 700; color: var(--primary); }
         <p class="muted" style="font-size:.95rem">You'll stay signed in on this device until the program ends. Your browser can save your password for you.</p>
         <div style="display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:8px">
           <button type="button" class="linkish" data-act="to-admin">Study staff sign in</button>
+          <button type="button" class="linkish" data-act="privacy">Privacy and cookies</button>
         </div>
       </form></div>`;
   }
@@ -980,9 +1027,9 @@ table.data .id { font-weight: 700; color: var(--primary); }
       ['baseline_mvpa_min', 'number', 'Self-reported average weekly MVPA minutes before the program'], ['starting_mvpa_goal', 'number', 'Weeks 1-2 MVPA goal: 100 if baseline under 100, otherwise 125'],
       ['days_logged', 'number', 'Program days with any entry so far'], ['last_logged', 'date', 'Date of the most recent entry of any kind (study time zone)'],
       ['email_on_file', 'flag', 'Whether an encrypted email is stored. The email itself is never exported.', FLAG],
-      ['access_ended', 'date', 'Date an admin ended access early (for example, withdrew). Blank = access not ended.'], ['access_end_reason', 'text', 'Reason the admin entered when ending access']],
+      ['access_ended', 'date', 'Date an admin ended access early (for example, withdrew). Blank = access not ended.'], ['access_end_reason', 'text', 'Reason the admin entered when ending access'], ['time_zone', 'text', "Time zone of the participant's device (their days follow it), as last reported", 'IANA name, for example America/New_York']],
       rows: ps.map(p => { const l = lastLogged(p); return { study_id: p.id, first_name: p.first, start_date: iso(p.start), end_date: iso(p.start + 97 * DAY), current_week: String(pWeek(p)), baseline_mvpa_min: p.baseline, starting_mvpa_goal: mvpaGoal(p.baseline, 1), days_logged: progDates(p).filter(t => isLogged(pdays[p.id]?.[t])).length, last_logged: l ? iso(l) : null, email_on_file: p.hasEmail === false ? 0 : 1,
-        access_ended: p.ended ? iso(p.ended) : null, access_end_reason: p.reason || null }; }) };
+        access_ended: p.ended ? iso(p.ended) : null, access_end_reason: p.reason || null, time_zone: p.tz || 'America/New_York' }; }) };
     const dcols = [['study_id', 'text', 'Study ID'], ['date', 'date', 'Calendar date'], ['study_week', 'number', 'Program week, 1 to 14'], ['study_day', 'number', 'Program day, 1 to 98'], ['logged_anything', 'flag', 'Any entry at all for this day', '1 = yes, 0 = no']];
     MEALS.forEach(([k, name]) => dcols.push([`${k}_eaten`, 'flag', `${name}: logged as eaten`, '1 = eaten, 0 = not logged as eaten'], [`${k}_protein_servings`, 'number', `${name}: protein servings`, PROTEIN_VALS], [`${k}_mostly_hungry`, 'flag', `${name}: eaten mostly because of hunger`, FLAG], [`${k}_main_reason`, 'text', `${name}: main reason for eating when not mostly hungry`, REASON_VALS], [`${k}_reason_other`, 'text', `${name}: participant's words when the reason is "other"`]));
     dcols.push(['snacks_eaten', 'number', "Snacks logged (any number a day). Each snack's answers are in the Meals report."], ['snack_protein_servings', 'number', 'Protein servings from all snacks that day (unanswered counted as 0)'],
@@ -1132,6 +1179,8 @@ table.data .id { font-weight: 700; color: var(--primary); }
       }
       case 'theme': v ? document.documentElement.setAttribute('data-theme', v) : document.documentElement.removeAttribute('data-theme'); break;
       case 'to-admin': S.mode = 'admin'; break;
+      case 'privacy': S.mode = 'privacy'; scrollTo(0, 0); break;
+      case 'privacy-back': S.mode = 'signin'; scrollTo(0, 0); break;
       case 'anav': S.admin.view = v; S.admin.err = {}; S.admin.confirm = null; break;
       case 'sort': { const [k, dir] = S.admin.sort; S.admin.sort = [v, k === v ? -dir : 1]; break; }
       case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; S.admin.err = {}; S.admin.openPanel = null; S.admin.justAdded = null; S.admin.confirm = null; break;
