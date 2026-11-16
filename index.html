@@ -15,19 +15,20 @@
 :root {
   --bg: #F4F2EC; --surface: #FFFFFF; --sunk: #EEF3F2;
   --ink: #1F2A37; --ink-muted: #434E5B;
-  --primary: #185A72; --primary-soft: #DCEBF0;
-  --success: #24573F; --success-soft: #E1EEE6;
+  --primary: #0F4F7A; --primary-soft: #E3EEF6;
+  --success: #2F5517; --success-soft: #E9F2E0;
+  --accent: #7E3410; --accent-soft: #FCEEE4;
   --warn-ink: #5E3D00; --warn-soft: #F8EDD5;
-  --danger: #7F2A1D; --danger-soft: #F7E3DF; --link: #134C61;
+  --danger: #7F2A1D; --danger-soft: #F7E3DF; --link: #0F4F7A;
   --line: #7B8794; --hair: #E4E2DB;
-  --shadow: 0 1px 2px rgb(31 42 55 / .06), 0 4px 16px rgb(31 42 55 / .05);
+  --shadow: 0 1px 2px rgb(2 55 89 / .06), 0 8px 24px -10px rgb(2 55 89 / .16);
   --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .logo-img { background: #F4F2EC; border-radius: 12px; padding: 6px 10px; box-sizing: content-box; }
   :root:not([data-theme="light"]) {
     --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #BAC3CC;
-    --primary: #86CBDD; --primary-soft: #1F3A46; --link: #86CBDD; --success: #9AD6B5; --success-soft: #1C362A;
+    --primary: #8CC4EA; --primary-soft: #193043; --link: #8CC4EA; --success: #A8D88A; --success-soft: #22361A; --accent: #F3AE8A; --accent-soft: #3A2519;
     --warn-ink: #F2C97D; --warn-soft: #33291A; --danger: #F4A595; --danger-soft: #3A2320; --line: #6B7785; --hair: #2A3641;
     --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
   }
@@ -35,7 +36,7 @@
 :root[data-theme="dark"] .logo-img { background: #F4F2EC; border-radius: 12px; padding: 6px 10px; box-sizing: content-box; }
 :root[data-theme="dark"] {
   --bg: #141C24; --surface: #1D2731; --sunk: #18222B; --ink: #E6EAEE; --ink-muted: #BAC3CC;
-  --primary: #86CBDD; --primary-soft: #1F3A46; --link: #86CBDD; --success: #9AD6B5; --success-soft: #1C362A;
+  --primary: #8CC4EA; --primary-soft: #193043; --link: #8CC4EA; --success: #A8D88A; --success-soft: #22361A; --accent: #F3AE8A; --accent-soft: #3A2519;
   --warn-ink: #F2C97D; --warn-soft: #33291A; --danger: #F4A595; --danger-soft: #3A2320; --line: #6B7785; --hair: #2A3641;
   --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark;
 }
@@ -62,7 +63,7 @@ button, input, select { font: inherit; color: inherit; }
 .wrap.wide { max-width: 1160px; padding-bottom: 48px; }
 .section { display: grid; gap: 10px; min-width: 0; }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-inline: 4px; flex-wrap: wrap; }
-.section-head h2 { font-size: 1.3rem; font-weight: 700; }
+.section-head h2 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; }
 .count { font-size: 1rem; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .count.met { color: var(--success); font-weight: 700; }
 .hint { font-size: 1rem; color: var(--ink-muted); padding-inline: 4px; margin-top: -4px; }
@@ -112,23 +113,26 @@ button, input, select { font: inherit; color: inherit; }
 /* Participant header */
 .hello { display: grid; gap: 16px; }
 .hello-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.date { font-size: 1rem; color: var(--ink-muted); font-weight: 500; }
-.hello h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -.01em; }
+.date { font-size: .95rem; color: var(--primary); font-weight: 700; }
+.hello h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
 .study { background: var(--surface); border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; }
 .study-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .weeks { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; }
-.weeks span { height: 10px; border-radius: 3px; background: var(--hair); }
+.weeks span { height: 12px; border-radius: 6px; background: var(--hair); }
 .weeks span.done { background: var(--primary); }
-.weeks span.now { background: var(--primary); opacity: .45; }
+.weeks span.now { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .goals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .goal { display: grid; justify-items: center; gap: 4px; text-align: center; min-width: 0; }
-.goal svg { width: 56px; height: 56px; }
-.goal circle { fill: none; stroke-width: 6; }
+.ringbox { position: relative; width: 76px; height: 76px; }
+.ringbox > svg { width: 100%; height: 100%; }
+.goal circle { fill: none; stroke-width: 6.5; }
 .goal .t { stroke: var(--hair); }
 .goal .f { stroke: var(--primary); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .5s ease; }
 .goal.met .f { stroke: var(--success); }
-.goal text { fill: var(--ink); font: 700 15px var(--font); }
-.goal > b { font-size: 1rem; line-height: 1.2; }
+.ring-ico { position: absolute; inset: 15px; border-radius: 50%; display: grid; place-items: center; color: var(--primary); }
+.ring-ico svg { width: 26px; height: 26px; stroke: currentColor; }
+.goal.met .ring-ico { background: var(--success-soft); color: var(--success); }
+.goal > b { font-size: 1.15rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .goal span { font-size: .85rem; color: var(--ink-muted); line-height: 1.25; }
 
 /* Day and week pickers */
@@ -187,7 +191,8 @@ button, input, select { font: inherit; color: inherit; }
 /* Activity */
 .total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .total b { font-size: 2.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.meter { height: 14px; border-radius: 999px; background: var(--hair); overflow: hidden; }
+.meter { height: 18px; border-radius: 999px; background: var(--hair); overflow: hidden; position: relative; }
+.meter::after { content: ""; position: absolute; left: 50%; top: 4px; bottom: 4px; width: 2px; border-radius: 1px; background: var(--surface); opacity: .9; }
 .meter > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; transition: width .5s ease; }
 .meter.done > span { background: var(--success); }
 .bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: end; }
@@ -249,9 +254,9 @@ nav.tabs { position: fixed; inset-inline: 0; bottom: 0; background: color-mix(in
 nav.tabs .inner { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 540px; margin: 0 auto; }
 nav.tabs button { min-height: 72px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; align-content: center; gap: 3px; color: var(--ink-muted); font-size: .82rem; font-weight: 600; padding: 0; }
 nav.tabs svg { width: 25px; height: 25px; stroke: currentColor; }
-nav.tabs button[aria-selected="true"] { color: var(--primary); }
-nav.tabs button[aria-selected="true"] .pill { background: var(--primary-soft); }
-.pill { padding: 4px 14px; border-radius: 999px; display: grid; place-items: center; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 800; }
+nav.tabs button[aria-selected="true"] .pill { background: var(--primary-soft); color: var(--primary); }
+.pill { height: 32px; padding: 0 14px; border-radius: 999px; display: grid; place-items: center; }
 
 /* Admin */
 .admin-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -294,14 +299,14 @@ table.data .id { font-weight: 700; color: var(--primary); }
 .toast { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(500px, calc(100% - 32px)); background: var(--ink); color: var(--bg); padding: 16px 18px; border-radius: 16px; font-weight: 600; z-index: 30; box-shadow: var(--shadow); }
 .celebrate { position: fixed; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 75%, transparent); backdrop-filter: blur(3px); z-index: 40; padding: 16px; overflow: hidden; }
 .cel-card { background: var(--surface); border-radius: 24px; padding: 32px 24px 24px; text-align: center; display: grid; gap: 12px; max-width: 400px; width: 100%; position: relative; z-index: 2; box-shadow: 0 12px 40px rgb(0 0 0 / .18); }
-.cel-card .tick { width: 72px; height: 72px; margin: 0 auto 4px; border-radius: 50%; background: var(--success); display: grid; place-items: center; }
+.cel-card .tick { width: 72px; height: 72px; margin: 0 auto 4px; border-radius: 50%; background: var(--success); display: grid; place-items: center; box-shadow: 0 0 0 8px var(--success-soft); }
 .cel-card .tick svg { width: 40px; height: 40px; stroke: var(--surface); }
 .cel-card h2 { font-size: 1.6rem; font-weight: 800; }
 .balloon { position: absolute; bottom: -140px; width: 44px; height: 56px; border-radius: 50% 50% 46% 46%; animation: rise 3.4s cubic-bezier(.3,.1,.6,1) forwards; z-index: 1; }
 .balloon::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1.5px; height: 44px; background: var(--line); }
 @keyframes rise { to { transform: translateY(-125vh) translateX(var(--drift)); } }
 @media (prefers-reduced-motion: reduce) { .balloon { display: none; } * { transition: none !important; } }
-@media (max-width: 380px) { .goal svg { width: 48px; height: 48px; } .sym-detail { padding-left: 18px; } }
+@media (max-width: 380px) { .ringbox { width: 64px; height: 64px; } .ring-ico { inset: 12px; } .ring-ico svg { width: 22px; height: 22px; } .sym-detail { padding-left: 18px; } }
 
 .prose { gap: 14px; line-height: 1.6; }
 .prose h1 { font-size: 1.9rem; }
@@ -310,12 +315,14 @@ table.data .id { font-weight: 700; color: var(--primary); }
 .card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 26px 22px; display: grid; }
 .note { background: var(--primary-soft); padding: 12px 16px; border-radius: 14px; }
 .goals.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.glances { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-.glance { display: grid; gap: 2px; align-content: start; padding: 12px 14px; border-radius: 14px; background: var(--sunk); color: var(--ink); border: 0; text-align: left; font: inherit; cursor: pointer; min-height: 48px; }
-.glance b { font-size: 1.15rem; font-weight: 800; }
+.glances { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.glance { display: grid; gap: 2px; align-content: start; padding: 14px 40px 14px 16px; border-radius: 16px; background: var(--surface); color: var(--ink); border: 1.5px solid var(--hair); position: relative; text-align: left; font: inherit; cursor: pointer; min-height: 48px; }
+.glance::after { content: ""; position: absolute; right: 16px; top: 50%; width: 9px; height: 9px; border-top: 2.5px solid var(--ink-muted); border-right: 2.5px solid var(--ink-muted); transform: translateY(-50%) rotate(45deg); }
+.glance:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.glance b { font-size: 1.25rem; font-weight: 800; }
 .glance span { font-size: .92rem; color: var(--ink-muted); }
 .glance .tag { justify-self: start; margin-top: 4px; }
-.glance.met { background: var(--success-soft); }
+.glance.met { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
 .glance:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
 .checkin { gap: 8px; }
 .checkin ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
@@ -365,7 +372,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const I = {
     check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 3), chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
     left: svg('<path d="M15 6l-6 6 6 6"/>', 2.4), right: svg('<path d="M9 6l6 6-6 6"/>', 2.4), lock: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
-    leaf: svg('<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/>'), cup: svg('<path d="M6 4h12l-1.5 15a2 2 0 0 1-2 1.8h-5A2 2 0 0 1 7.5 19z"/><path d="M6.6 9h10.8"/>'),
+    leaf: svg('<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/>'), egg: svg('<path d="M12 3c3.5 0 6.5 5.5 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.5 8.5 3 12 3z"/>'), cup: svg('<path d="M6 4h12l-1.5 15a2 2 0 0 1-2 1.8h-5A2 2 0 0 1 7.5 19z"/><path d="M6.6 9h10.8"/>'),
     today: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'), move: svg('<circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-6 3 2v4M6 12l3-4 4 1 3 3h3M11 15l2-6"/>'),
     scale: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 10a5 5 0 0 1 7 0M12 10l1.5-2"/>'), chart: svg('<path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/>'), more: svg('<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'),
     play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', lessons: svg('<path d="M8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4zM10 8.5v7l5.5-3.5z"/>'), dl: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
@@ -379,7 +386,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     c.querySelectorAll('.balloon').forEach(b => b.remove());
     if (!reduced) for (let i = 0; i < 12; i++) {
       const b = document.createElement('span'); b.className = 'balloon';
-      b.style.left = (4 + Math.random() * 92) + '%'; b.style.background = ['var(--primary)', 'var(--success)', 'var(--primary-soft)', 'var(--success-soft)', 'var(--warn-soft)'][i % 5];
+      b.style.left = (4 + Math.random() * 92) + '%'; b.style.background = ['var(--primary)', 'var(--success)', 'var(--accent)', 'var(--primary-soft)', 'var(--accent-soft)'][i % 5];
       b.style.animationDelay = (Math.random() * .9) + 's'; b.style.setProperty('--drift', (Math.random() * 90 - 45) + 'px'); c.appendChild(b);
     }
     $('#cel-close').focus();
@@ -578,9 +585,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   }
   $('#tabs-inner').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) goTab(b.dataset.tab); });
 
-  function ring(label, v, goal, unit) {
+  function ring(label, v, goal, unit, icon) {
     const C = 2 * Math.PI * 24, met = v >= goal;
-    return `<div class="goal ${met ? 'met' : ''}"><svg viewBox="0 0 56 56" aria-hidden="true"><circle class="t" cx="28" cy="28" r="24"/><circle class="f" cx="28" cy="28" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, v / goal))}"/>${met ? '<text x="28" y="33" text-anchor="middle">✓</text>' : ''}</svg><b aria-hidden="true">${v}/${goal}</b><span aria-hidden="true">${label}</span><span class="sr">${label}: ${v} of ${goal} ${unit}${met ? ', goal met' : ''}</span></div>`;
+    return `<div class="goal ${met ? 'met' : ''}"><div class="ringbox" aria-hidden="true"><svg viewBox="0 0 56 56"><circle class="t" cx="28" cy="28" r="24"/><circle class="f" cx="28" cy="28" r="24" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, v / goal))}"/></svg><div class="ring-ico">${met ? I.check : icon}</div></div><b aria-hidden="true">${v}/${goal}</b><span aria-hidden="true">${label}</span><span class="sr">${label}: ${v} of ${goal} ${unit}${met ? ', goal met' : ''}</span></div>`;
   }
   const weekDays = w => Array.from({ length: 7 }, (_, i) => weekStart(w) + i * DAY);
   const weekMins = w => weekDays(w).reduce((a, t) => a + (days[t]?.mins || 0), 0);
@@ -622,7 +629,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     const weekDoses = med.doses.filter(x => x.date >= iso(soFar[0]) && x.date <= iso(TODAY)), oral = med.doses[med.doses.length - 1]?.route === 'oral', lastDose = weekDoses[weekDoses.length - 1];
     const glance = (label, value, met, tab, hash = '') => `<button class="glance ${met ? 'met' : ''}" data-act="goto" data-v="${tab}" data-hash="${hash}" data-k="gl-${tab}-${hash || label}"><b>${value}</b><span>${label}</span>${met ? '<span class="tag ok">Goal met</span>' : ''}</button>`;
     return `<section class="section"><div class="section-head"><h2>Day at a Glance</h2><button class="linkish" data-act="goto" data-v="nutrition" data-k="gl-log">Log food and drinks</button></div>
-      <div class="group pad"><div class="goals three" aria-label="Today's goals">${ring('Fruit + veg', d.fv, 5, 'servings')}${ring('Hydration', d.bev, 8, 'cups')}${ring('Protein', proteinOf(d), PROTEIN_GOAL, 'servings')}</div></div></section>
+      <div class="group pad"><div class="goals three" aria-label="Today's goals">${ring('Fruit + veg', d.fv, 5, 'servings', I.leaf)}${ring('Hydration', d.bev, 8, 'cups', I.cup)}${ring('Protein', proteinOf(d), PROTEIN_GOAL, 'servings', I.egg)}</div></div></section>
     <section class="section"><div class="section-head"><h2>Week at a Glance</h2><span class="muted" style="font-size:1rem">Week ${w}</span></div>
       <div class="group pad" style="gap:16px"><div>
         <div class="total"><b>${mins}</b><span class="muted">of <strong>${goal}</strong> aerobic minutes</span></div>
