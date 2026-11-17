@@ -368,7 +368,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
 </style>
 
 <div class="switcher" role="group" aria-label="Choose what to preview">
-  <span class="lbl">Boost Rx design mockup, sample data only</span>
+  <span class="lbl">Boost Rx, sample data only</span>
   <div class="opts">
     <button data-mode="signin" aria-pressed="false">Sign-in page</button>
     <button data-mode="app" aria-pressed="true">Participant website</button>
@@ -379,7 +379,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     <button data-theme-set="light" aria-pressed="false">Light</button>
     <button data-theme-set="dark" aria-pressed="false">Dark</button>
   </div>
-  <a class="switch-link" href="https://boostrx.vercel.app/screens.html" target="_blank" rel="noopener">Screenshots of the real website</a>
+  <a class="switch-link" href="https://boostrx.vercel.app/screens.html" target="_blank" rel="noopener">Screenshots of the live website</a>
 </div>
 <main id="root"></main>
 <nav class="tabs" id="tabs" aria-label="Website sections"><div class="inner" role="tablist" id="tabs-inner"></div></nav>
@@ -558,7 +558,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     dose: { date: iso(TODAY - DAY), time: '09:00', dose: null, route: null, changed: null, details: '' },
     admin: { authed: false, view: 'home', period: '1', audit: { show: 'all', q: '' }, lessonErr: {}, lessonMoveErr: null, lessonDraft: {}, lessonOk: null, lessonOpen: {}, upload: {}, uploadErr: {}, sort: ['id', 1], q: '', pid: null, pweek: null, added: [], err: {}, openPanel: null, justAdded: null,
       confirm: null, // which two-step button is asking ("restore-BRX-009", "remove-admin2")
-      admins: [{ user: 'demo', first: 'Demo', last: 'Today', me: true }, { user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
+      admins: [{ user: 'staff', first: 'Sam', last: 'Today', me: true }, { user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
   const dayData = t => days[t] || (days[t] = blankDay());
 
   // Controls that only move around (no saving), so they still work while an admin views as a participant, like the
@@ -569,6 +569,10 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const clearForms = new Set(); let lastCtx = '';
   let renderSoon = false; const afterRender = []; // run once the next render is done (a celebration after the screen is redrawn)
   // Re-render everything on change, then put focus back on the same control (matched by data-k).
+  // Single-audience links (participant.html, staff.html from scripts/publish-preview.sh set data-only on <html>):
+  // no switcher, and the page opens on that side's sign-in, like the live website.
+  const ONLY = document.documentElement.dataset.only || null;
+  if (ONLY) { document.querySelector('.switcher')?.remove(); S.mode = ONLY === 'staff' ? 'admin' : 'signin'; }
   function render() {
     renderSoon = false; syncMe();
     const k = document.activeElement?.dataset?.k, ctx = [S.mode, S.admin.view, S.admin.pid].join('|'), keep = {};
@@ -655,7 +659,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       </div>
       <form class="signin-card" id="signin-form" novalidate>
         <h2>Sign in</h2>
-        <div class="field"><label for="si-id">Study ID</label><input class="input" id="si-id" data-k="si-id" autocomplete="username" value="BRX-014" autocapitalize="characters"><small>Sent to you via email by the study team.</small></div>
+        <div class="field"><label for="si-id">Study ID</label><input class="input" id="si-id" data-k="si-id" autocomplete="username" value="BRX-014" autocapitalize="characters"><small>On the card the study team gave you.</small></div>
         <div class="field"><label for="si-pw">Password</label><input class="input" id="si-pw" data-k="si-pw" type="password" autocomplete="current-password" value="sample-pass"></div>
         <button class="btn" type="submit" data-k="si-go">Sign in</button>
         <p class="muted" style="font-size:.95rem">Forgot password? Please email the study team.</p>
@@ -1140,9 +1144,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       <span class="logo">${LOGO}<span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
       <form class="signin-card" id="admin-pw-form" novalidate><h2>Study staff sign in</h2>
         ${S.admin.err.pw ? `<p class="err-msg" role="alert">${S.admin.err.pw}</p>` : ''}
-        <div class="field"><label for="a-user">Username</label><input class="input" id="a-user" data-k="a-user" autocomplete="username" value="demo"></div>
-        <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="demo-password"></div>
-        <button class="btn" type="submit" data-k="a-pw-go">Sign in</button><p class="foot" style="padding:0">Demo: any username and password. The real site checks both.</p></form>
+        <div class="field"><label for="a-user">Username</label><input class="input" id="a-user" data-k="a-user" autocomplete="username" value="staff"></div>
+        <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="practice-pass-1"></div>
+        <button class="btn" type="submit" data-k="a-pw-go">Sign in</button></form>
     </div>`;
     const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['lessons', 'Lessons'], ['reports', 'Reports'], ['admins', 'Admins'], ['audit', 'Audit log']];
     return `<div class="wrap wide">
@@ -1260,8 +1264,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <section style="display:grid;gap:8px"><h2 style="font-size:1.2rem">Week by week</h2>
           ${goalTable(s, weeks)}
           <p class="muted" style="margin:0;font-size:.9rem">✓ = goal met that week. Food numbers are daily averages of the days food or drinks were logged.</p></section>
-      </article>
-      <p class="foot no-print">Demo: on the real website, opening a printable summary is recorded in the audit log.</p>`;
+      </article>`;
   }
   function adminAdd() {
     const e = S.admin.err;
@@ -1325,7 +1328,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       ${up != null ? `<div class="meter" data-progress="${key}" role="progressbar" aria-label="Uploading ${label.toLowerCase()}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${up}"><span style="width:${up}%"></span></div>` : ''}
       ${err ? `<p class="err-msg" role="alert">${err}</p>` : ''}
       ${kind === 'video' && f ? `<details><summary style="cursor:pointer;font-weight:600">Preview</summary><video class="lesson-video" style="margin-top:10px;max-width:560px" controls playsinline preload="metadata"><source src="${f.url}" type="video/mp4">${l.captions?.url ? `<track kind="captions" src="${l.captions.url}" srclang="en" label="English" default>` : ''}</video></details>` : ''}
-      ${kind === 'video' ? `<p class="muted" style="margin:0;font-size:.92rem">In this demo, uploaded videos stay in your own browser only. On the real website they're stored on Brown's server for every participant.</p>` : ''}
+      ${kind === 'video' ? `<p class="muted" style="margin:0;font-size:.92rem">Videos uploaded here stay in your own browser. On the live website they're stored on Brown's server for every participant.</p>` : ''}
     </div>`;
   }
   async function lessonUpload(input) {
@@ -1369,7 +1372,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     return `<section class="group pad"><h2>Everything in one Excel file</h2><p class="muted">All participants, all reports, one tab each, plus the data dictionary. Headers are frozen and filterable.</p>
         <div>${dlButtons('all', '', false)}</div><p class="foot" style="padding:0">For one participant, open their record from the Participants page and use the buttons there.</p></section>
       <div class="dl-grid">${REPORT_CARDS.map(([k, t, d]) => `<section class="group pad" style="align-content:start"><h3 style="font-size:1.15rem">${t}</h3><p class="muted" style="font-size:1rem">${d}</p><div>${dlButtons(k, '')}</div></section>`).join('')}</div>
-      <div class="banner info">These buttons make real files from this demo's sample data, with the same columns as the real website. Inside Claude's preview window downloads are blocked; they work on the public version at boostrx.vercel.app. On the real site, downloads contain protected health information and every one is recorded with who made it and when.</div>`;
+      <div class="banner info">These buttons make real files from the sample data, with the same columns as the live website. On the live website, downloads contain protected health information and every one is recorded with who made it and when.</div>`;
   }
   // Audit log: same labels, filters, and CSV columns as web/src/lib/audit-log.ts and /admin/audit/export (sample entries).
   const AUDIT_LABELS = { admin_login_ok: 'Staff signed in', admin_login_fail: 'Failed staff sign-in', logout: 'Staff signed out', login_ok: 'Participant signed in', participant_login_fail: 'Failed participant sign-in',
@@ -1410,7 +1413,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
           <div class="field"><label for="au-show">Show</label><select class="input" id="au-show" data-k="au-show" data-act="audit-show">${Object.entries(AUDIT_GROUPS).map(([k, [l]]) => `<option value="${k}" ${f.show === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
           <div class="field"><label for="au-q">Study ID or username</label><input class="input" id="au-q" data-k="au-q" data-act="audit-q" value="${esc(f.q)}" placeholder="For example BRX-014"></div>
-        </div><p class="foot" style="padding:0">Demo: sample entries. The real log also filters by date.</p></section>
+        </div></section>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><p class="muted" style="margin:0">${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}</p>
         <button class="btn small ghost" data-k="au-dl" data-act="audit-dl">Download as CSV</button></div>
       <section class="group"><div class="table-wrap" tabindex="0" role="region" aria-label="Table (scrolls sideways on small screens)"><table class="data"><thead><tr><th>When (Eastern)</th><th>Who</th><th>What</th><th>Details</th></tr></thead><tbody>
@@ -1438,7 +1441,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     <section class="group pad" style="max-width:520px"><h2>Change your password</h2>
       <form id="my-pw-form" novalidate style="display:grid;gap:16px">
         ${pf('my-cur', 'Current password', '', 'current-password')}${pf('my-pw', 'New password', 'At least 12 characters. Your other devices are signed out.', 'new-password')}${pf('my-pw2', 'Confirm new password', '', 'new-password')}
-        <button class="btn small" style="justify-self:start" type="submit" data-k="my-go">Change password</button><p class="foot" style="padding:0">Demo: any current password works.</p></form></section>`;
+        <button class="btn small" style="justify-self:start" type="submit" data-k="my-go">Change password</button></form></section>`;
   }
 
   /* ---------- downloads (same columns as web/src/lib/reports.ts) ---------- */
@@ -1524,7 +1527,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       ['status', 'text', 'What happened', 'pending = being sent, sent = delivered to the mail server, not_sent = email sending not set up, no_email = no email on file, failed = mail server refused it'],
       ['detail', 'text', 'Reason when not sent (never the email address)']],
       rows: ps.flatMap(p => (pmsgs[p.id] || []).map(m => ({ study_id: p.id, created_at: isoTime(m.at), kind: m.kind, period: m.period, template_version: TEMPLATE_VERSION, status: m.status, detail: m.detail }))) };
-    const history = { title: 'Edit history', desc: 'Every change or removal of logged data, with the values before and after. New entries are not listed here; they are in the other tabs. (Empty in this demo.)', cols: [['study_id', 'text', 'Study ID'], ['changed_at', 'text', 'When the change was saved (UTC, ISO 8601)'], ['data_type', 'text', 'Which kind of entry changed', 'meal_entries, daily_logs, symptom_entries, med_doses'], ['change', 'text', 'UPDATE = edited, DELETE = removed'], ['before', 'text', 'Values before the change (JSON)'], ['after', 'text', 'Values after the change (JSON); blank for removals']], rows: [] };
+    const history = { title: 'Edit history', desc: 'Every change or removal of logged data, with the values before and after. New entries are not listed here; they are in the other tabs. (Empty in the sample data.)', cols: [['study_id', 'text', 'Study ID'], ['changed_at', 'text', 'When the change was saved (UTC, ISO 8601)'], ['data_type', 'text', 'Which kind of entry changed', 'meal_entries, daily_logs, symptom_entries, med_doses'], ['change', 'text', 'UPDATE = edited, DELETE = removed'], ['before', 'text', 'Values before the change (JSON)'], ['after', 'text', 'Values after the change (JSON); blank for removals']], rows: [] };
     // Weekly, wide: one row per participant, a column per week (same columns as WIDE in web/src/lib/reports.ts).
     const WIDE = [['days_logged', 'days with any entry', s => s.daysLogged, 'number'], ['mvpa_minutes', 'aerobic (MVPA) minutes', s => s.mins, 'number'], ['mvpa_goal', 'MVPA goal that week', s => s.goal, 'number'],
       ['mvpa_goal_met', 'MVPA goal met (1 = yes, 0 = no)', s => s.goalMet ? 1 : 0, 'flag'], ['strength_sessions', 'full-body strength equivalents (partial = 0.5)', s => s.str, 'number'],
@@ -1580,7 +1583,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     if (!window.XLSX) { toast('The Excel library did not load. Try CSV, or reload the page.'); return; }
     const wb = XLSX.utils.book_new(), order = REPORT_ORDER;
     const sheets = report === 'all' ? [...order.map(k => T[k]), T.dictionary] : report === 'dictionary' ? [T.dictionary] : [T[report], T.dictionary];
-    const about = XLSX.utils.aoa_to_sheet([['Study', 'Boost Rx'], ['Downloaded by', 'demo admin'], ['Participants', pid || 'All participants'], ['Note', 'DEMO FILE with made-up sample data. The real site exports the same columns.'], [], ['Tab', 'What it contains'], ...sheets.map(t => [t.title, t.desc])]);
+    const about = XLSX.utils.aoa_to_sheet([['Study', 'Boost Rx'], ['Downloaded by', 'staff'], ['Participants', pid || 'All participants'], ['Note', 'Sample data only. The live website exports the same columns.'], [], ['Tab', 'What it contains'], ...sheets.map(t => [t.title, t.desc])]);
     about['!cols'] = [{ wch: 24 }, { wch: 90 }]; XLSX.utils.book_append_sheet(wb, about, 'About');
     sheets.forEach(t => { const ws = XLSX.utils.aoa_to_sheet([t.cols.map(c => c.key), ...t.rows.map(r => t.cols.map(c => { const v = r[c.key]; return v ?? null; }))]);
       ws['!cols'] = t.cols.map(c => ({ wch: Math.min(48, Math.max(10, c.key.length + 2)) })); if (t.rows.length) ws['!autofilter'] = { ref: ws['!ref'] }; XLSX.utils.book_append_sheet(wb, ws, t.title.slice(0, 31)); });
@@ -1679,7 +1682,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         med.doses.push({ date: D.date, time: D.time, dose: amount, route, rxChanged: D.changed, rxDetails: D.changed ? D.details.trim() : '' }); med.doses.sort((p, q) => p.date.localeCompare(q.date));
         Object.assign(D, { changed: null, details: '' }); render(); toast('Dose saved.'); return;
       }
-      case 'to-admin': S.mode = 'admin'; break;
+      case 'to-admin': if (ONLY === 'participant') { location.href = 'staff.html'; return; } S.mode = 'admin'; break;
       // Like the website's "/" link: a signed-in participant goes back to their Dashboard, anyone else to sign in.
       case 'privacy': S.privacyFrom = S.mode; S.mode = 'privacy'; scrollTo(0, 0); break;
       case 'privacy-back': if (S.privacyFrom === 'app') { S.mode = 'app'; S.tab = 'dashboard'; S.month = null; S.lesson = null; } else S.mode = 'signin'; scrollTo(0, 0); break;
