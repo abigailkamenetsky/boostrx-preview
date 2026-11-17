@@ -1730,14 +1730,14 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       S.admin.err = {}; S.admin.authed = true; S.admin.view = 'home'; render(); scrollTo(0, 0); return;
     }
     if (e.target.id === 'settings-form') {
-      // Same as updateParticipantSettings: a changed start must be a likely Monday that keeps every entry inside the 14 weeks,
-      // and the baseline can't change after week 1 (the goals for past weeks were set from it).
+      // Same as updateParticipantSettings: a changed start must be a likely Monday (entries it leaves outside the 14 weeks
+      // stay saved but drop out of the reports, and staff are told), and the baseline can't change after week 1 (the goals for past weeks were set from it).
       const p = all().find(x => x.id === S.admin.pid), g = id => $('#' + id).value.trim(), err = {};
       if (!g('st-first')) err['st-first'] = 'Enter a first name.';
       const start = Date.parse(g('st-start')), startChanged = start !== p.start;
       const se = startShapeErr(g('st-start')) ?? (startChanged ? unlikelyStart(start) : null);
       if (se) err['st-start'] = se;
-      else if (startChanged) { const n = entriesOutside(p, start); if (n > 0) err['st-start'] = `${n} logged ${n === 1 ? 'entry falls' : 'entries fall'} outside the 14 weeks that would start on that date, so ${n === 1 ? 'it' : 'they'} would drop out of the reports. Pick a start date that keeps every entry inside the program, or contact the website developer.`; }
+      const n = !se && startChanged ? entriesOutside(p, start) : 0;
       const be = baselineErr(g('st-base'));
       if (be) err['st-base'] = be;
       else if (+g('st-base') !== p.baseline && TODAY >= Math.min(p.start, se ? p.start : start) + 7 * DAY)
@@ -1746,7 +1746,8 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       if (Object.keys(err).length) { S.admin.err = err; render(); $('#' + Object.keys(err)[0])?.focus(); return; }
       p.first = g('st-first'); p.baseline = +g('st-base'); p.start = start; S.admin.err = {}; S.admin.pweek = null;
       if (p === ME && startChanged) { S.day = S.actDay = TODAY; S.wday = TODAY - DAY; S.week = weekOf(TODAY); S.month = S.lesson = null; }
-      render(); toast(p === ME ? 'Saved. Week numbers and goals now follow the new settings, on the record and on her participant screens.' : 'Saved. Week numbers and goals now follow the new settings.'); return;
+      const outside = n === 0 ? '' : ` ${n} logged ${n === 1 ? 'entry is' : 'entries are'} now outside the 14 weeks, so ${n === 1 ? "it won't" : "they won't"} show in reports. Nothing was deleted: moving the start date back brings ${n === 1 ? 'it' : 'them'} back.`;
+      render(); toast((p === ME ? 'Saved. Week numbers and goals now follow the new settings, on the record and on her participant screens.' : 'Saved. Week numbers and goals now follow the new settings.') + outside); return;
     }
     if (e.target.id === 'reset-form') {
       const pw = $('#rp-pw').value; S.admin.openPanel = 'reset';
