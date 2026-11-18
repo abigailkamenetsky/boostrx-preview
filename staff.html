@@ -549,8 +549,22 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     l[kind] = !rec || rec.removed ? null : { name: rec.name, bytes: rec.blob.size, url: URL.createObjectURL(rec.blob) };
     if (rec?.updated) l.updated = rec.updated;
   }
-  // Same as srtToVtt in web/src/app/api/admin/lessons/[id]/[kind]/route.ts.
-  const srtToVtt = srt => 'WEBVTT\n\n' + srt.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').replace(/(\d\d:\d\d:\d\d),(\d\d\d)/g, '$1.$2').trim() + '\n';
+  // Same as srtToVtt and decodeText in web/src/lib/captions.ts: line by line, "00:00:01.000" timings (two-digit hours),
+  // and a blank line before every cue (hand-edited .srt files often have none, which would show the cue number on screen).
+  const SRT_TIMING = /^(\d{1,2}):(\d\d):(\d\d),(\d\d\d)[ \t]+-->[ \t]+(\d{1,2}):(\d\d):(\d\d),(\d\d\d)(.*)$/;
+  const srtToVtt = srt => {
+    const out = [];
+    for (const raw of srt.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').split('\n')) {
+      const line = /^[ \t]+$/.test(raw) ? '' : raw, m = SRT_TIMING.exec(line);
+      if (!m) { out.push(line); continue; }
+      const before = out.length && /^\d+$/.test(out[out.length - 1]) ? out.length - 2 : out.length - 1; // skip the cue number
+      if (before >= 0 && out[before] !== '') out.splice(before + 1, 0, '');
+      out.push(`${m[1].padStart(2, '0')}:${m[2]}:${m[3]}.${m[4]} --> ${m[5].padStart(2, '0')}:${m[6]}:${m[7]}.${m[8]}${m[9]}`);
+    }
+    return 'WEBVTT\n\n' + out.join('\n').trim() + '\n';
+  };
+  // Captions are UTF-8, but an .srt saved by an older Windows program is Windows-1252, which UTF-8 would garble.
+  const decodeText = buf => { const t = new TextDecoder('utf-8').decode(buf); return t.includes('\uFFFD') ? new TextDecoder('windows-1252').decode(buf) : t; };
 
   /* ---------- state ---------- */
   // viewAs: the study ID an admin is viewing as (read-only participant screens), or null for the participant's own visit.
@@ -1095,8 +1109,10 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     if (quietDays < 3 || Math.round((TODAY - p.start) / DAY) < 3) return null;
     return { quietDays, neverLogged: last === null };
   }
-  /** Side effects rated 4 or 5 in the last 7 days, today included (recentSevereSideEffects in web/src/lib/participants.ts). */
-  const severeRecent = () => all().map(p => ({ id: p.id, items: Object.keys(pdays[p.id] || {}).map(Number).filter(t => t >= TODAY - 6 * DAY && t <= TODAY).sort((a, b) => b - a)
+  /** Side effects rated 4 or 5 in the last 7 days, today included (recentSevereSideEffects in web/src/lib/participants.ts).
+   *  Only participants whose access hasn't ended, and only program days, like the reports. */
+  const severeRecent = () => all().filter(p => !p.ended).map(p => ({ id: p.id, items: Object.keys(pdays[p.id] || {}).map(Number)
+    .filter(t => t >= TODAY - 6 * DAY && t <= TODAY && t >= p.start && t < p.start + 98 * DAY).sort((a, b) => b - a)
     .flatMap(t => Object.entries(pdays[p.id][t].sym).filter(([, v]) => v >= 4).map(([k, v]) => ({ t, k, v }))) })).filter(x => x.items.length);
   const pDates = (p, w) => Array.from({ length: 7 }, (_, i) => p.start + ((w - 1) * 7 + i) * DAY);
   const avg1 = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 10) / 10 : null;
@@ -1250,7 +1266,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     const note = monthlyNote(s, daysPossible, period === 'program' ? 'program' : 'month');
     const weights = weeks.flatMap(w => pDates(p, w)).filter(t => t <= end).map(t => pdays[p.id]?.[t]?.weight).filter(v => v !== null && v !== undefined);
     const change = weights.length > 1 ? Math.round((weights[weights.length - 1] - weights[0]) * 10) / 10 : null;
-    const weightLine = change === null ? null : `${change === 0 ? 'Your weight is the same' : `Your weight is ${change < 0 ? 'down' : 'up'} ${Math.abs(change)} lb`} ${period === 'program' ? 'since your first weigh-in' : 'this month'}`;
+    const weightLine = change === null ? null : `${change === 0 ? 'Your weight is the same' : `Your weight is ${change < 0 ? 'down' : 'up'} ${Math.abs(change).toFixed(1)} lb`} ${period === 'program' ? 'since your first weigh-in' : 'this month'}`;
     const choices = [...MONTHS.filter(m => monthPrintable(p, m)).map(m => [String(m), `Month ${m}`]), ['program', 'Whole program']];
     return `${back}
       <div class="btn-row no-print">${choices.map(([k, l]) => `<button class="btn small ${period === k ? '' : 'ghost'}" data-act="print-sum" data-v="${k}" data-k="sp-${k}" ${period === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}
@@ -1347,9 +1363,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         else if (f.size > 2 * 1024 ** 3) err = 'That upload was cut off or larger than 2 GB. Please try again.';
         else blob = new Blob([f], { type: 'video/mp4' });
       } else {
-        const text = f.size > 2 * 1024 ** 2 ? null : (await f.text()).replace(/^\uFEFF/, '');
+        const text = f.size > 2 * 1024 ** 2 ? null : decodeText(await f.arrayBuffer()).replace(/^\uFEFF/, '');
         if (text === null) err = 'Caption files can be up to 2 MB.';
-        else if (!text.startsWith('WEBVTT') && !/\d\d:\d\d:\d\d,\d\d\d\s+-->/.test(text)) err = 'Captions must be a .vtt or .srt file.';
+        else if (!text.startsWith('WEBVTT') && !/\d{1,2}:\d\d:\d\d,\d\d\d\s+-->/.test(text)) err = 'Captions must be a .vtt or .srt file.';
         else blob = new Blob([text.startsWith('WEBVTT') ? text : srtToVtt(text)], { type: 'text/vtt' });
       }
     } catch { err = 'That file could not be read. Please try again.'; }
@@ -1756,7 +1772,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       // Same checks and messages as LessonText in web/src/lib/lessons-admin.ts.
       const id = +e.target.dataset.id, l = lessons.find(x => x.id === id), title = $(`#lt-${id}`).value.trim(), surveyUrl = $(`#ls-${id}`).value.trim(), err = {};
       if (title.length > 120) err.title = 'Keep the title under 120 characters.';
-      if (surveyUrl) { let okUrl = surveyUrl.length <= 500; try { new URL(surveyUrl); } catch { okUrl = false; } if (!okUrl) err.surveyUrl = 'Paste the full survey link, starting with https://'; else if (!surveyUrl.startsWith('https://')) err.surveyUrl = 'Survey links must start with https://'; }
+      if (surveyUrl) { let okUrl = surveyUrl.length <= 500; try { new URL(surveyUrl); } catch { okUrl = false; } if (!okUrl) err.surveyUrl = 'Paste the full survey link, starting with https://'; else if (!surveyUrl.toLowerCase().startsWith('https://')) err.surveyUrl = 'Survey links must start with https://'; }
       if (Object.keys(err).length) { S.admin.lessonErr[id] = err; S.admin.lessonDraft[id] = { title, surveyUrl }; S.admin.lessonOk = null; render(); return; }
       l.title = title || null; l.surveyUrl = surveyUrl || null; delete S.admin.lessonErr[id]; delete S.admin.lessonDraft[id]; S.admin.lessonOk = id; render(); return;
     }
