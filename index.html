@@ -339,6 +339,23 @@ summary { min-height: 44px; padding-block: 8px; }
 .card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 26px 22px; display: grid; }
 .note { background: var(--primary-soft); padding: 12px 16px; border-radius: 14px; }
 .goals.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Monthly summary: "How the month went" as two number tiles, the tip as a card, and the question as a quote (same as globals.css) */
+.month-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mstat { display: grid; gap: 4px; align-content: start; padding: 14px 16px; border-radius: 16px; background: var(--surface); border: 1.5px solid var(--hair); min-width: 0; }
+.mstat:only-child { grid-column: 1 / -1; }
+.mstat.met { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+.mstat > span { font-size: .92rem; color: var(--ink-muted); }
+.mstat b { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+@media (max-width: 400px) { .mstat b { font-size: 1.25rem; } }
+@media (max-width: 340px) { .month-stats { grid-template-columns: 1fr; } } /* folded phones: one tile per row */ /* "Down 12.4 lb" stays on one line on small phones */
+.mstat b small { font-size: 1rem; font-weight: 600; color: var(--ink-muted); }
+.mstat .meter { height: 10px; margin-top: 6px; }
+.mstat .meter::after { display: none; }
+.try { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: 16px; background: var(--accent-soft); border: 1.5px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+.try strong { display: block; color: var(--accent); margin-bottom: 2px; }
+.try-icon { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--surface); }
+.try-icon svg { width: 22px; height: 22px; stroke: currentColor; }
+.reflect { margin: 0; padding: 14px 18px; border-left: 4px solid var(--primary); background: var(--primary-soft); border-radius: 0 14px 14px 0; font-style: italic; }
 .glances { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .glance { display: grid; gap: 2px; align-content: start; padding: 14px 40px 14px 16px; border-radius: 16px; background: var(--surface); color: var(--ink); border: 1.5px solid var(--hair); position: relative; text-align: left; font: inherit; cursor: pointer; min-height: 48px; }
 .glance::after { content: ""; position: absolute; right: 16px; top: 50%; width: 9px; height: 9px; border-top: 2.5px solid var(--ink-muted); border-right: 2.5px solid var(--ink-muted); transform: translateY(-50%) rotate(45deg); }
@@ -406,7 +423,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     left: svg('<path d="M15 6l-6 6 6 6"/>', 2.4), right: svg('<path d="M9 6l6 6-6 6"/>', 2.4), lock: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
     leaf: svg('<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14"/><path d="M5 19l7-7"/>'), egg: svg('<path d="M12 3c3.5 0 6.5 5.5 6.5 10a6.5 6.5 0 0 1-13 0C5.5 8.5 8.5 3 12 3z"/>'), cup: svg('<path d="M6 4h12l-1.5 15a2 2 0 0 1-2 1.8h-5A2 2 0 0 1 7.5 19z"/><path d="M6.6 9h10.8"/>'),
     today: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'), move: svg('<circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-6 3 2v4M6 12l3-4 4 1 3 3h3M11 15l2-6"/>'),
-    scale: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 10a5 5 0 0 1 7 0M12 10l1.5-2"/>'), chart: svg('<path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/>'), more: svg('<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'),
+    scale: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 10a5 5 0 0 1 7 0M12 10l1.5-2"/>'), chart: svg('<path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/>'), bulb: svg('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>'), more: svg('<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'),
     play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>', lessons: svg('<path d="M8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4zM10 8.5v7l5.5-3.5z"/>'), dl: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
   };
   // Study team's logo, embedded so the single-file demo needs no extra files. Same artwork as web/src/app/boostrx-logo.png.
@@ -519,7 +536,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const med = { doses: [['2.5 mg'], ['5 mg', 'Went up from 2.5 mg to 5 mg'], ['5 mg'], ['5 mg'], ['7.5 mg', 'Went up from 5 mg to 7.5 mg'], ['7.5 mg']]
     .map(([amt, rx], k) => [START0 + k * 7 * DAY, amt, rx]).filter(([t]) => t < TODAY).map(([t, amt, rx], k) => dose(iso(t), ['08:15', '08:40', '08:30'][k % 3], amt, rx)) };
   // Same shape as the website's lessons table (managed on Admin > Lessons). Sorted by week (n).
-  const lessons = Array.from({ length: 14 }, (_, i) => ({ id: i + 1, n: i + 1, title: null, surveyUrl: null, video: null, captions: null, updated: fmt(START0, { month: 'short', day: 'numeric' }) }));
+  const lessons = Array.from({ length: 14 }, (_, i) => ({ id: i + 1, n: i + 1, title: null, surveyUrl: null, video: null, captions: null, handout: null, updated: fmt(START0, { month: 'short', day: 'numeric' }) }));
   // Lesson 1's built-in sample: a 2-second generated test clip (the same file the real website's tests upload), so a video
   // plays without uploading anything. Uploaded files are kept in this browser only (see "lesson files" below).
   const blobUrl = (bytes, type) => URL.createObjectURL(new Blob([bytes], { type }));
@@ -528,6 +545,20 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const sampleCaptionsUrl = blobUrl('WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nWelcome to Boost Rx\n', 'text/vtt');
   Object.assign(lessons[0], { title: 'Welcome to Boost Rx', surveyUrl: 'https://example.org/boostrx-survey-1', video: { name: 'sample-lesson.mp4', bytes: 22259, url: sampleVideoUrl }, captions: { name: 'sample-lesson.vtt', url: sampleCaptionsUrl } });
   Object.assign(lessons[1], { title: 'Protein at every meal', surveyUrl: 'https://example.org/boostrx-survey-2', updated: fmt(START0 + 7 * DAY, { month: 'short', day: 'numeric' }) });
+  // Built-in sample handouts on lessons 5 and 11, so the participant's download button can be seen: a one-page PDF made here
+  // (Helvetica text, byte offsets counted for the cross-reference table), so the demo needs no extra files.
+  function samplePdf(text) {
+    const stream = `BT /F1 24 Tf 72 700 Td (${text}) Tj ET`;
+    const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`];
+    let out = '%PDF-1.4\n'; const at = [];
+    objs.forEach((o, i) => { at.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xref = out.length;
+    out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${at.map(o => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+    return new Blob([out], { type: 'application/pdf' });
+  }
+  for (const n of [5, 11]) { const b = samplePdf(`Sample handout, lesson ${n}`); lessons[n - 1].handout = { name: `sample-handout-${n}.pdf`, bytes: b.size, url: URL.createObjectURL(b) }; }
   const lessonAt = n => lessons.find(l => l.n === n);
   const lessonTitle = l => l.title ? `Lesson ${l.n}: ${l.title}` : `Lesson ${l.n}`;
   const mb = b => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1)} GB` : b < 1024 ** 2 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${Math.round(b / 1024 ** 2)} MB`;
@@ -999,7 +1030,8 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   function monthlyNote(weeks, daysPossible, scope = 'month') {
     const span = scope === 'month' ? 'this month' : 'over the program';
     const logged = weeks.reduce((a, w) => a + w.daysLogged, 0);
-    const effort = `You logged on ${logged} of ${daysPossible} days ${span}.${logged >= daysPossible * 0.7 ? " That's real consistency." : ' Every entry helps you see your own patterns.'}`;
+    const cheer = logged >= daysPossible * 0.7 ? "That's real consistency." : 'Every entry helps you see your own patterns.';
+    const effort = `You logged on ${logged} of ${daysPossible} days ${span}. ${cheer}`;
     const share = w => ({
       activity: Math.min(1, w.mins / w.goal), strength: Math.min(1, w.str / 2),
       protein: w.avgProt === null ? null : Math.min(1, w.avgProt / PROTEIN_GOAL), fruitVeg: w.avgFv === null ? null : Math.min(1, w.avgFv / 5),
@@ -1014,19 +1046,26 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       : "Some weeks are harder than others, and that's normal. What matters is the overall direction, not a perfect week.";
     let focus = 'activity', low = Infinity;
     for (const k of keys) { const v = avg(weeks, k); if (v !== null && v < low) { low = v; focus = k; } }
-    return { effort, trend, action: TIPS[focus], reflect: `Think about your best week ${span}. What helped most, and how could you repeat it?` };
+    return { effort, logged, cheer, trend, action: TIPS[focus], reflect: `Think about your best week ${span}. What helped most, and how could you repeat it?` };
   }
   function viewMonth() {
     const m = S.month, weeks = monthWeeks(m), s = weeks.map(w => summarize(ME, w)), note = monthlyNote(s, 28);
     const first = weekStart(weeks[0]), last = weekStart(weeks[3]) + 6 * DAY;
     // Same weight line as the printable summary staff can give out: first and last weigh-in of the month.
     const wts = weeks.flatMap(w => weekDays(w)).map(t => days[t]?.weight).filter(v => v !== null && v !== undefined), wFirst = wts[0], wLast = wts[wts.length - 1];
+    // The two numbers first, as tiles; then the encouragement, the one tip as a card, and the question to think about.
+    const met = note.logged >= 28 * 0.7;
     return `<p style="margin:0"><button class="linkish back" data-k="month-back" data-act="month-back">${I.left} Weekly Summaries</button></p>
     <p class="hint">Weeks ${weeks[0]} to ${weeks[3]}, ${fmt(first, { month: 'short', day: 'numeric' })} to ${fmt(last, { month: 'short', day: 'numeric' })}.</p>
     <section class="section"><div class="section-head"><h2>How the month went</h2></div>
-      <div class="group pad"><p>${note.effort}</p><p>${note.trend}</p>
-        ${wts.length > 1 ? `<p><strong>${wFirst === wLast ? 'Your weight is the same this month' : `Your weight is ${weightChange(wFirst, wLast)} this month`}</strong> (${wFirst} to ${wLast} lb).</p>` : ''}
-        <p><strong>One thing to try next month:</strong> ${note.action}</p><p class="muted">${note.reflect}</p></div></section>
+      <div class="month-stats">
+        <div class="mstat${met ? ' met' : ''}"><span>Days logged</span><b>${note.logged}<small> of 28</small></b>
+          <div class="meter${met ? ' done' : ''}" role="progressbar" aria-label="Days logged this month" aria-valuemin="0" aria-valuemax="28" aria-valuenow="${note.logged}"><span style="width:${note.logged / 28 * 100}%"></span></div></div>
+        ${wts.length > 1 ? `<div class="mstat"><span>Weight this month</span><b>${wFirst === wLast ? 'No change' : weightChange(wFirst, wLast).replace(/^./, c => c.toUpperCase())}</b><span>${wFirst} to ${wLast} lb</span></div>` : ''}
+      </div>
+      <div class="group pad"><p style="margin:0"><strong>${note.cheer}</strong> ${note.trend}</p></div>
+      <div class="try"><span class="try-icon" aria-hidden="true">${I.bulb}</span><div><strong>One thing to try next month</strong><p style="margin:0">${note.action}</p></div></div>
+      <p class="reflect">${note.reflect}</p></section>
     <section class="section"><div class="section-head"><h2>Week by week</h2></div>
       <div class="group">${goalTable(s, weeks)}</div>
       <p class="foot">✓ = goal met that week. Food numbers are daily averages of the days you logged food or drinks.</p></section>`;
@@ -1047,6 +1086,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     <section class="section" aria-label="Lesson video">${l.video
       ? `<video class="lesson-video" controls playsinline preload="metadata"><source src="${l.video.url}" type="video/mp4">${l.captions?.url ? `<track kind="captions" src="${l.captions.url}" srclang="en" label="English" default>` : ''}Your browser can't play this video. Please contact the study team.</video>`
       : `<div class="banner info">This week's video is coming soon.</div>`}</section>
+    ${l.handout ? `<section class="section"><div class="section-head"><h2>This week's handout</h2></div>
+      <div class="group pad"><p style="margin:0">A PDF to keep or print. It saves to your device.</p>
+        <a class="btn ghost" style="justify-self:start" href="${l.handout.url}" download="Boost Rx lesson ${l.n} handout.pdf">Download the handout (PDF)</a></div></section>` : ''}
     <section class="section"><div class="section-head"><h2>This week's survey</h2></div>
       <div class="group pad"><p style="margin:0">After you watch, please complete the brief survey. It opens in a new tab.</p>${l.surveyUrl
         ? `<a class="btn" style="justify-self:start" href="${esc(l.surveyUrl)}" target="_blank" rel="noopener noreferrer" data-act="survey" data-v="${l.n}">Take the survey</a>`
@@ -1321,7 +1363,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     const e = S.admin.lessonErr[l.id] || {}, d = S.admin.lessonDraft[l.id] || { title: l.title ?? '', surveyUrl: l.surveyUrl ?? '' };
     // Collapsed like the website, so all 14 weeks are easy to scan; stays open while you work in it.
     const open = S.admin.lessonOpen[l.id] || S.admin.lessonOk === l.id || Object.keys(e).length || Object.keys(S.admin.upload).concat(Object.keys(S.admin.uploadErr)).some(k => k.startsWith(l.id + '-'));
-    const tags = [['video', !!l.video], ['captions', !!l.captions], ['survey link', !!l.surveyUrl]].map(([k, on]) => `<span class="tag ${on ? 'ok' : 'warn'}">${on ? '✓' : 'No'} ${k}</span>`).join('');
+    const tags = [['video', !!l.video], ['captions', !!l.captions], ['survey link', !!l.surveyUrl]].map(([k, on]) => `<span class="tag ${on ? 'ok' : 'warn'}">${on ? '✓' : 'No'} ${k}</span>`).join('')
+      // Handouts are optional (only some lessons have one), so only a handout that's there is shown, never "No handout".
+      + (l.handout ? '<span class="tag ok">✓ handout</span>' : '');
     return `<section class="group pad" aria-labelledby="lesson-${l.id}" style="gap:10px">
       <div class="btn-row" style="justify-content:space-between"><h2 id="lesson-${l.id}" style="font-size:1.25rem">Week ${l.n}${l.title ? `: ${esc(l.title)}` : ''}${reached ? '<span class="tag dim" style="margin-left:10px">open for participants</span>' : ''}</h2>
         <span class="btn-row"><button class="btn small ghost" data-k="lm-up-${l.id}" data-act="lesson-move" data-v="${l.id}" data-dir="-1" ${l.n === 1 ? 'disabled' : ''} aria-label="Move week ${l.n} lesson earlier">Move up</button>
@@ -1336,13 +1380,17 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
           <div class="field"><label for="ls-${l.id}">Survey link</label><input class="input ${e.surveyUrl ? 'err' : ''}" id="ls-${l.id}" data-k="ls-${l.id}" type="url" value="${esc(d.surveyUrl)}">${e.surveyUrl ? `<span class="err-msg">${e.surveyUrl}</span>` : '<small>The full link, starting with https://. It opens in a new tab under the video.</small>'}</div>
         </div>
         <button class="btn" type="submit" style="justify-self:start" data-k="lsave-${l.id}">Save title and link</button></form>
-      ${fileRow(l, 'video')}${fileRow(l, 'captions')}` : ''}</section>`;
+      ${fileRow(l, 'video')}${fileRow(l, 'captions')}${fileRow(l, 'handout')}` : ''}</section>`;
   }
+  const FILE_LABEL = { video: 'Video', captions: 'Captions', handout: 'Handout' };
+  const FILE_ACCEPT = { video: 'video/mp4,.mp4', captions: '.vtt,.srt,text/vtt', handout: 'application/pdf,.pdf' };
   function fileRow(l, kind) {
-    const f = kind === 'video' ? l.video : l.captions, label = kind === 'video' ? 'Video' : 'Captions', key = `${l.id}-${kind}`, up = S.admin.upload[key], err = S.admin.uploadErr[key];
+    const f = l[kind], label = FILE_LABEL[kind], key = `${l.id}-${kind}`, up = S.admin.upload[key], err = S.admin.uploadErr[key];
+    const what = !f ? '' : kind === 'video' ? `${mb(f.bytes)} MP4` : kind === 'handout' ? `<a href="${f.url}" download="Boost Rx lesson ${l.n} handout.pdf">PDF</a>` : 'WebVTT';
+    const none = kind === 'video' ? 'none yet (participants see "coming soon")' : kind === 'handout' ? 'none (optional: participants see a download button when there is one)' : 'none yet';
     return `<div style="display:grid;gap:8px;border-top:1px solid var(--hair);padding-top:12px">
-      <div class="btn-row" style="justify-content:space-between"><span><strong>${label}:</strong> ${f ? `${kind === 'video' ? `${mb(f.bytes)} MP4` : 'WebVTT'}, updated ${l.updated}` : `<span class="muted">${kind === 'video' ? 'none yet (participants see "coming soon")' : 'none yet'}</span>`}</span>
-        <span class="btn-row"><label class="btn small" style="cursor:${up == null ? 'pointer' : 'wait'}">${f ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}<input type="file" class="sr" accept="${kind === 'video' ? 'video/mp4,.mp4' : '.vtt,.srt,text/vtt'}" data-act="lesson-file" data-id="${l.id}" data-kind="${kind}" ${up != null ? 'disabled' : ''} aria-label="${f ? 'Replace' : 'Upload'} week ${l.n} ${label.toLowerCase()}"></label>
+      <div class="btn-row" style="justify-content:space-between"><span><strong>${label}:</strong> ${f ? `${what}, updated ${l.updated}` : `<span class="muted">${none}</span>`}</span>
+        <span class="btn-row"><label class="btn small" style="cursor:${up == null ? 'pointer' : 'wait'}">${f ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}<input type="file" class="sr" accept="${FILE_ACCEPT[kind]}" data-act="lesson-file" data-id="${l.id}" data-kind="${kind}" ${up != null ? 'disabled' : ''} aria-label="${f ? 'Replace' : 'Upload'} week ${l.n} ${label.toLowerCase()}"></label>
         ${f ? askButton(`rm-${key}`, 'Remove', `Remove the week ${l.n} ${label.toLowerCase()}?`, `Remove ${label.toLowerCase()}`, 'lesson-rm', key) : ''}</span></div>
       ${up != null ? `<div class="meter" data-progress="${key}" role="progressbar" aria-label="Uploading ${label.toLowerCase()}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${up}"><span style="width:${up}%"></span></div>` : ''}
       ${err ? `<p class="err-msg" role="alert">${err}</p>` : ''}
@@ -1362,6 +1410,13 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         if ((f.type && f.type !== 'video/mp4') || String.fromCharCode(...head.slice(4, 8)) !== 'ftyp') err = "That isn't an MP4 video. In Canva, download as MP4.";
         else if (f.size > 2 * 1024 ** 3) err = 'That upload was cut off or larger than 2 GB. Please try again.';
         else blob = new Blob([f], { type: 'video/mp4' });
+      } else if (kind === 'handout') {
+        // Same check as the real website: 25 MB at most, and every PDF starts with "%PDF-".
+        const head = new Uint8Array(await f.slice(0, 5).arrayBuffer());
+        if (f.size > 25 * 1024 ** 2) err = 'Handouts can be up to 25 MB.';
+        else if (!f.size) err = 'The file was empty.';
+        else if (String.fromCharCode(...head) !== '%PDF-') err = "That isn't a PDF. In Canva or Word, download or save as PDF.";
+        else blob = new Blob([f], { type: 'application/pdf' });
       } else {
         const text = f.size > 2 * 1024 ** 2 ? null : decodeText(await f.arrayBuffer()).replace(/^\uFEFF/, '');
         if (text === null) err = 'Caption files can be up to 2 MB.';
@@ -1400,9 +1455,10 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     reset_participant_password: "Reset a participant's password", end_participant_access: "Ended a participant's access", restore_participant_access: "Restored a participant's access",
     create_admin: 'Added an admin', remove_admin: 'Removed an admin', change_password: 'Changed own password', change_password_fail: 'Wrong current password (password change)',
     edit_lesson: 'Edited a lesson', move_lesson: 'Moved a lesson', upload_lesson_video: 'Uploaded a lesson video', upload_lesson_captions: 'Uploaded lesson captions',
-    remove_lesson_video: 'Removed a lesson video', remove_lesson_captions: 'Removed lesson captions', daily_jobs: 'Daily messages job ran' };
+    remove_lesson_video: 'Removed a lesson video', remove_lesson_captions: 'Removed lesson captions',
+    upload_lesson_handout: 'Uploaded a lesson handout', remove_lesson_handout: 'Removed a lesson handout', daily_jobs: 'Daily messages job ran' };
   const AUDIT_GROUPS = { all: ['Everything', null], downloads: ['Data downloads', ['export', 'export_audit']], records: ['Records viewed', ['view_participants', 'view_participant', 'view_as_participant', 'view_audit_log', 'view_summary']],
-    changes: ['Changes by staff', ['create_participant', 'update_participant', 'reset_participant_password', 'end_participant_access', 'restore_participant_access', 'create_admin', 'remove_admin', 'change_password', 'edit_lesson', 'move_lesson', 'upload_lesson_video', 'upload_lesson_captions', 'remove_lesson_video', 'remove_lesson_captions']],
+    changes: ['Changes by staff', ['create_participant', 'update_participant', 'reset_participant_password', 'end_participant_access', 'restore_participant_access', 'create_admin', 'remove_admin', 'change_password', 'edit_lesson', 'move_lesson', 'upload_lesson_video', 'upload_lesson_captions', 'remove_lesson_video', 'remove_lesson_captions', 'upload_lesson_handout', 'remove_lesson_handout']],
     signins: ['Sign-ins and sign-outs', ['admin_login_ok', 'login_ok', 'logout']], failed: ['Failed sign-ins', ['admin_login_fail', 'participant_login_fail', 'change_password_fail']], system: ['Automatic jobs', ['daily_jobs']] };
   let auditSample = null;
   function auditRows() {
@@ -1684,7 +1740,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         [l.n, other.n] = [other.n, l.n]; l.updated = other.updated = fmt(TODAY, { month: 'short', day: 'numeric' });
         lessons.sort((a, c) => a.n - c.n); S.admin.lessonOk = null; S.admin.lessonMoveErr = null; break;
       }
-      case 'lesson-rm': { const [id, kind] = v.split('-'), l = lessons.find(x => x.id === +id); attachMedia(l, kind, { removed: true }); mediaSet(l.id, kind, { removed: true }); l.updated = fmt(TODAY, { month: 'short', day: 'numeric' }); S.admin.confirm = null; render(); toast(kind === 'video' ? 'Video removed.' : 'Captions removed.'); return; }
+      case 'lesson-rm': { const [id, kind] = v.split('-'), l = lessons.find(x => x.id === +id); attachMedia(l, kind, { removed: true }); mediaSet(l.id, kind, { removed: true }); l.updated = fmt(TODAY, { month: 'short', day: 'numeric' }); S.admin.confirm = null; render(); toast({ video: 'Video removed.', captions: 'Captions removed.', handout: 'Handout removed.' }[kind]); return; }
       case 'route': S.dose.route = v; break;
       case 'rx': S.dose.changed = v === 'true'; break;
       case 'dose-save': {
@@ -1858,7 +1914,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       if (mediaDb) await new Promise(res => { const c = mediaDb.transaction('media').objectStore('media').openCursor(); c.onsuccess = () => { const cur = c.result; if (cur) { mediaMem.set(cur.key, cur.value); cur.continue(); } else res(); }; c.onerror = () => res(); });
     } catch { mediaDb = null; } // private window or blocked storage: files stay in memory for this visit
     if (!mediaMem.size) return;
-    for (const [key, rec] of mediaMem) { const m = /^lesson(\d+)-(video|captions)$/.exec(key), l = m && lessons.find(x => x.id === +m[1]); if (l) attachMedia(l, m[2], rec); }
+    for (const [key, rec] of mediaMem) { const m = /^lesson(\d+)-(video|captions|handout)$/.exec(key), l = m && lessons.find(x => x.id === +m[1]); if (l) attachMedia(l, m[2], rec); }
     render();
   })();
 })();
