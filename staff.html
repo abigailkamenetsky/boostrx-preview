@@ -393,7 +393,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (() => {
   /* ---------- helpers ---------- */
@@ -1436,7 +1436,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       <h3 style="margin-top:8px">Add an admin</h3>
       ${S.admin.err.na ? `<p class="err-msg" role="alert">${S.admin.err.na}</p>` : ''}
       <form id="admin-add-form" novalidate style="display:grid;gap:16px"><div class="form-grid"><div class="field"><label for="na-user">Username</label><input class="input" id="na-user" data-k="na-user"><small>Lowercase, for example jsmith</small></div><div class="field"><label for="na-first">First name</label><input class="input" id="na-first" data-k="na-first"></div>
-      <div class="field"><label for="na-pw">Password</label><input class="input" id="na-pw" data-k="na-pw" type="password"><small>At least 12 characters.</small></div><div class="field"><label for="na-pw2">Confirm password</label><input class="input" id="na-pw2" data-k="na-pw2" type="password"></div></div>
+      <div class="field"><label for="na-pw">Password</label><input class="input" id="na-pw" data-k="na-pw" type="password"><small>At least 12 characters.</small></div><div class="field"><label for="na-pw2">Confirm password</label><input class="input" id="na-pw2" data-k="na-pw2" type="password"></div><div class="field"><label for="na-me">Your own password</label><input class="input" id="na-me" data-k="na-me" type="password" autocomplete="current-password"><small>To confirm it's you adding them.</small></div></div>
       <button class="btn small" style="justify-self:start" type="submit" data-k="na-go">Add admin</button></form></section>
     <section class="group pad" style="max-width:520px"><h2>Change your password</h2>
       <form id="my-pw-form" novalidate style="display:grid;gap:16px">
@@ -1787,7 +1787,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     }
     if (e.target.id === 'admin-add-form') {
       const g = id => $('#' + id).value.trim(), user = g('na-user').toLowerCase();
-      const err = !/^[a-z0-9._-]{3,40}$/.test(user) ? 'Use 3 to 40 letters, numbers, dots, dashes, or underscores for the username.' : !g('na-first') ? 'Enter a first name.' : $('#na-pw').value.length < 12 ? 'Admin passwords need at least 12 characters.' : $('#na-pw').value !== $('#na-pw2').value ? 'The two passwords do not match.' : S.admin.admins.some(a => a.user === user) ? 'That username is taken.' : null;
+      const err = !/^[a-z0-9._-]{3,40}$/.test(user) ? 'Use 3 to 40 letters, numbers, dots, dashes, or underscores for the username.' : !g('na-first') ? 'Enter a first name.' : $('#na-pw').value.length < 12 ? 'Admin passwords need at least 12 characters.' : $('#na-pw').value !== $('#na-pw2').value ? 'The two passwords do not match.' : $('#na-me').value !== 'practice-pass-1' ? 'Your current password is not right.' : S.admin.admins.some(a => a.user === user) ? 'That username is taken.' : null;
       if (err) { S.admin.err = { na: err }; render(); return; }
       S.admin.admins.push({ user, first: g('na-first'), last: 'Never' }); S.admin.err = {}; clearForms.add('admin-add-form'); render(); toast(`Admin "${user}" added. They can sign in now with that username and password.`); return;
     }
