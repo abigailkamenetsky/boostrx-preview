@@ -1087,8 +1087,8 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       ? `<video class="lesson-video" controls playsinline preload="metadata"><source src="${l.video.url}" type="video/mp4">${l.captions?.url ? `<track kind="captions" src="${l.captions.url}" srclang="en" label="English" default>` : ''}Your browser can't play this video. Please contact the study team.</video>`
       : `<div class="banner info">This week's video is coming soon.</div>`}</section>
     ${l.handout ? `<section class="section"><div class="section-head"><h2>This week's handout</h2></div>
-      <div class="group pad"><p style="margin:0">A PDF to keep or print. It saves to your device.</p>
-        <a class="btn ghost" style="justify-self:start" href="${l.handout.url}" download="Boost Rx lesson ${l.n} handout.pdf">Download the handout (PDF)</a></div></section>` : ''}
+      <div class="group pad"><p style="margin:0">A handout to keep or print. It saves to your device.</p>
+        <a class="btn ghost" style="justify-self:start" href="${l.handout.url}" download="Boost Rx lesson ${l.n} handout.${handoutExt(l.handout)}">Download the handout (${HANDOUT_TYPES[handoutExt(l.handout)].label})</a></div></section>` : ''}
     <section class="section"><div class="section-head"><h2>This week's survey</h2></div>
       <div class="group pad"><p style="margin:0">After you watch, please complete the brief survey. It opens in a new tab.</p>${l.surveyUrl
         ? `<a class="btn" style="justify-self:start" href="${esc(l.surveyUrl)}" target="_blank" rel="noopener noreferrer" data-act="survey" data-v="${l.n}">Take the survey</a>`
@@ -1383,11 +1383,23 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       ${fileRow(l, 'video')}${fileRow(l, 'captions')}${fileRow(l, 'handout')}` : ''}</section>`;
   }
   const FILE_LABEL = { video: 'Video', captions: 'Captions', handout: 'Handout' };
-  const FILE_ACCEPT = { video: 'video/mp4,.mp4', captions: '.vtt,.srt,text/vtt', handout: 'application/pdf,.pdf' };
+  // Lesson handouts, as in web/src/lib/handouts.ts: the type comes from the file's first bytes (a .docx is a zip holding
+  // word/document.xml); old .doc files are refused (they can carry macros).
+  const HANDOUT_TYPES = { pdf: { mime: 'application/pdf', label: 'PDF' }, docx: { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', label: 'Word document' }, jpg: { mime: 'image/jpeg', label: 'picture' }, png: { mime: 'image/png', label: 'picture' } };
+  function handoutType(b) {
+    const s = (i, n) => String.fromCharCode(...b.subarray(i, i + n));
+    if (s(0, 5) === '%PDF-') return 'pdf';
+    if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';
+    if ([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((x, i) => b[i] === x)) return 'png';
+    if (s(0, 4) === 'PK\x03\x04' && new TextDecoder('latin1').decode(b).includes('word/document.xml')) return 'docx';
+    return null;
+  }
+  const handoutExt = h => (h?.name.split('.').pop() in HANDOUT_TYPES ? h.name.split('.').pop() : 'pdf');
+  const FILE_ACCEPT = { video: 'video/mp4,.mp4', captions: '.vtt,.srt,text/vtt', handout: 'application/pdf,.pdf,.docx,image/jpeg,.jpg,.jpeg,image/png,.png' };
   function fileRow(l, kind) {
     const f = l[kind], label = FILE_LABEL[kind], key = `${l.id}-${kind}`, up = S.admin.upload[key], err = S.admin.uploadErr[key];
-    const what = !f ? '' : kind === 'video' ? `${mb(f.bytes)} MP4` : kind === 'handout' ? `<a href="${f.url}" download="Boost Rx lesson ${l.n} handout.pdf">PDF</a>` : 'WebVTT';
-    const none = kind === 'video' ? 'none yet (participants see "coming soon")' : kind === 'handout' ? 'none (optional: participants see a download button when there is one)' : 'none yet';
+    const what = !f ? '' : kind === 'video' ? `${mb(f.bytes)} MP4` : kind === 'handout' ? `<a href="${f.url}" download="Boost Rx lesson ${l.n} handout.${handoutExt(f)}">${{ pdf: 'PDF', docx: 'Word document' }[handoutExt(f)] ?? 'Picture'}</a>` : 'WebVTT';
+    const none = kind === 'video' ? 'none yet (participants see "coming soon")' : kind === 'handout' ? 'none (optional: a PDF, Word document, or JPG/PNG picture; participants see a download button when there is one)' : 'none yet';
     return `<div style="display:grid;gap:8px;border-top:1px solid var(--hair);padding-top:12px">
       <div class="btn-row" style="justify-content:space-between"><span><strong>${label}:</strong> ${f ? `${what}, updated ${l.updated}` : `<span class="muted">${none}</span>`}</span>
         <span class="btn-row"><label class="btn small" style="cursor:${up == null ? 'pointer' : 'wait'}">${f ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}<input type="file" class="sr" accept="${FILE_ACCEPT[kind]}" data-act="lesson-file" data-id="${l.id}" data-kind="${kind}" ${up != null ? 'disabled' : ''} aria-label="${f ? 'Replace' : 'Upload'} week ${l.n} ${label.toLowerCase()}"></label>
@@ -1402,7 +1414,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     const f = input.files?.[0], id = +input.dataset.id, kind = input.dataset.kind, key = `${id}-${kind}`, l = lessons.find(x => x.id === id);
     input.value = '';
     if (!f || !l) return;
-    let err = null, blob = null;
+    let err = null, blob = null, hext = null;
     try {
       if (kind === 'video') {
         // Same check as the real website: the browser must call it an MP4, and every MP4 has "ftyp" at bytes 4-7.
@@ -1411,12 +1423,12 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         else if (f.size > 2 * 1024 ** 3) err = 'That upload was cut off or larger than 2 GB. Please try again.';
         else blob = new Blob([f], { type: 'video/mp4' });
       } else if (kind === 'handout') {
-        // Same check as the real website: 25 MB at most, and every PDF starts with "%PDF-".
-        const head = new Uint8Array(await f.slice(0, 5).arrayBuffer());
+        // Same check as the real website (web/src/lib/handouts.ts): 25 MB at most, a PDF, Word document, or JPG/PNG picture.
+        const t = f.size > 25 * 1024 ** 2 ? null : handoutType(new Uint8Array(await f.arrayBuffer()));
         if (f.size > 25 * 1024 ** 2) err = 'Handouts can be up to 25 MB.';
         else if (!f.size) err = 'The file was empty.';
-        else if (String.fromCharCode(...head) !== '%PDF-') err = "That isn't a PDF. In Canva or Word, download or save as PDF.";
-        else blob = new Blob([f], { type: 'application/pdf' });
+        else if (!t) err = 'Handouts can be a PDF, a Word document (.docx), or a picture (JPG or PNG).';
+        else { blob = new Blob([f], { type: HANDOUT_TYPES[t].mime }); hext = t; }
       } else {
         const text = f.size > 2 * 1024 ** 2 ? null : decodeText(await f.arrayBuffer()).replace(/^\uFEFF/, '');
         if (text === null) err = 'Caption files can be up to 2 MB.';
@@ -1436,7 +1448,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         return;
       }
       clearInterval(tick); delete S.admin.upload[key];
-      const rec = { name: f.name, blob, updated: fmt(TODAY, { month: 'short', day: 'numeric' }) };
+      const rec = { name: hext ? `handout.${hext}` : f.name, blob, updated: fmt(TODAY, { month: 'short', day: 'numeric' }) };
       attachMedia(l, kind, rec); mediaSet(l.id, kind, rec);
       render();
     }, 150);
