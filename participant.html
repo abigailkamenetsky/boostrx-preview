@@ -188,6 +188,7 @@ select.input { -webkit-appearance: none; appearance: none; padding-right: 40px; 
 .serve-foot p.met { color: var(--success); font-weight: 700; }
 .minus { min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-size: 1rem; font-weight: 600; flex: none; }
 .minus:disabled { opacity: .4; cursor: not-allowed; }
+.minus[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
 
 /* Symptoms */
 .sym-detail { padding: 0 18px 18px 68px; display: grid; gap: 8px; }
@@ -342,7 +343,8 @@ summary { min-height: 44px; padding-block: 8px; }
 /* Monthly summary: "How the month went" as two number tiles, the tip as a card, and the question as a quote (same as globals.css) */
 .month-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .mstat { display: grid; gap: 4px; align-content: start; padding: 14px 16px; border-radius: 16px; background: var(--surface); border: 1.5px solid var(--hair); min-width: 0; }
-.mstat:only-child { grid-column: 1 / -1; }
+.mstat:only-child, .mstat:last-child:nth-child(odd) { grid-column: 1 / -1; } /* an odd last tile spans the row */
+.mstat .tag { justify-self: start; margin-top: 4px; }
 .mstat.met { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
 .mstat > span { font-size: .92rem; color: var(--ink-muted); }
 .mstat b { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
@@ -459,8 +461,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   // Program start dates are always Mondays. The sample participant (BRX-014) started 5 Mondays ago, so she is in week 6:
   // month 1 (weeks 1 to 4) is over, so its summary is open, and month 2 is not yet.
   const START0 = mondayOf(TODAY) - 35 * DAY;
-  // BRX-014's record. Her screens read the start date and baseline from it, so a change on Admin > settings shows up there.
-  const ME = { start: START0, baseline: 80 };
+  // The signed-in participant's record (BRX-014 to begin with). Their screens read the start date and baseline from it, so a
+  // change on Admin > settings shows up there. Signing in as another sample participant (or View as participant) switches it.
+  let ME = { start: START0, baseline: 80 };
   const isMonday = t => new Date(t).getUTCDay() === 1;
   const dayNum = t => Math.round((t - ME.start) / DAY) + 1;
   const weekOf = t => Math.floor((dayNum(t) - 1) / 7) + 1;
@@ -476,6 +479,16 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const inProgram = () => NOW_WEEK >= 1 && NOW_WEEK <= 14;
   // Same as editableRange in program.ts: this week and last week, never the future, and nothing outside the 14 weeks.
   const editable = t => inProgram() && t >= EDIT_FROM && t <= TODAY;
+  // Access length (accessPhase in web/src/lib/program.ts, web/src/lib/access.ts): the study setting (Admin > Access length)
+  // or a participant's own. Weeks past 14 are view-only (everything can be looked at, nothing added or changed); then access ends.
+  const ACCESS_WEEKS = { default: 15, min: 14, max: 52 };
+  const STUDY = { accessWeeks: ACCESS_WEEKS.default };
+  const accessWeeks = p => p.accessOwn ?? STUDY.accessWeeks;
+  const accessEnd = (p, weeks = accessWeeks(p)) => p.start + weeks * 7 * DAY; // the first day they can no longer sign in
+  const accessLastDay = (p, weeks) => accessEnd(p, weeks) - DAY;
+  const accessPhase = (p, t = TODAY, weeks) => t >= accessEnd(p, weeks) ? 'ended' : t >= p.start + 98 * DAY ? 'view-only' : 'program';
+  const viewOnly = () => accessPhase(ME) === 'view-only';
+  const programLastDay = () => ME.start + 97 * DAY;
 
   // Same keys and labels as the real website (web/src/lib/program.ts).
   const MEALS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner']];
@@ -493,18 +506,28 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const ROUTES = [['oral', 'Oral (pill)'], ['injection', 'Injection']];
 
   /* ---------- sample participant data (BRX-014, Linda) ---------- */
-  const days = {};
+  // days and med are the signed-in participant's (pdays and pmeds below hold everyone's); they start as Linda's.
+  let days = {};
   const KIND_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
   const byKind = (a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.id - b.id;
   let mealSeq = 1;
   const meal = (kind, protein, hunger, reason = null, time = null) => ({ id: mealSeq++, kind, protein, hunger, reason, other: '', time });
   // none = answered "No side effects today" (cleared again when a symptom is checked).
-  const blankDay = () => ({ meals: [], fv: 0, bev: 0, sym: {}, none: false, ex: null, mins: 0, acts: [], actOther: '', strength: null, weight: null });
+  // fv and bev: null = not answered, 0 = the participant tapped None (an answer), 1 or more = servings.
+  const blankDay = () => ({ meals: [], fv: null, bev: null, sym: {}, none: false, ex: null, mins: 0, acts: [], actOther: '', strength: null, weight: null });
   const proteinOf = d => d.meals.reduce((a, m) => a + (m.protein || 0), 0);
-  // Same as isFoodDay and foodNumbers in web/src/lib/summary.ts: a food day has any meal, snack, fruit/veg, or drink.
-  // Food averages use food days only, and a blank item on a food day counts as 0.
-  const isFoodDay = d => !!d && (d.meals.length > 0 || d.fv > 0 || d.bev > 0);
-  const foodNumbers = ds => { const food = ds.filter(isFoodDay); return { protein: food.map(proteinOf), fv: food.map(d => d.fv || 0), bev: food.map(d => d.bev || 0) }; };
+  // Same counting rules as web/src/lib/summary.ts.
+  /** Anything entered at all for the day ("No side effects today" counts). Counts of logged days use isLogged. */
+  const hasAnyEntry = d => !!d && (d.meals.length > 0 || d.fv !== null || d.bev !== null || d.ex !== null || d.mins > 0 || d.acts.length > 0 || d.strength !== null || d.weight !== null || Object.keys(d.sym).length > 0 || !!d.none);
+  const hasFoodEntry = d => d.meals.length > 0 || d.fv !== null; // a meal or snack, or a fruit/veg answer (None counts)
+  const hasDrinkEntry = d => d.bev !== null; // the drinks answer (None counts)
+  const hasWeightOrActivity = d => d.weight !== null || d.ex !== null || d.mins > 0 || d.acts.length > 0 || d.strength !== null; // "No exercise" counts
+  /** A logged day (study team rule): a food entry, a drink entry, and a weight or activity entry. Side effects alone don't count. */
+  const isLogged = d => !!d && hasFoodEntry(d) && hasDrinkEntry(d) && hasWeightOrActivity(d);
+  /** The day's protein from the meals and snacks with a protein answer ("Little or no protein" = 0 counts), or null when none has one. */
+  const proteinAnswered = d => { const a = d.meals.filter(m => m.protein !== null); return a.length ? a.reduce((x, m) => x + m.protein, 0) : null; };
+  /** Daily numbers for each food item, from only the days with an entry for that item: a blank is skipped, a None counts as 0. */
+  const foodNumbers = ds => ({ protein: ds.map(proteinAnswered).filter(n => n !== null), fv: ds.filter(d => d.fv !== null).map(d => d.fv), bev: ds.filter(d => d.bev !== null).map(d => d.bev) });
   // Breakfast, lunch, and dinner most days, plus 0 to 3 snacks.
   function fakeMeals(d, snackOdds) {
     [['breakfast', .92], ['snack', snackOdds, 'morning'], ['lunch', .92], ['snack', snackOdds, 'afternoon'], ['dinner', .92], ['snack', snackOdds * .7, 'evening']].forEach(([kind, odds, time]) => {
@@ -533,7 +556,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   Object.assign(days[TODAY - 2 * DAY], { sym: { nausea: 4 }, none: false }); // shows on Admin > "Severe side effects in the last 7 days"
   const dose = (date, time, d, rxDetails = '') => ({ date, time, dose: d, route: 'injection', rxChanged: !!rxDetails, rxDetails });
   // A weekly injection each Monday so far (this Monday's only once the day is over, since a dose can't be logged ahead of time).
-  const med = { doses: [['2.5 mg'], ['5 mg', 'Went up from 2.5 mg to 5 mg'], ['5 mg'], ['5 mg'], ['7.5 mg', 'Went up from 5 mg to 7.5 mg'], ['7.5 mg']]
+  let med = { doses: [['2.5 mg'], ['5 mg', 'Went up from 2.5 mg to 5 mg'], ['5 mg'], ['5 mg'], ['7.5 mg', 'Went up from 5 mg to 7.5 mg'], ['7.5 mg']]
     .map(([amt, rx], k) => [START0 + k * 7 * DAY, amt, rx]).filter(([t]) => t < TODAY).map(([t, amt, rx], k) => dose(iso(t), ['08:15', '08:40', '08:30'][k % 3], amt, rx)) };
   // Same shape as the website's lessons table (managed on Admin > Lessons). Sorted by week (n).
   const lessons = Array.from({ length: 14 }, (_, i) => ({ id: i + 1, n: i + 1, title: null, surveyUrl: null, video: null, captions: null, handout: null, updated: fmt(START0, { month: 'short', day: 'numeric' }) }));
@@ -605,10 +628,21 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       confirm: null, // which two-step button is asking ("restore-BRX-009", "remove-admin2")
       admins: [{ user: 'staff', first: 'Sam', last: 'Today', me: true }, { user: 'admin1', first: 'Alex', last: 'Today' }, { user: 'admin2', first: 'Jordan', last: 'Yesterday' }, { user: 'coordinator1', first: 'Sam', last: 'Never' }] } };
   const dayData = t => days[t] || (days[t] = blankDay());
+  let SIGNED = null; // the participant signed in on the participant screens (Linda until someone signs in as another sample participant)
+  /** Shows the participant screens for p: signing in as them, or an admin's View as participant. */
+  function showAs(p) {
+    ME = p; days = pdays[p.id]; med = pmeds[p.id]; syncMe();
+    const vo = viewOnly();
+    Object.assign(S, { day: vo ? programLastDay() : TODAY, actDay: vo ? programLastDay() : TODAY, wday: TODAY - DAY, week: vo ? 14 : weekOf(TODAY), month: null, lesson: null, psum: null, open: {}, actDone: {}, strOn: {}, symDone: {}, wsel: null,
+      dose: { date: iso(TODAY - DAY), time: '09:00', dose: null, route: null, changed: null, details: '' } });
+  }
 
   // Controls that only move around (no saving), so they still work while an admin views as a participant, like the
   // real website's links and tab bar. Everything else is disabled there, like its <fieldset disabled>.
-  const NAV_ACTS = new Set(['set-day', 'act-day', 'week', 'month', 'month-back', 'lesson', 'lesson-back', 'goto', 'viewas-back']);
+  const NAV_ACTS = new Set(['set-day', 'act-day', 'week', 'month', 'month-back', 'lesson', 'lesson-back', 'goto', 'viewas-back', 'psum', 'psum-back']);
+  // In the view-only weeks after the program the participant's own screens are locked the same way (Locked in
+  // web/src/app/(participant)/shared.tsx); they can still move around, sign out, and open the privacy page.
+  const VIEW_ONLY_ACTS = new Set([...NAV_ACTS, 'privacy', 'sign-out']);
   // Text typed into a form survives a re-render on the same screen (an error message, an upload ticking, another card opening).
   // A form that saved successfully is listed in clearForms so it starts empty again.
   const clearForms = new Set(); let lastCtx = '';
@@ -626,7 +660,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode));
     $('#root').innerHTML = S.mode === 'privacy' ? viewPrivacy() : S.mode === 'signin' ? viewSignin() : S.mode === 'admin' ? viewAdmin() : viewApp();
     Object.entries(keep).forEach(([id, v]) => { const el = document.getElementById(id); if (el?.closest('form')) el.value = v; });
-    if (S.mode === 'app' && S.viewAs) $('#root').querySelectorAll('button, input, select, textarea').forEach(el => { if (!NAV_ACTS.has(el.dataset.act)) el.disabled = true; });
+    if (S.mode === 'app' && (S.viewAs || viewOnly())) { const ok = S.viewAs ? NAV_ACTS : VIEW_ONLY_ACTS; $('#root').querySelectorAll('button, input, select, textarea').forEach(el => { if (!ok.has(el.dataset.act)) el.disabled = true; }); }
     $('#tabs').hidden = S.mode !== 'app';
     if (S.mode === 'app') $('#tabs-inner').innerHTML = TABS.map(([id, name, ic]) => `<button role="tab" data-k="tab-${id}" data-tab="${id}" aria-selected="${S.tab === id}"><span class="pill">${ic}</span>${name}</button>`).join('');
     if (k) document.querySelector(`[data-k="${CSS.escape(k)}"]`)?.focus();
@@ -638,7 +672,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   document.addEventListener('pointerdown', () => { pointerDown = true; }, true);
   document.addEventListener('pointerup', () => { pointerDown = false; if (renderSoon) setTimeout(() => { if (renderSoon) render(); }, 0); }, true);
   const renderLater = () => { renderSoon = true; if (!pointerDown) setTimeout(() => { if (renderSoon) render(); }, 0); };
-  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { S.mode = b.dataset.mode; S.viewAs = null; render(); scrollTo(0, 0); }));
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { S.mode = b.dataset.mode; if (S.viewAs) { S.viewAs = null; showAs(SIGNED); } render(); scrollTo(0, 0); }));
   // Demo-only theme switch: Auto follows the device setting; Light and Dark set data-theme on <html>.
   document.querySelectorAll('[data-theme-set]').forEach(b => b.addEventListener('click', () => {
     const v = b.dataset.themeSet;
@@ -649,7 +683,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   /** The top bar on participant, sign-in, and privacy screens. The account menu shows only to a signed-in participant (not when viewing as). */
   function topbar(account) {
     const menu = account ? `<details class="acct"><summary aria-label="Account" data-k="acct-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></summary>
-      <div class="acct-menu"><p class="muted" style="margin:0;font-size:.95rem">Signed in as <strong>BRX-014</strong></p>
+      <div class="acct-menu"><p class="muted" style="margin:0;font-size:.95rem">Signed in as <strong>${ME.id}</strong></p>
         <button type="button" class="linkish" style="justify-self:start" data-act="privacy" data-k="acct-menu-privacy">Privacy and cookies</button>
         <button class="btn small ghost" style="justify-self:start" data-act="sign-out" data-k="acct-menu-signout">Sign out</button></div></details>` : '';
     return `<header class="topbar"><div class="inner">${LOGO.replace('class="logo-img"', 'class="topbar-logo"')}${menu}</div></header>`;
@@ -671,8 +705,10 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
           <li><strong>What you enter:</strong> meals and snacks, protein, fruits and vegetables, drinks, side effects, activity, weight, and medication doses.</li>
           <li><strong>Lesson viewing:</strong> when you open a lesson, how much of the video you watch, and whether you open the survey link.</li>
           <li><strong>Your account:</strong> your study ID, first name, and password (stored scrambled, so no one can read it).</li>
-          <li><strong>Your time zone:</strong> your phone or computer reports its time zone so your days match your own clock. It is saved with your account.</li>
-          <li><strong>Sign-in records:</strong> when you sign in, and a scrambled version of your network address, to protect your account from people guessing passwords.</li>
+          <li><strong>Your time zone:</strong> your phone or computer reports its time zone so your days match your own clock. It is saved with your account, and changes to it are recorded.</li>
+          <li><strong>Sign-in records:</strong> when you sign in and out. Failed sign-ins are recorded too, with the study ID that was typed (only if it looks like a study ID, so a password typed in the wrong box is never kept).</li>
+          <li><strong>Your network address (IP address):</strong> the website does not keep it. To slow down people guessing passwords, it briefly keeps a scrambled form of it (one-way hashed, so it cannot be turned back into the address) for up to a day, then deletes it.</li>
+          <li><strong>Changes you make:</strong> if you change or remove something you entered, the earlier version is kept in an edit history, so the researchers can see what changed and when. Removing an entry hides it from your pages but does not erase that history.</li>
         </ul>
 
         <h2>Who can see it</h2>
@@ -680,14 +716,14 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
 
         <h2>Cookies and storage on your device</h2>
         <ul>
-          <li><strong>Sign-in cookie:</strong> keeps you signed in on your device until the program ends, so you don&#39;t have to type your password each day. It is removed when you sign out.</li>
-          <li><strong>A small note on your device:</strong> remembers which goal celebrations you have already seen, so they don&#39;t pop up twice. It stays on your device and is never sent to anyone.</li>
-          <li><strong>Study staff</strong> have their own sign-in cookie, which lasts 8 hours.</li>
+          <li><strong>Sign-in cookie:</strong> keeps you signed in on your device until your access ends (a week after the 14-week program, unless the study team tells you otherwise), so you don&#39;t have to type your password each day. It is removed when you sign out.</li>
+          <li><strong>A small note on your device</strong> about which goal celebrations you&#39;ve seen, so they don&#39;t pop up twice. It stays on your device, is never sent to anyone, and is cleared when you sign out.</li>
+          <li><strong>Study staff</strong> have their own sign-in cookie, which lasts up to 8 hours and ends after 30 minutes without activity.</li>
         </ul>
         <p>That is all. The website has <strong>no advertising, analytics, or tracking cookies</strong>, and nothing on it comes from outside companies (even the lettering and lesson videos come from the Boost Rx website itself). The weekly survey links open the survey tool the study team uses, which has its own privacy terms. Because these cookies are needed for signing in, there is nothing to turn on or off. If your browser blocks all cookies, you won&#39;t be able to sign in.</p>
 
         <h2>Keeping it safe</h2>
-        <p>The website uses an encrypted connection, runs on servers managed by Brown University Health, and keeps a record of every time study staff view or download information.</p>
+        <p>The website uses an encrypted connection, runs on servers managed by Brown University Health, and keeps a record of every time study staff view or download information. That record and the edit history cannot be changed or deleted, even by the website itself. The database is backed up every night. Each backup is encrypted and kept on the server for 30 days; copies stored elsewhere follow Brown University Health&#39;s backup policy.</p>
 
         <h2>Questions</h2>
         <p>Please email the study team. You can stop taking part in the study at any time, as described in your consent form.</p>
@@ -704,11 +740,13 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       </div>
       <form class="signin-card" id="signin-form" novalidate>
         <h2>Sign in</h2>
+        ${S.signinErr ? `<p class="err-msg" role="alert">${esc(S.signinErr)}</p>` : ''}
         <div class="field"><label for="si-id">Study ID</label><input class="input" id="si-id" data-k="si-id" autocomplete="username" value="BRX-014" autocapitalize="characters"><small>On the card the study team gave you.</small></div>
         <div class="field"><label for="si-pw">Password</label><input class="input" id="si-pw" data-k="si-pw" type="password" autocomplete="current-password" value="sample-pass"></div>
         <button class="btn" type="submit" data-k="si-go">Sign in</button>
         <p class="muted" style="font-size:.95rem">Forgot password? Please email the study team.</p>
-        <p class="muted" style="font-size:.95rem">You'll stay signed in on this device until the program ends. Your browser can save your password for you.</p>
+        <p class="muted" style="font-size:.95rem">You'll stay signed in on this device until your access ends, shortly after the program. Your browser can save your password for you.</p>
+        <p class="muted" style="font-size:.95rem"><span class="tag sample">Sample data</span> Try BRX-015 to see the view-only week after the program, or BRX-012, whose access has ended.</p>
         <div style="display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:8px">
           <button type="button" class="linkish" data-act="to-admin">Study staff sign in</button>
           <button type="button" class="linkish" data-act="privacy">Privacy and cookies</button>
@@ -727,7 +765,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const pctChange = (from, to) => { const f = Math.round(from * 10), d = Math.round(to * 10) - f; return f ? Math.sign(d) * Math.round(Math.abs(d) * 1000 / f) / 10 : null; };
   const weightChangePct = (from, to) => { const p = pctChange(from, to) ?? 0; return p === 0 ? 'no change' : `${p < 0 ? 'down' : 'up'} ${Math.abs(p).toFixed(1)}%`; };
   function goTab(tab, hash) {
-    S.tab = tab; S.lesson = null; S.month = null; render();
+    S.tab = tab; S.lesson = null; S.month = null; S.psum = null; render();
     const el = hash && document.getElementById(hash);
     if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); else scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
   }
@@ -745,49 +783,66 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const greeting = () => { const h = +new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }).format(new Date()); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
 
   function header(title) {
-    const dash = S.tab === 'dashboard' && !S.month;
+    const dash = S.tab === 'dashboard' && !S.month && !S.psum && inProgram();
     return `<header class="hello">
       <div class="hello-top"><div><p class="date">${fmt(TODAY, { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>${title}</h1></div><span class="tag sample">Sample data</span></div>
       ${dash ? `<div class="study">
-        <p style="margin:0">${greeting()}, Linda.</p>
+        <p style="margin:0">${greeting()}, ${esc(ME.first)}.</p>
         <div class="study-row"><strong>Week ${NOW_WEEK} of 14</strong><span class="muted" style="font-size:1rem">Day ${dayNum(TODAY)}</span></div>
         <div class="weeks" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<span class="${i + 1 < NOW_WEEK ? 'done' : i + 1 === NOW_WEEK ? 'now' : ''}"></span>`).join('')}</div>
       </div>` : ''}</header>`;
   }
 
+  // In the view-only weeks every program day can be looked at (DayPicker in web/src/app/(participant)/shared.tsx).
   function dayBar(cur, act) {
-    const prev = cur - DAY, next = cur + DAY;
-    return `<div class="daybar"><button class="arrow" data-k="${act}-prev" data-act="${act}" data-day="${prev}" ${editable(prev) ? '' : 'disabled'} aria-label="Previous day">${I.left}</button>
+    const prev = cur - DAY, next = cur + DAY, vo = viewOnly(), prevOk = vo ? prev >= ME.start : editable(prev), nextOk = next <= (vo ? programLastDay() : TODAY);
+    return `<div class="daybar"><button class="arrow" data-k="${act}-prev" data-act="${act}" data-day="${prev}" ${prevOk ? '' : 'disabled'} aria-label="Previous day">${I.left}</button>
       <div class="pick-label">${cur === TODAY ? 'Today' : fmt(cur, { weekday: 'long' })}<small>${fmt(cur, { month: 'long', day: 'numeric' })}, week ${weekOf(cur)}</small></div>
-      <button class="arrow" data-k="${act}-next" data-act="${act}" data-day="${next}" ${next <= TODAY ? '' : 'disabled'} aria-label="Next day">${I.right}</button></div>
-      ${!editable(prev) ? `<p class="foot">You can fill in or change this week and last week. Earlier weeks are locked.</p>` : ''}`;
+      <button class="arrow" data-k="${act}-next" data-act="${act}" data-day="${next}" ${nextOk ? '' : 'disabled'} aria-label="Next day">${I.right}</button></div>
+      ${!prevOk && cur !== ME.start ? `<p class="foot">You can fill in or change this week and last week. Earlier weeks are locked.</p>` : ''}`;
   }
 
   function viewApp() {
     // Viewing as a participant (web/src/app/admin/(portal)/participants/[studyId]/view/[tab]/page.tsx): a way back and a read-only note.
-    const ro = S.viewAs ? `<p style="margin:0"><button class="linkish back" data-k="viewas-back" data-act="viewas-back">${I.left} Back to ${S.viewAs}'s record</button></p>
+    const back = S.viewAs ? `<p style="margin:0"><button class="linkish back" data-k="viewas-back" data-act="viewas-back">${I.left} Back to ${S.viewAs}'s record</button></p>` : '';
+    const ro = S.viewAs ? `${back}
       <p class="note" role="status">Viewing <strong>${S.viewAs}</strong> as a participant. <strong>Read-only:</strong> nothing can be changed here.</p>` : '';
-    // BRX-014's start date can be moved on Admin > settings. Before day 1 or after week 14 there are no logging screens.
-    const bar = topbar(!S.viewAs);
-    if (!inProgram()) return `${bar}<div class="wrap">${ro}${header('Participant Dashboard')}<div class="card"><p>${NOW_WEEK < 1
+    // The start date can be moved on Admin > settings. Before day 1 there are no logging screens; after week 14 come the
+    // view-only weeks (everything can be looked at, nothing changed), then access ends.
+    const bar = topbar(!S.viewAs), vo = viewOnly();
+    if (S.viewAs && accessPhase(ME) === 'ended') return `${bar}<div class="wrap">${back}<p class="note">${ME.id}'s access ended after ${fmtD(accessLastDay(ME))}. Participants can't sign in once access ends, so there are no screens to show. Their data is in the record and the downloads.</p></div>`;
+    if (!inProgram() && !vo) return `${bar}<div class="wrap">${ro}${header('Participant Dashboard')}<div class="card"><p>${NOW_WEEK < 1
       ? `Your 14-week program starts on <strong>${fmt(ME.start, { weekday: 'long', month: 'long', day: 'numeric' })}</strong>. The logging pages open that morning.`
-      : 'The 14-week program has ended, so this account is closed. Thank you for taking part!'}</p></div></div>`;
+      : 'The program has ended and this account is now closed. Thank you for taking part!'}</p></div></div>`;
+    if (vo) { const ok = t => t >= ME.start && t <= programLastDay(); if (!ok(S.day)) S.day = programLastDay(); if (!ok(S.actDay)) S.actDay = programLastDay(); }
     if (S.month && !monthOpen(S.month)) S.month = null; // the start date moved, so this month is not over any more
     if (S.lesson && S.lesson > NOW_WEEK) S.lesson = null; // same for a lesson that has not opened yet
     const T = S.tab === 'lessons' && S.lesson ? [lessonTitle(lessonAt(S.lesson)), viewLesson]
       : S.tab === 'dashboard' && S.month ? [`Month ${S.month} summary`, viewMonth]
+      : S.tab === 'dashboard' && S.psum ? ['Your 14-week summary', viewProgramSummary]
       : { dashboard: ['Participant Dashboard', viewDashboard], nutrition: ['Nutrition', viewNutrition], activity: ['Activity', viewActivity], weight: ['Weight &amp; Meds', viewWeight], lessons: ['Weekly Lessons and Surveys', viewLessons] }[S.tab];
     return `${bar}<div class="wrap">${ro}${header(T[0])}${T[1]()}</div>`;
   }
 
   // The Dashboard is the visual summary the website opens to (web/src/app/(participant)/dashboard/view.tsx).
+  /** The note at the top of each screen in the view-only weeks (ViewOnlyNote in web/src/app/(participant)/shared.tsx). */
+  const viewOnlyNote = () => `<p class="note" role="note">The 14-week program has ended. You can look back at your entries and summaries until ${fmt(accessLastDay(ME), { weekday: 'long', month: 'long', day: 'numeric' })}.</p>`;
   function viewDashboard() {
+    const account = `<section class="section"><div class="section-head"><h2>Account</h2></div>
+      <div class="group pad"><p style="margin:0">Signed in as <strong>${ME.id}</strong>. Questions or a forgotten password? Please email the study team.</p>
+        ${S.viewAs ? '' : `<p style="margin:0"><button type="button" class="linkish" data-act="privacy" data-k="acct-privacy">Privacy and cookies</button></p>
+        <button class="btn small ghost" style="justify-self:start" data-act="sign-out" data-k="sign-out">Sign out</button>`}</div></section>`;
+    // The view-only weeks after the program: the 14-week summary first, then the weekly and monthly summaries to look back on.
+    if (viewOnly()) return `${viewOnlyNote()}
+    <div class="card" style="gap:12px"><p style="margin:0"><strong>Your 14-week summary is ready.</strong> See how your whole program went, all on one page.</p>
+      ${S.viewAs ? '<span class="muted">Available to the participant</span>' : '<button class="btn" style="justify-self:start" data-k="psum-card" data-act="psum">See your 14-week summary</button>'}</div>
+    ${weeklySummary()}${account}`;
     const d = dayData(TODAY), w = NOW_WEEK, goal = mvpaGoal(ME.baseline, w), mins = weekMins(w), soFar = weekDays(w).filter(t => t <= TODAY);
     const str = strengthEq(weekTypes(w)), weighIns = soFar.filter(t => days[t]?.weight).length;
     const weekDoses = med.doses.filter(x => x.date >= iso(soFar[0]) && x.date <= iso(TODAY)), oral = med.doses[med.doses.length - 1]?.route === 'oral', lastDose = weekDoses[weekDoses.length - 1];
     const glance = (label, value, met, tab, hash = '') => `<button class="glance ${met ? 'met' : ''}" data-act="goto" data-v="${tab}" data-hash="${hash}" data-k="gl-${tab}-${hash || label}"><b>${value}</b><span>${label}</span>${met ? '<span class="tag ok">Goal met</span>' : ''}</button>`;
     return `<section class="section"><div class="section-head"><h2>Day at a Glance</h2>${S.viewAs ? '' : '<button class="linkish" data-act="goto" data-v="nutrition" data-k="gl-log">Log food and drinks</button>'}</div>
-      <div class="group pad"><div class="goals three" role="group" aria-label="Today's goals">${ring('Fruit + veg', d.fv, 5, 'servings', I.leaf)}${ring('Hydration', d.bev, 8, 'cups', I.cup)}${ring('Protein', proteinOf(d), PROTEIN_GOAL, 'servings', I.egg)}</div></div></section>
+      <div class="group pad"><div class="goals three" role="group" aria-label="Today's goals">${ring('Fruit + veg', d.fv ?? 0, 5, 'servings', I.leaf)}${ring('Hydration', d.bev ?? 0, 8, 'cups', I.cup)}${ring('Protein', proteinOf(d), PROTEIN_GOAL, 'servings', I.egg)}</div></div></section>
     <section class="section"><div class="section-head"><h2>Week at a Glance</h2><span class="muted" style="font-size:1rem">Week ${w}</span></div>
       <div class="group pad" style="gap:16px"><div>
         <div class="total"><b>${mins}</b><span class="muted">of <strong>${goal}</strong> aerobic minutes</span></div>
@@ -796,24 +851,20 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <div class="glances">${glance('full-body strength sessions', `${str} / 2`, str >= 2, 'activity')}${glance('weigh-ins', `${weighIns} / 2`, weighIns >= 2, 'weight')}
           ${glance(oral ? 'days with a dose logged' : 'medication', oral ? `${weekDoses.length} / ${soFar.length}` : lastDose ? `Dose taken ${fmt(Date.parse(lastDose.date), { weekday: 'short' })}, ${fmtTime(lastDose.time)}` : 'No dose logged yet', false, 'weight', 'meds')}</div>
       </div></section>
-    ${weeklySummary()}
-    <section class="section"><div class="section-head"><h2>Account</h2></div>
-      <div class="group pad"><p style="margin:0">Signed in as <strong>BRX-014</strong>. Questions or a forgotten password? Please email the study team.</p>
-        ${S.viewAs ? '' : `<p style="margin:0"><button type="button" class="linkish" data-act="privacy" data-k="acct-privacy">Privacy and cookies</button></p>
-        <button class="btn small ghost" style="justify-self:start" data-act="sign-out" data-k="sign-out">Sign out</button>`}</div></section>`;
+    ${weeklySummary()}${account}`;
   }
 
   // Same as web/src/app/(participant)/nutrition/view.tsx and nutrition-ui.tsx.
   function viewNutrition() {
     const x = dayData(S.day), isToday = S.day === TODAY, prot = proteinOf(x), snacks = x.meals.filter(m => m.kind === 'snack');
     const symCount = Object.keys(x.sym).length, symDone = S.symDone[S.day] ?? (symCount > 0 || x.none), dayWord = isToday ? 'today' : 'that day';
-    return `${dayBar(S.day, 'set-day')}
+    return `${viewOnly() ? viewOnlyNote() : ''}${dayBar(S.day, 'set-day')}
     <section class="section"><div class="section-head"><h2 id="h-meals" tabindex="-1">Meals and snacks</h2><span class="count ${prot >= PROTEIN_GOAL ? 'met' : ''}">${prot} of ${PROTEIN_GOAL} protein servings</span></div>
       <p class="hint">Each time you eat, tap the meal or add a snack, answer the questions, and mark it as done. Protein goal: 8 to 10 servings/day (1 serving = 10g).</p>
       <div class="group">${MEALS.map(([k, name]) => mealRow(x.meals.find(m => m.kind === k), k, name)).join('')}${snacks.map((m, i) => mealRow(m, 'snack', `Snack ${i + 1}`)).join('')}</div>
       ${snacks.length < MAX_SNACKS ? '<button class="btn ghost" style="justify-self:start" data-k="add-snack" data-act="add-snack">+ Add snack</button>' : ''}</section>
-    ${serve(x, 'fv', 'Fruits and vegetables', 'One serving = 1 cup of raw fruits or vegetables, ½ cup of cooked vegetables, or 1 medium piece of fruit. Goal: 5 servings.', 5, 'leaf', ['serving', 'servings'])}
-    ${serve(x, 'bev', 'Sugar-free drinks', 'Water, seltzer, unsweetened tea, black coffee, and diet or zero-sugar drinks. One cup = 8 ounces. Goal: 8 cups.', 8, 'cup', ['cup', 'cups'])}
+    ${serve(x, 'fv', 'Fruits and vegetables', 'One serving = 1 cup of raw fruits or vegetables, ½ cup of cooked vegetables, or 1 medium piece of fruit. Goal: 5 servings.', 5, 'leaf', ['serving', 'servings'], isToday)}
+    ${serve(x, 'bev', 'Sugar-free drinks', 'Water, seltzer, unsweetened tea, black coffee, and diet or zero-sugar drinks. One cup = 8 ounces. Goal: 8 cups.', 8, 'cup', ['cup', 'cups'], isToday)}
     <section class="section"><div class="section-head"><h2>Potential side effects</h2></div><p class="hint">Check off any symptoms you experienced ${isToday ? 'today' : 'this day'}.</p>
       ${symDone ? `<div class="group pad"><p style="margin:0">${symCount
           ? SYMPTOMS.filter(([k]) => k in x.sym).map(([k, l]) => `${l}, ${x.sym[k] ? severityText(x.sym[k]) : 'not rated yet'}`).join('; ')
@@ -857,13 +908,15 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   }
 
   // Going over the goal is fine: participants can keep counting past it ("Goal met: 6 servings (1 extra)").
-  function serve(x, key, title, hint, goal, icon, [one, many]) {
-    const v = x[key], met = v >= goal;
+  // None is an answer (saved as 0), not the same as leaving it blank; tapping it again takes the answer back, and adding a
+  // serving replaces it (Servings in web/src/app/(participant)/nutrition/nutrition-ui.tsx).
+  function serve(x, key, title, hint, goal, icon, [one, many], isToday) {
+    const v = x[key] ?? 0, none = x[key] === 0, met = v >= goal, when = isToday ? 'today' : 'that day';
     return `<section class="section"><div class="section-head"><h2>${title}</h2></div><p class="hint">${hint}</p>
       <div class="group pad ${met ? 'met' : ''}" data-serve="${key}" data-goal="${goal}">
         <div class="tokens ${goal === 8 ? 'eight' : 'five'}">${Array.from({ length: goal }, (_, i) => `<button class="tok ${i < v ? 'full' : ''}" data-k="${key}-${i}" data-act="tok" data-n="${i + 1}" aria-label="${i + 1} ${i ? many : one}" aria-pressed="${i < v}">${I[icon]}</button>`).join('')}</div>
-        <div class="serve-foot"><p class="${met ? 'met' : ''}" aria-live="polite">${met ? `Goal met: ${v} ${many}${v > goal ? ` (${v - goal} extra)` : ''}` : `${v} of ${goal} ${many}`}</p>
-        <div class="btn-row"><button class="minus" data-k="${key}-minus" data-act="tok-minus" ${v === 0 ? 'disabled' : ''}>Undo one</button>${met && v < MAX_SERVINGS[key] ? `<button class="minus" data-k="${key}-plus" data-act="tok-plus">+ Add an extra ${one}</button>` : ''}</div></div></div></section>`;
+        <div class="serve-foot"><p class="${met ? 'met' : ''}" aria-live="polite">${met ? `Goal met: ${v} ${many}${v > goal ? ` (${v - goal} extra)` : ''}` : none ? `None ${when}` : `${v} of ${goal} ${many}`}</p>
+        <div class="btn-row">${v === 0 ? `<button class="minus" data-k="${key}-none" data-act="tok-none" aria-pressed="${none}" aria-label="None ${when} (${title.toLowerCase()})">None ${when}</button>` : ''}<button class="minus" data-k="${key}-minus" data-act="tok-minus" ${v === 0 ? 'disabled' : ''}>Undo one</button>${met && v < MAX_SERVINGS[key] ? `<button class="minus" data-k="${key}-plus" data-act="tok-plus">+ Add an extra ${one}</button>` : ''}</div></div></div></section>`;
   }
 
   function symRow(x, k, name, isToday) {
@@ -882,13 +935,14 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     // A day that is already answered opens collapsed to its summary; once edited it stays open until Done.
     const done = (S.actDone[t] ?? (x.ex === false || (x.ex === true && x.mins > 0))) && x.ex !== null, strOn = S.strOn[t] ?? x.strength !== null;
     const chosen = ACTS.filter(a => x.acts.includes(a)).map(a => a === 'Other' && x.actOther ? x.actOther : a);
-    return `${dayBar(t, 'act-day')}
+    const vo = viewOnly();
+    return `${vo ? viewOnlyNote() : ''}${dayBar(t, 'act-day')}
     <section class="section"><div class="section-head"><h2>Week ${w} aerobic activity minutes</h2><span class="count ${total >= goal ? 'met' : ''}">Goal: ${goal}</span></div>
       <div class="group pad">
         <div class="total"><b>${total}</b><span class="muted">of <strong>${goal}</strong> minutes</span></div>
         <div class="meter ${total >= goal ? 'done' : ''}" role="progressbar" aria-label="Aerobic activity minutes this week" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${total}"><span style="width:${Math.min(100, total / goal * 100)}%"></span></div>
-        <p class="muted" style="font-size:1rem">${total >= goal ? 'Goal met this week. Wonderful work!' : `${goal - total} minutes to go.`} Tap each day to indicate whether you exercised (yes or no).</p>
-        <div class="bars">${weekDays(w).map(d => { const y = days[d], m = y?.mins || 0, off = d > TODAY || !editable(d), ans = y && y.ex !== null; return `<button class="bar-col ${d === t ? 'sel' : ''}" data-k="bar-${d}" data-act="act-day" data-day="${d}" ${off ? 'disabled' : ''} aria-label="${fmt(d, { weekday: 'long' })}, ${ans ? `${m} minutes` : 'not answered'}${y?.strength ? ', strength training' : ''}"><span class="bar-track" aria-hidden="true"><span style="height:${m / max * 100}%"></span></span><b>${d > TODAY ? '' : ans ? m : '?'}</b><small>${fmt(d, { weekday: 'short' })}${y?.strength ? ' •' : ''}</small></button>`; }).join('')}</div>
+        <p class="muted" style="font-size:1rem">${vo ? `${total >= goal ? 'Goal met that week.' : `${total} of ${goal} minutes that week.`} Tap a day to see it.` : `${total >= goal ? 'Goal met this week. Wonderful work!' : `${goal - total} minutes to go.`} Tap each day to indicate whether you exercised (yes or no).`}</p>
+        <div class="bars">${weekDays(w).map(d => { const y = days[d], m = y?.mins || 0, off = vo ? false : d > TODAY || !editable(d), ans = y && y.ex !== null; return `<button class="bar-col ${d === t ? 'sel' : ''}" data-k="bar-${d}" data-act="act-day" data-day="${d}" ${off ? 'disabled' : ''} aria-label="${fmt(d, { weekday: 'long' })}, ${ans ? `${m} minutes` : 'not answered'}${y?.strength ? ', strength training' : ''}"><span class="bar-track" aria-hidden="true"><span style="height:${m / max * 100}%"></span></span><b>${d > TODAY ? '' : ans ? m : '?'}</b><small>${fmt(d, { weekday: 'short' })}${y?.strength ? ' •' : ''}</small></button>`; }).join('')}</div>
         <p class="foot" style="padding:0">• marks a day with strength training.</p>
       </div></section>
 
@@ -923,13 +977,14 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   function viewWeight() {
     // Weigh-ins inside the program only (an admin can move the start date past earlier entries).
     const pts = Object.keys(days).map(Number).sort((a, b) => a - b).filter(t => days[t].weight && t >= ME.start && t <= TODAY).map(t => ({ t, w: days[t].weight }));
-    const first = pts[0], last = pts[pts.length - 1];
-    const thisWeek = weekDays(NOW_WEEK).filter(t => days[t]?.weight).length, sel = pts.find(p => p.t === S.wsel) || last;
-    const earlier = []; for (let t = TODAY - DAY; t >= EDIT_FROM; t -= DAY) earlier.push(t);
+    // In the view-only weeks there is nothing to log: the graph shows weeks 1 to 14 and the doses are a list.
+    const first = pts[0], last = pts[pts.length - 1], vo = viewOnly(), curW = vo ? 14 : NOW_WEEK;
+    const thisWeek = weekDays(curW).filter(t => days[t]?.weight).length, sel = pts.find(p => p.t === S.wsel) || last;
+    const earlier = []; if (!vo) for (let t = TODAY - DAY; t >= EDIT_FROM; t -= DAY) earlier.push(t);
     if (!earlier.includes(S.wday)) S.wday = earlier[0];
     const input = (id, t) => `<div class="inline"><input class="input" id="${id}" data-k="${id}" inputmode="decimal" placeholder="000.0" value="${days[t]?.weight ?? ''}"><span class="muted">pounds</span>
         <button class="btn small" data-k="${id}-save" data-act="weight-save" data-day="${t}">Save</button></div>`;
-    const entry = `<section class="section"><div class="section-head"><h2>Log your weight</h2><span class="count ${thisWeek >= 2 ? 'met' : ''}">${thisWeek} of 2 weigh-ins this week</span></div>
+    const entry = vo ? viewOnlyNote() : `<section class="section"><div class="section-head"><h2>Log your weight</h2><span class="count ${thisWeek >= 2 ? 'met' : ''}">${thisWeek} of 2 weigh-ins this week</span></div>
       <p class="hint">Aim to weigh yourself at least 2 times per week, ideally first thing in the morning before eating or drinking. You can log every day if you like.</p>
       <div class="group pad"><label class="q-label" for="w-today">Today's weight</label>${input('w-today', TODAY)}</div>
       ${earlier.length ? `<details class="group pad" id="w-earlier-box" ${S.wOpen ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Log a weight for an earlier day</summary>
@@ -938,8 +993,8 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <div style="display:grid;gap:8px;margin-top:12px"><label class="q-label" for="w-earlier">Weight that day</label>${input('w-earlier', S.wday)}</div>
       </details>` : ''}</section>`;
     if (!first) return `${entry}<section class="section"><div class="section-head"><h2>Since you started</h2></div>
-      <div class="group pad"><p class="muted">Log your first weight above to start your graph.</p></div></section>${viewMeds()}`;
-    const W = 600, H = 260, L = 46, R = 16, Tp = 16, B = 34, x0 = ME.start, x1 = weekStart(NOW_WEEK) + 6 * DAY;
+      <div class="group pad"><p class="muted">${vo ? 'No weights were logged.' : 'Log your first weight above to start your graph.'}</p></div></section>${viewMeds()}`;
+    const W = 600, H = 260, L = 46, R = 16, Tp = 16, B = 34, x0 = ME.start, x1 = weekStart(curW) + 6 * DAY;
     const lo = Math.floor(Math.min(...pts.map(p => p.w)) - 1), hi = Math.ceil(Math.max(...pts.map(p => p.w)) + 1);
     const X = t => L + (t - x0) / (x1 - x0) * (W - L - R), Y = v => Tp + (hi - v) / (hi - lo) * (H - Tp - B);
     const step = Math.max(1, Math.round((hi - lo) / 4)), ticks = []; for (let v = lo; v <= hi; v += step) ticks.push(v);
@@ -951,7 +1006,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <div class="big-stat"><div><b>${weightChange(first.w, last.w)}</b><span>since your first weigh-in</span></div><div><b>${last.w} lb</b><span>latest, ${fmt(last.t, { month: 'short', day: 'numeric' })}</span></div><div><b>${weightChangePct(first.w, last.w)}</b><span>from your first weight (${first.w} lb)</span></div></div>
         <div class="wchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight went from ${first.w} to ${last.w} pounds since ${fmt(first.t, { month: 'long', day: 'numeric' })}: ${weightChange(first.w, last.w)}">
           ${ticks.map(v => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axis" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`).join('')}
-          ${Array.from({ length: NOW_WEEK }, (_, i) => i + 1).filter(w => NOW_WEEK <= 7 || w % 2 === 1).map(w => `<text class="axis" x="${X(weekStart(w) + 3 * DAY)}" y="${H - 10}" text-anchor="middle">Week ${w}</text>`).join('')}
+          ${Array.from({ length: curW }, (_, i) => i + 1).filter(w => curW <= 7 || w % 2 === 1).map(w => `<text class="axis" x="${X(weekStart(w) + 3 * DAY)}" y="${H - 10}" text-anchor="middle">Week ${w}</text>`).join('')}
           <path class="area" d="${area}"/><path class="line" d="${path}"/>
           ${pts.map(p => `<circle class="pt ${p.t === sel.t ? 'sel' : ''}" cx="${X(p.t)}" cy="${Y(p.w)}" r="${p.t === sel.t ? 7 : 5}"/><circle class="hit" cx="${X(p.t)}" cy="${Y(p.w)}" r="16" data-act="wpt" data-t="${p.t}"/>`).join('')}
         </svg></div>
@@ -962,8 +1017,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
 
   function viewMeds() {
     const last = med.doses[med.doses.length - 1], D = S.dose, route = D.route ?? last?.route ?? null;
+    const vo = viewOnly();
     return `<section class="section" id="meds"><div class="section-head"><h2>Medication</h2></div>
-      <div class="group pad"><h3>Log a dose you took</h3>
+      ${vo ? (med.doses.length ? '' : '<p class="muted">No doses were logged.</p>') : `<div class="group pad"><h3>Log a dose you took</h3>
         <div class="q"><span class="q-label" id="q-route">Route</span>
           <div class="seg" role="group" aria-labelledby="q-route">${ROUTES.map(([k, l]) => `<button data-k="route-${k}" data-act="route" data-v="${k}" aria-pressed="${route === k}">${l}</button>`).join('')}</div>
           <small class="muted" style="font-size:.92rem">Oral medication is usually taken daily. Injections are usually weekly.</small></div>
@@ -973,19 +1029,22 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <div class="q"><span class="q-label" id="q-rx">Any changes to your prescription (dosage)?</span>
           <div class="seg" role="group" aria-labelledby="q-rx">${[['Yes', true], ['No', false]].map(([l, v]) => `<button data-k="rx-${l}" data-act="rx" data-v="${v}" aria-pressed="${D.changed === v}">${l}</button>`).join('')}</div>
           ${D.changed ? `<div class="field"><label for="rx-details">What changed?</label><input class="input" id="rx-details" data-k="rx-details" data-act="dose-field" data-f="details" maxlength="500" placeholder="For example, went from 5 mg to 7.5 mg" value="${esc(D.details)}"></div>` : ''}</div>
-        <button class="btn" data-k="dose-save" data-act="dose-save">Save dose</button></div>
+        <button class="btn" data-k="dose-save" data-act="dose-save">Save dose</button></div>`}
       <div class="group">${med.doses.map((x, i) => [x, i]).reverse().map(([x, i]) => `<div class="row" style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>${fmt(Date.parse(x.date), { weekday: 'short', month: 'short', day: 'numeric' })}</strong> at ${fmtTime(x.time)}, ${esc(x.dose)}, ${ROUTES.find(r => r[0] === x.route)[1].toLowerCase()}${x.rxChanged ? `<br><span class="muted">Prescription changed: ${esc(x.rxDetails)}</span>` : ''}</span>${editable(Date.parse(x.date)) ? `<button class="minus" data-act="dose-del" data-v="${i}" data-k="dd-${i}" aria-label="Remove dose from ${fmt(Date.parse(x.date), { month: 'long', day: 'numeric' })}">Remove</button>` : ''}</div>`).join('')}</div></section>`;
   }
 
   // Weekly summaries live on the Dashboard. Only a met goal gets a tag; an unmet goal shows just the number.
+  // In the view-only weeks after the program, week 14 is the latest week and the 14-week summary is listed with the monthly ones.
   function weeklySummary() {
-    const w = S.week = Math.min(Math.max(1, S.week), NOW_WEEK), cur = w === NOW_WEEK, s = summarize(ME, w), n = weekDays(w).filter(t => t <= TODAY).length, dash = '–';
+    const vo = viewOnly(), current = vo ? 14 : NOW_WEEK, w = S.week = Math.min(Math.max(1, S.week), current), cur = w === current && !vo, s = summarize(ME, w);
+    const soFar = weekDays(w).filter(t => t <= TODAY), n = soFar.length, dash = '–', meds = doseLine(countDoses(ME, soFar), cur ? 'this week' : `in week ${w}`);
     const stat = (v, of, label, met) => `<div class="stat"><b>${v}${of !== undefined ? `<small> / ${of}</small>` : ''}</b><span>${label}</span>${met ? '<span class="tag ok">Goal met</span>' : ''}</div>`;
     return `<section class="section" id="summaries" style="gap:18px"><div class="section-head"><h2>Weekly Summaries</h2></div>
     <div class="weekpick"><button class="arrow" data-k="wk-prev" data-act="week" data-v="${w - 1}" ${w <= 1 ? 'disabled' : ''} aria-label="Previous week">${I.left}</button>
       <div class="pick-label">Week ${w}<small>${fmt(weekStart(w), { month: 'short', day: 'numeric' })} to ${fmt(weekStart(w) + 6 * DAY, { month: 'short', day: 'numeric' })}${cur ? ' (so far)' : ''}</small></div>
-      <button class="arrow" data-k="wk-next" data-act="week" data-v="${w + 1}" ${w >= NOW_WEEK ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
-    <p class="hint" style="text-align:center">You logged ${s.daysLogged} of ${n} days${cur ? ' so far' : ''}. Food numbers are daily averages of the days you logged food or drinks.</p>
+      <button class="arrow" data-k="wk-next" data-act="week" data-v="${w + 1}" ${w >= current ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
+    <p class="hint" style="text-align:center">You logged ${s.daysLogged} of ${n} days${cur ? ' so far' : ''}. A day counts when you enter food, drinks, and your weight or activity. Each food number is an average of the days you filled it in.</p>
+    <p class="hint" style="text-align:center" data-k="wk-meds">${meds}</p>
     <section class="section"><div class="section-head"><h3>Protein, Hydration, and Fruit and Vegetable Goals</h3></div><div class="group"><div class="stats">
       ${stat(s.avgProt ?? dash, PROTEIN_GOAL, 'protein servings a day, on average', s.avgProt !== null && s.avgProt >= PROTEIN_GOAL)}
       ${stat(s.avgBev ?? dash, 8, 'cups of sugar-free drinks a day, on average', s.avgBev !== null && s.avgBev >= 8)}
@@ -997,10 +1056,11 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     <section class="section"><div class="section-head"><h3>Self-Weighing Goals</h3></div><div class="group"><div class="stats">
       ${stat(s.weighIns, 2, 'weigh-ins', s.weighIns >= 2)}
     </div></div></section>
-    ${MONTHS.some(monthOpen) ? `<section class="section"><div class="section-head"><h3>Monthly summaries</h3></div><div class="group">
+    ${MONTHS.some(monthOpen) ? `<section class="section"><div class="section-head"><h3>${vo ? 'Monthly and 14-week summaries' : 'Monthly summaries'}</h3></div><div class="group">
+      ${vo ? `<div class="row" style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>Your 14-week summary</strong> <span class="muted">weeks 1 to 14</span></span>${S.viewAs ? '<span class="muted">Available to the participant</span>' : '<button class="btn small" data-k="psum-row" data-act="psum">Open</button>'}</div>` : ''}
       ${MONTHS.filter(monthOpen).map(m => `<div class="row" style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px"><span><strong>Month ${m}</strong> <span class="muted">weeks ${m * 4 - 3} to ${m * 4}</span></span><button class="btn small" data-k="month-${m}" data-act="month" data-v="${m}">Open</button></div>`).join('')}
     </div></section>` : ''}
-    <p class="note">${s.goalMet ? 'You met your activity goal this week. That consistency is what builds the habit.' : 'Every week counts, including the busy ones. Small steps add up.'}</p></section>`;
+    <p class="note">${s.goalMet ? `You met your aerobic goal ${cur ? 'this week' : `in week ${w}`}. That consistency is what builds the habit.` : 'Every week counts, including the busy ones. Small steps add up.'}</p></section>`;
   }
 
   /* ---------- monthly summary (same rules and wording as web/src/lib/message-text.ts, DRAFT for the team) ---------- */
@@ -1018,16 +1078,50 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     <thead><tr><th>Goal</th>${s.map((x, i) => `<th class="num">Wk ${weeks[i]}</th>`).join('')}</tr></thead>
     <tbody>${GOAL_ROWS.map(([lbl, cell]) => `<tr><th scope="row">${lbl}</th>${s.map(x => { const [v, met] = cell(x); return `<td class="num${met ? ' met' : ''}">${v}${met ? '<span aria-hidden="true"> ✓</span><span class="sr">, goal met</span>' : ''}</td>`; }).join('')}</tr>`).join('')}</tbody>
   </table></div>`;
+  // One concrete, doable step per goal area. DRAFT wording for the study team.
   const TIPS = {
-    activity: 'Try adding one 10-minute brisk walk on a day you usually skip.',
-    strength: 'Pick two days for strength training and put them on your calendar.',
-    protein: 'Add a protein food to a snack, such as Greek yogurt, a cheese stick, or a hard-boiled egg.',
     fruitVeg: 'Add one serving of fruit or vegetables to a meal you already eat.',
-    hydration: 'Keep a water bottle where you can see it and refill it twice a day.',
-    weighing: 'Weigh yourself on the same two mornings each week.',
+    protein: 'Add a protein food to one snack a day, like Greek yogurt, a cheese stick, or a hard-boiled egg.',
+    activity: 'Take a 10-minute brisk walk after a meal on a day you usually skip exercise.',
+    strength: 'Choose two days for strength training and write them on your calendar, like any other appointment.',
+    hydration: 'Have a glass of water or another sugar-free drink with every meal and snack.',
+    weighing: "Choose two mornings a week to weigh yourself, before breakfast. Keep the scale where you'll see it.",
+    medication: 'Log your medication right after you take it, so it becomes part of the same routine.',
   };
+  /** The order the tip checks the goals in (working assumption pending the team): the first one not met is the tip. */
+  const TIP_ORDER = ['fruitVeg', 'protein', 'activity', 'strength', 'hydration', 'weighing', 'medication'];
+  // A goal is met for a month (or the program) only when it was met in every week of it. Food goals use that week's daily
+  // average (a week with no entries for that item is not met); medication needs at least one dose logged that week
+  // (working assumption pending the team). Returns the unmet goals in TIP_ORDER. `doses` = doses logged in each of `weeks`.
+  function unmetGoals({ weeks, doses }) {
+    const food = (avg, goal) => avg !== null && avg >= goal;
+    const met = weeks.map((w, i) => ({ fruitVeg: food(w.avgFv, 5), protein: food(w.avgProt, PROTEIN_GOAL), activity: w.goalMet, strength: w.strMet,
+      hydration: food(w.avgBev, 8), weighing: w.weighIns >= 2, medication: (doses[i] ?? 0) > 0 }));
+    return TIP_ORDER.filter(g => !met.every(m => m[g]));
+  }
+  /** The tip goal for each program month in turn (null = every goal met): the first unmet goal, skipping last month's tip,
+   *  unless that is the only one left. Last month's tip is worked out again from its own data, so nothing is stored. */
+  function monthTips(months) {
+    const tips = [];
+    for (const m of months) { const unmet = unmetGoals(m), last = tips.length ? tips[tips.length - 1] : null; tips.push(unmet.find(g => g !== last) ?? unmet[0] ?? null); }
+    return tips;
+  }
   const TIP_LABEL = { activity: 'aerobic exercise', strength: 'strength training', protein: 'protein', fruitVeg: 'fruits and vegetables', hydration: 'sugar-free drinks', weighing: 'self-weighing' };
-  function monthlyNote(weeks, daysPossible, scope = 'month') {
+  /** How often medication was logged on `ts` (only days inside the 14 program weeks), and whether every one of them has a dose
+   *  (countDoses and doseLine in web/src/lib/med-count.ts). For the current week pass only the days so far. */
+  const countDoses = (p, ts) => {
+    const inProg = ts.filter(t => t >= p.start && t < p.start + 98 * DAY).map(iso), set = new Set(inProg);
+    const dated = (pmeds[p.id]?.doses || []).filter(d => set.has(d.date)), withDose = new Set(dated.map(d => d.date));
+    return { times: dated.length, everyDay: inProg.length > 0 && inProg.every(d => withDose.has(d)) };
+  };
+  const doseLine = ({ times, everyDay }, span) => everyDay ? `You logged your medication every day ${span}.`
+    : times === 0 ? (span.startsWith('this') ? `You haven't logged any medication ${span}.` : `You didn't log any medication ${span}.`)
+    : `You logged your medication ${times} ${times === 1 ? 'time' : 'times'} ${span}.`;
+  /** A stretch of weeks for the tip rule: each week's summary and the doses logged in it, up to `upTo`. */
+  const tipWeeks = (p, ws, upTo = asOf(p)) => ({ weeks: ws.map(w => summarize(p, w)), doses: ws.map(w => countDoses(p, pDates(p, w).filter(t => t <= upTo)).times) });
+  /** `doses` = doses logged in each of `weeks`; `earlier` = the months before this one, oldest first (for the tip rule).
+   *  The "program" scope (end-of-program summaries) has no last-month rule: just the first unmet goal. */
+  function monthlyNote(weeks, daysPossible, scope, doses, earlier = []) {
     const span = scope === 'month' ? 'this month' : 'over the program';
     const logged = weeks.reduce((a, w) => a + w.daysLogged, 0);
     const cheer = logged >= daysPossible * 0.7 ? "That's real consistency." : 'Every entry helps you see your own patterns.';
@@ -1037,19 +1131,22 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       protein: w.avgProt === null ? null : Math.min(1, w.avgProt / PROTEIN_GOAL), fruitVeg: w.avgFv === null ? null : Math.min(1, w.avgFv / 5),
       hydration: w.avgBev === null ? null : Math.min(1, w.avgBev / 8), weighing: Math.min(1, w.weighIns / 2),
     });
-    const keys = Object.keys(TIPS);
+    const keys = ['activity', 'strength', 'protein', 'fruitVeg', 'hydration', 'weighing'];
     const avg = (ws, k) => { const v = ws.map(w => share(w)[k]).filter(x => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
     const half = Math.max(1, Math.floor(weeks.length / 2)), early = weeks.slice(0, half), late = weeks.slice(half);
     let best = null;
     for (const k of keys) { const a = avg(early, k), b = avg(late, k); if (a !== null && b !== null && b - a >= 0.1 && (!best || b - a > best.gain)) best = { k, gain: b - a }; }
     const trend = best ? `Your ${TIP_LABEL[best.k]} improved ${scope === 'month' ? 'over the month' : 'over the program'}. That trend matters more than any single week.`
       : "Some weeks are harder than others, and that's normal. What matters is the overall direction, not a perfect week.";
-    let focus = 'activity', low = Infinity;
-    for (const k of keys) { const v = avg(weeks, k); if (v !== null && v < low) { low = v; focus = k; } }
-    return { effort, logged, cheer, trend, action: TIPS[focus], reflect: `Think about your best week ${span}. What helped most, and how could you repeat it?` };
+    const now = { weeks, doses }, tips = scope === 'month' ? monthTips([...earlier, now]) : null;
+    const focus = tips ? tips[tips.length - 1] : unmetGoals(now)[0] ?? null;
+    const action = focus ? TIPS[focus] : `You met every goal ${span}! Keep doing what's working.`;
+    return { effort, logged, cheer, trend, action, allMet: focus === null, reflect: `Think about your best week ${span}. What helped most, and how could you repeat it?` };
   }
   function viewMonth() {
-    const m = S.month, weeks = monthWeeks(m), s = weeks.map(w => summarize(ME, w)), note = monthlyNote(s, 28);
+    // Earlier months too: the tip skips last month's tip, which is worked out again from that month's data.
+    const m = S.month, weeks = monthWeeks(m), { weeks: s, doses } = tipWeeks(ME, weeks), note = monthlyNote(s, 28, 'month', doses, MONTHS.filter(n => n < m).map(n => tipWeeks(ME, monthWeeks(n))));
+    const meds = doseLine(countDoses(ME, weeks.flatMap(w => weekDays(w))), 'this month');
     const first = weekStart(weeks[0]), last = weekStart(weeks[3]) + 6 * DAY;
     // Same weight line as the printable summary staff can give out: first and last weigh-in of the month.
     const wts = weeks.flatMap(w => weekDays(w)).map(t => days[t]?.weight).filter(v => v !== null && v !== undefined), wFirst = wts[0], wLast = wts[wts.length - 1];
@@ -1063,12 +1160,48 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
           <div class="meter${met ? ' done' : ''}" role="progressbar" aria-label="Days logged this month" aria-valuemin="0" aria-valuemax="28" aria-valuenow="${note.logged}"><span style="width:${note.logged / 28 * 100}%"></span></div></div>
         ${wts.length > 1 ? `<div class="mstat"><span>Weight this month</span><b>${wFirst === wLast ? 'No change' : weightChange(wFirst, wLast).replace(/^./, c => c.toUpperCase())}</b><span>${wFirst} to ${wLast} lb</span></div>` : ''}
       </div>
-      <div class="group pad"><p style="margin:0"><strong>${note.cheer}</strong> ${note.trend}</p></div>
-      <div class="try"><span class="try-icon" aria-hidden="true">${I.bulb}</span><div><strong>One thing to try next month</strong><p style="margin:0">${note.action}</p></div></div>
+      <div class="group pad"><p style="margin:0"><strong>${note.cheer}</strong> ${note.trend}</p><p style="margin:0">${meds}</p></div>
+      <div class="try"><span class="try-icon" aria-hidden="true">${I.bulb}</span><div><strong>${note.allMet ? 'Keep it going next month' : 'One thing to try next month'}</strong><p style="margin:0">${note.action}</p></div></div>
       <p class="reflect">${note.reflect}</p></section>
     <section class="section"><div class="section-head"><h2>Week by week</h2></div>
       <div class="group">${goalTable(s, weeks)}</div>
-      <p class="foot">✓ = goal met that week. Food numbers are daily averages of the days you logged food or drinks.</p></section>`;
+      <p class="foot">✓ = goal met that week. Each food number is a daily average of the days you filled it in.</p></section>`;
+  }
+
+  /* ---------- the 14-week summary (web/src/app/(participant)/program-summary/page.tsx and web/src/lib/program-summary.ts) ---------- */
+  // DRAFT wording like the monthly summary. Its numbers match the staff printable summary for the whole program.
+  function programSummary(p) {
+    const ws = Array.from({ length: 14 }, (_, i) => i + 1), { weeks, doses } = tipWeeks(p, ws), note = monthlyNote(weeks, 98, 'program', doses);
+    const ts = ws.flatMap(w => pDates(p, w)), ds = ts.map(t => pdays[p.id]?.[t]).filter(Boolean);
+    const weights = ds.filter(d => d.weight !== null).map(d => d.weight), { protein, fv, bev } = foodNumbers(ds), wl = weights[weights.length - 1];
+    return { logged: note.logged, consistent: note.logged >= 98 * 0.7, cheer: note.cheer, trend: note.trend, meds: doseLine(countDoses(p, ts), 'over the program'),
+      // First and last weigh-in, only with 2 or more, worded the way the monthly summary tile is ("Down 4.2 lb").
+      weight: weights.length > 1 ? { from: weights[0], to: wl, change: weightChange(weights[0], wl).replace(/^./, c => c.toUpperCase()) } : null,
+      aerobicWeeks: weeks.filter(w => w.goalMet).length, protein: avg1(protein), fruitVeg: avg1(fv), drinks: avg1(bev), allMet: note.allMet,
+      tipHeading: note.allMet ? 'Keep it going' : 'One thing to keep working on', tip: note.action,
+      reflect: 'Think about your best week of the program. What helped most, and how can you keep doing it from here?' };
+  }
+  function viewProgramSummary() {
+    const back = `<p style="margin:0"><button class="linkish back" data-k="psum-back" data-act="psum-back">${I.left} Participant Dashboard</button></p>`;
+    if (!viewOnly()) return `${back}<p class="note">Your 14-week summary opens after your program ends, on ${fmt(ME.start + 98 * DAY, { weekday: 'long', month: 'long', day: 'numeric' })}. It will show how your whole program went.</p>`;
+    const s = programSummary(ME), dash = '–';
+    const food = (label, v, goal) => { const met = v !== null && v >= goal; return `<div class="mstat${met ? ' met' : ''}"><span>${label}</span><b>${v ?? dash}<small> / ${goal}</small></b>${met ? '<span class="tag ok">Goal met</span>' : ''}</div>`; };
+    return `${back}
+    <p class="hint">Weeks 1 to 14, ${fmt(ME.start, { month: 'short', day: 'numeric' })} to ${fmt(programLastDay(), { month: 'short', day: 'numeric' })}.</p>
+    <section class="section"><div class="section-head"><h2>How the program went</h2></div>
+      <div class="month-stats">
+        <div class="mstat${s.consistent ? ' met' : ''}"><span>Days logged</span><b>${s.logged}<small> of 98</small></b>
+          <div class="meter${s.consistent ? ' done' : ''}" role="progressbar" aria-label="Days logged in the program" aria-valuemin="0" aria-valuemax="98" aria-valuenow="${s.logged}"><span style="width:${s.logged / 98 * 100}%"></span></div></div>
+        ${s.weight ? `<div class="mstat"><span>Weight since your first weigh-in</span><b>${s.weight.change}</b><span>${s.weight.from} to ${s.weight.to} lb</span></div>` : ''}
+        <div class="mstat"><span>Weeks you met your aerobic goal</span><b>${s.aerobicWeeks}<small> of 14</small></b></div>
+        ${food('Protein servings a day, on average', s.protein, PROTEIN_GOAL)}
+        ${food('Fruit and vegetable servings a day, on average', s.fruitVeg, 5)}
+        ${food('Cups of sugar-free drinks a day, on average', s.drinks, 8)}
+      </div>
+      <div class="group pad"><p style="margin:0"><strong>${s.cheer}</strong> ${s.trend}</p><p style="margin:0">${s.meds}</p></div>
+      <div class="try"><span class="try-icon" aria-hidden="true">${I.bulb}</span><div><strong>${s.tipHeading}</strong><p style="margin:0">${s.tip}</p></div></div>
+      <p class="reflect">${s.reflect}</p>
+      <p class="foot">A day counts as logged when you enter food, drinks, and your weight or activity. Each food number is a daily average of the days you filled it in. To look back at any week, open <button type="button" class="linkish" data-act="goto" data-v="dashboard" data-hash="summaries" data-k="psum-weeks" style="min-height:0;padding:0">Weekly Summaries</button>.</p></section>`;
   }
 
   // web/src/app/(participant)/lessons/view.tsx
@@ -1106,13 +1239,14 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const ACT_KEYS = ['aerobics_class', 'brisk_walking', 'bicycling', 'dancing', 'elliptical', 'hiit', 'pickleball', 'running', 'sport', 'lap_swimming', 'water_aerobics', 'weight_lifting', 'yoga_pilates', 'other'];
   const actKey = a => ACT_KEYS[ACTS.indexOf(a)] ?? a;
 
-  const firsts = ['Linda', 'Robert', 'Carol', 'James', 'Denise', 'Michael', 'Patricia', 'Thomas', 'Angela', 'Gary', 'Sharon', 'Frank', 'Teresa', 'Paul'];
-  // Start offsets in days from Linda's start (BRX-001 to BRX-013 are in weeks 1 to 4, not started, or finished).
-  const OFFS = [0, 7, 14, 28, 0, 21, -7, 35, 14, -14, 21, -70, -77, 42], AGO = [0, 1, 0, null, 4, 0, 2, null, 0, 6, 1, 3, 9, null];
-  const BASES = [80, 140, 60, 120, 200, 95, 30, 150, 110, 70, 260, 90, 130, 100];
+  const firsts = ['Linda', 'Robert', 'Carol', 'James', 'Denise', 'Michael', 'Patricia', 'Thomas', 'Angela', 'Gary', 'Sharon', 'Frank', 'Teresa', 'Paul', 'Helen'];
+  // Start offsets in days from Linda's start (BRX-001 to BRX-013 are in weeks 1 to 4, not started, or finished; BRX-011 and
+  // BRX-012 are past the 15 weeks of access, so it has ended). BRX-015 (Helen) finished week 14 last week: she is in the view-only week.
+  const OFFS = [0, 7, 14, 28, 0, 21, -7, 35, 14, -14, 21, -70, -77, 42, -63], AGO = [0, 1, 0, null, 4, 0, 2, null, 0, 6, 1, 3, 9, null, 0];
+  const BASES = [80, 140, 60, 120, 200, 95, 30, 150, 110, 70, 260, 90, 130, 100, 90];
   const pdays = {}, pmeds = {};
   // Linda's entry is ME itself, so her record and her screens share one start date and baseline.
-  const PEOPLE = firsts.map((first, i) => Object.assign(i === 0 ? ME : {}, { id: `BRX-${String(i === 0 ? 14 : i).padStart(3, '0')}`, first, start: START0 + OFFS[i] * DAY, baseline: BASES[i], ago: AGO[i] }));
+  const PEOPLE = firsts.map((first, i) => Object.assign(i === 0 ? ME : {}, { id: `BRX-${String(i === 0 ? 14 : i === 14 ? 15 : i).padStart(3, '0')}`, first, start: START0 + OFFS[i] * DAY, baseline: BASES[i], ago: AGO[i] }));
   // Every sample participant gets a full, consistent history, so the table, the record, and the downloads agree.
   PEOPLE.forEach(p => {
     if (p.id === 'BRX-014') { pdays[p.id] = days; pmeds[p.id] = med; return; }
@@ -1134,15 +1268,15 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     for (let t = p.start, i = 0; t <= last; t += 7 * DAY, i++) pmeds[p.id].doses.push(dose(iso(t), '08:30', i >= 4 ? '7.5 mg' : '5 mg', i === 4 ? 'Went up from 5 mg to 7.5 mg' : ''));
   });
   PEOPLE.sort((a, b) => a.id.localeCompare(b.id));
+  const LINDA = ME; SIGNED = LINDA;
   const all = () => PEOPLE.concat(S.admin.added);
   const pWeekOn = (p, t) => t < p.start ? 'NS' : t >= p.start + 98 * DAY ? 'C' : Math.floor((t - p.start) / DAY / 7) + 1;
   const pWeek = p => pWeekOn(p, TODAY);
   // For someone whose access ended early, the record, summaries, and reports stop at the day it ended (like the website).
   const asOf = p => p.ended && p.ended < TODAY ? p.ended : TODAY;
   const reachedWeek = p => { const wk = pWeekOn(p, asOf(p)); return wk === 'C' ? 14 : typeof wk === 'number' ? wk : 0; };
-  // "No side effects today" counts as logging, and so do minutes or activities without the yes/no (web/src/lib/summary.ts isLogged).
-  const isLogged = d => !!d && (d.meals.length > 0 || d.fv > 0 || d.bev > 0 || d.ex !== null || d.mins > 0 || d.acts.length > 0 || d.strength !== null || d.weight !== null || Object.keys(d.sym).length > 0 || !!d.none);
-  const lastLogged = p => { const D = pdays[p.id] || {}; const ts = Object.keys(D).map(Number).filter(t => isLogged(D[t])); return ts.length ? Math.max(...ts) : null; };
+  // The last day with any entry at all (hasAnyEntry), like last_logged in the downloads.
+  const lastLogged = p => { const D = pdays[p.id] || {}; const ts = Object.keys(D).map(Number).filter(t => hasAnyEntry(D[t])); return ts.length ? Math.max(...ts) : null; };
   /** Same rule as checkInNeed in web/src/lib/checkin.ts: in the program, day 4 or later, nothing logged on each of the last 3 full days. */
   function checkIn(p) {
     if (p.ended || typeof pWeek(p) !== 'number') return null;
@@ -1161,10 +1295,25 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
 
   // Admin-side sample extras: one participant whose access was ended, and lesson views. The study team does not enter
   // participant emails, so nothing is emailed and the Messages report stays empty (staff use "Needs a check-in" instead).
-  PEOPLE.forEach(p => { p.hasEmail = false; p.ended = null; p.reason = null; });
+  // accessOwn: their own access length in weeks (null = the study setting); closedAt: the day the daily job closed the account
+  // after access ended; needsPw: that close replaced their password and staff haven't set a new one since.
+  PEOPLE.forEach(p => { p.hasEmail = false; p.ended = null; p.reason = null; p.accessOwn = null; p.closedAt = null; p.needsPw = false; });
   Object.assign(PEOPLE.find(p => p.id === 'BRX-009'), { ended: TODAY - 5 * DAY, reason: `Withdrew ${fmt(TODAY - 5 * DAY, { month: 'numeric', day: 'numeric' })}` });
   const lessonUpTo = reachedWeek; // lessons opened for them (before access ended, if it ended early)
-  const plessons = {}, pmsgs = {}, TEMPLATE_VERSION = 'draft-2026-10-23';
+  const plessons = {}, pmsgs = {}, TEMPLATE_VERSION = 'draft-2026-11-18';
+  /** The daily job's closeEndedAccess (web/src/lib/access.ts): everyone whose access has ended and who wasn't closed since that
+   *  end gets a password nobody knows (the account and all data are kept). The sample accounts were closed on the day access
+   *  ended; a change made here is closed right away, as if the job had just run. */
+  function closeEndedAccess(atEnd = false) {
+    all().forEach(p => { const end = accessEnd(p); if (TODAY < end || (p.closedAt !== null && p.closedAt >= end)) return; p.closedAt = atEnd ? end : TODAY; p.needsPw = true; });
+  }
+  /** Where a participant's access stands (accessStatus in web/src/lib/participants.ts). */
+  const accessStatus = p => ({ phase: accessPhase(p), lastDay: accessLastDay(p), needsPassword: !!p.closedAt && p.needsPw });
+  const fmtD = t => fmt(t, { month: 'short', day: 'numeric', year: 'numeric' }); // fmtDate's default in web/src/lib/program.ts
+  /** The message under a staff change (accessNote in web/src/app/admin/(portal)/actions.ts). */
+  const accessNote = a => a.phase === 'ended'
+    ? `Their access ended after ${fmtD(a.lastDay)}, so they can't sign in. To let them back in, lengthen their access in Change settings${a.needsPassword ? ' and set a new password' : ''}.`
+    : `Access runs through ${fmtD(a.lastDay)}.${a.needsPassword ? ' Their password was replaced when access ended, so set a new one (Reset password) and give it to them.' : ''}`;
   PEOPLE.forEach(p => {
     seed = 500 + p.id.charCodeAt(6) * 13 + p.id.charCodeAt(5) * 7;
     const stop = Math.min(p.ended ?? TODAY, TODAY), L = plessons[p.id] = [];
@@ -1176,14 +1325,18 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     }
     pmsgs[p.id] = []; // the daily job only messages participants with an email on file, and there are none
   });
+  closeEndedAccess(true);
   /** Same math as the real website's weekly summary (web/src/lib/summary.ts). */
   function summarize(p, w) {
     const ds = pDates(p, w).filter(t => t <= asOf(p)).map(t => pdays[p.id]?.[t]).filter(Boolean);
-    const L = ds.filter(isLogged), meals = ds.flatMap(d => d.meals), { protein: prot, fv: fvs, bev: bevs } = foodNumbers(ds);
+    const L = ds.filter(isLogged), meals = ds.flatMap(d => d.meals), { protein: prot, fv: fvs, bev: bevs } = foodNumbers(ds), sum = a => a.reduce((x, y) => x + y, 0);
     const wts = ds.filter(d => d.weight !== null), types = ds.map(d => d.strength);
     const mins = ds.reduce((a, d) => a + (d.mins || 0), 0), goal = mvpaGoal(p.baseline, w), str = strengthEq(types);
-    return { daysLogged: L.length, meals: meals.filter(m => m.kind !== 'snack').length, snacks: meals.filter(m => m.kind === 'snack').length, avgProt: avg1(prot), protGoal: prot.filter(n => n >= PROTEIN_GOAL).length,
-      avgFv: avg1(fvs), fvAny: fvs.filter(n => n > 0).length, fvGoal: fvs.filter(n => n >= 5).length, avgBev: avg1(bevs), bevAny: bevs.filter(n => n > 0).length, bevGoal: bevs.filter(n => n >= 8).length,
+    // ...Entry = days with an entry for that item (the days its average uses); ...Total = the sum over those days.
+    return { daysLogged: L.length, daysAnyEntry: ds.filter(hasAnyEntry).length, meals: meals.filter(m => m.kind !== 'snack').length, snacks: meals.filter(m => m.kind === 'snack').length,
+      avgProt: avg1(prot), protEntry: prot.length, protTotal: sum(prot), protGoal: prot.filter(n => n >= PROTEIN_GOAL).length,
+      avgFv: avg1(fvs), fvEntry: fvs.length, fvTotal: sum(fvs), fvAny: fvs.filter(n => n > 0).length, fvGoal: fvs.filter(n => n >= 5).length,
+      avgBev: avg1(bevs), bevEntry: bevs.length, bevTotal: sum(bevs), bevAny: bevs.filter(n => n > 0).length, bevGoal: bevs.filter(n => n >= 8).length,
       mins, goal, goalMet: mins >= goal, strFull: types.filter(t => t === 'full').length, strPartial: types.filter(t => t === 'upper' || t === 'lower').length, str, strMet: str >= 2,
       weighIns: wts.length, lastWeight: wts.length ? wts[wts.length - 1].weight : null, symDays: ds.filter(d => Object.keys(d.sym).length).length };
   }
@@ -1209,12 +1362,12 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <div class="field"><label for="a-pw">Password</label><input class="input" id="a-pw" data-k="a-pw" type="password" value="practice-pass-1"></div>
         <button class="btn" type="submit" data-k="a-pw-go">Sign in</button></form>
     </div>`;
-    const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['lessons', 'Lessons'], ['reports', 'Reports'], ['admins', 'Admins'], ['audit', 'Audit log']];
+    const v = S.admin.view, nav = [['home', 'Participants'], ['add', 'Add participant'], ['lessons', 'Lessons'], ['reports', 'Reports'], ['access', 'Access length'], ['admins', 'Admins'], ['audit', 'Audit log']];
     return `<div class="wrap wide">
       <div class="admin-top"><span class="logo">${LOGO}<span class="muted" style="font-weight:600;font-size:1rem">Admin</span></span>
         <nav class="admin-nav" aria-label="Admin sections">${nav.map(([id, l]) => `<button data-k="an-${id}" data-act="anav" data-v="${id}" ${v === id || (id === 'home' && (v === 'record' || v === 'summary')) ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
         <span style="display:flex;gap:10px;align-items:center"><span class="tag sample">Sample data</span><button class="btn small ghost" data-act="admin-signout" data-k="a-out">Sign out</button></span></div>
-      ${v === 'record' ? adminRecord() : v === 'summary' ? adminSummary() : v === 'add' ? adminAdd() : v === 'lessons' ? adminLessons() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : v === 'audit' ? adminAudit() : adminHome()}</div>`;
+      ${v === 'record' ? adminRecord() : v === 'summary' ? adminSummary() : v === 'add' ? adminAdd() : v === 'lessons' ? adminLessons() : v === 'reports' ? adminReports() : v === 'admins' ? adminAdmins() : v === 'access' ? adminAccess() : v === 'audit' ? adminAudit() : adminHome()}</div>`;
   }
   function adminHome() {
     const ps = rowsForHome(), active = ps.filter(p => typeof p.wk === 'number' && !p.ended);
@@ -1245,6 +1398,27 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       <p class="foot" style="max-width:680px">Week: NS = not started, 1 to 14 = current week, C = complete, Ended = access ended early. Red = needs a check-in (nothing logged on each of the last 3 full days). Last full week columns: strength = full-body sessions (a partial session counts as half); protein = days with 8 or more servings; F+V and drinks = days with at least one serving.</p>
       <span style="display:flex;gap:10px;align-items:center"><span class="muted" style="font-size:.92rem">All data:</span>${dlButtons('all', '', false)}</span></div>`;
   }
+  /** The Monday on or after today, to show what a length means for someone starting now (nextMonday in web/src/lib/access.ts). */
+  const nextMonday = () => TODAY + ((8 - new Date(TODAY).getUTCDay()) % 7) * DAY;
+  // Mirrors web/src/app/admin/(portal)/access/page.tsx: the study-wide access length.
+  function adminAccess() {
+    const weeks = STUDY.accessWeeks, extra = weeks - 14, start = nextMonday(), own = all().filter(p => p.accessOwn !== null).length, e = S.admin.err;
+    const f = (id, lbl, type, val, hint) => `<div class="field" style="align-content:start"><label for="${id}">${lbl}</label><input class="input ${e[id] ? 'err' : ''}" id="${id}" data-k="${id}" type="${type}" value="${esc(val ?? '')}" ${e[id] ? `aria-invalid="true" aria-describedby="${id}-e"` : `aria-describedby="${id}-h"`}>${e[id] ? `<span class="err-msg" id="${id}-e">${e[id]}</span>` : `<small id="${id}-h">${hint}</small>`}</div>`;
+    return `<section class="group pad" style="gap:12px"><h2>How long participants keep access</h2>
+        <p style="margin:0">Access lasts <strong>${weeks} weeks</strong> from each participant's start date: the 14-week program${extra ? `, then <strong>${extra} view-only ${extra === 1 ? 'week' : 'weeks'}</strong>` : ' and no view-only weeks'}.</p>
+        <ul style="margin:0;padding-left:22px;display:grid;gap:6px">
+          <li>In the view-only weeks they can sign in and look at their entries, summaries, and lessons, but can't add or change anything. No reminders are sent.</li>
+          <li>When access ends (midnight in their time zone), they are signed out and their password is replaced with one nobody knows. Their account and all their data are kept and stay in every download.</li>
+          <li>For example, someone starting on ${fmtD(start)} can sign in through ${fmtD(accessLastDay({ start }, weeks))}.</li>
+        </ul>
+        <p class="muted" style="margin:0;font-size:.95rem">${own === 0 ? 'Every participant uses this setting.' : `${own} ${own === 1 ? 'participant has' : 'participants have'} their own length, set on their record, which this setting doesn't change.`} To end one participant's access early, use End access on their record.</p></section>
+      <section class="group pad" style="max-width:520px;gap:16px"><h2>Change the access length</h2>
+        ${S.admin.accessMsg ? `<p class="ok-msg" role="status">${S.admin.accessMsg}</p>` : ''}
+        <form id="access-form" novalidate style="display:grid;gap:16px">
+          ${f('ac-weeks', 'Access length in weeks', 'number', weeks, `${ACCESS_WEEKS.min} to ${ACCESS_WEEKS.max}. ${ACCESS_WEEKS.min} ends access when the program ends; each week past ${ACCESS_WEEKS.min} is a view-only week. Applies right away to everyone without their own length, including people signed in now.`)}
+          ${f('ac-confirm', 'Confirm (only if asked)', 'text', '', "Only needed when a shorter length would end access today for someone. If that happens, you'll be told here what to type.")}
+          <button class="btn" type="submit" style="justify-self:start" data-k="ac-go">Save access length</button></form></section>`;
+  }
   const yn = v => v === 'Yes' ? 'Y' : v === 'No' ? 'N' : '?';
   /** A button that asks once before acting (restore access, remove an admin), like the real ConfirmButton. */
   const askButton = (key, labelText, question, confirmLabel, act, v) => `<span class="btn-row">${S.admin.confirm === key
@@ -1253,6 +1427,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const label = (list, k) => list.find(x => x[0] === k)?.[1] ?? k;
   function adminRecord() {
     const p = all().find(x => x.id === S.admin.pid), wk = pWeek(p), last = lastLogged(p);
+    // How long they keep access (their own length or the study setting), and whether the daily job closed the account.
+    const access = accessStatus(p), closedOn = p.closedAt !== null ? fmtD(p.closedAt) : null;
+    const accessText = access.phase === 'ended' ? `Access ended after ${fmtD(access.lastDay)}.` : `Access runs through ${fmtD(access.lastDay)}.`;
     const maxW = reachedWeek(p), w = Math.min(S.admin.pweek ?? maxW, maxW), D = pdays[p.id] || {}, months = MONTHS.filter(m => monthPrintable(p, m));
     const dates = w ? pDates(p, w) : [], s = w ? summarize(p, w) : null, e = S.admin.err;
     const doses = (pmeds[p.id]?.doses || []).filter(d => w && d.date >= iso(dates[0]) && d.date <= iso(dates[6]));
@@ -1261,31 +1438,36 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     ${S.admin.added.some(x => x.id === p.id) && S.admin.justAdded === p.id ? `<p class="banner info">${p.id} was added. Give them their study ID and password.</p>` : ''}
     ${p.ended ? `<div class="banner bad" role="status"><span>Access ended on ${fmt(p.ended, { month: 'short', day: 'numeric', year: 'numeric' })}${p.reason ? ` (${esc(p.reason)})` : ''}. They cannot sign in. Their data is kept.</span>
       ${askButton(`restore-${p.id}`, 'Restore access', `Let ${p.id} sign in again?`, 'Restore access', 'restore', p.id)}</div>` : ''}
-    <section class="group pad"><div class="record-head"><h2>${p.id}</h2><span>First name: <strong>${esc(p.first)}</strong></span><span>Week: <strong>${wk}</strong></span><span>Start: <strong>${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</strong></span><span>Baseline: <strong>${p.baseline}</strong> min/week</span><span>Last active: <strong>${last ? fmt(last, { month: 'short', day: 'numeric', year: 'numeric' }) : 'never'}</strong></span><span>Time zone: <strong>America/New York</strong></span></div>
+    ${access.phase === 'ended' ? `<p class="banner bad" role="status" data-k="access-alert">${closedOn ? `${accessText} Their password was replaced with one nobody knows on ${closedOn}, so they can't sign in.` : `${accessText} They can't sign in.`} All their data is kept and stays in every download. To restore access, lengthen their access in Change settings so it ends later${closedOn ? ', then set a new password (Reset password) and give it to them' : ''}.</p>`
+      : access.needsPassword ? `<p class="banner bad" role="status" data-k="access-alert">Access ended automatically on ${closedOn}, which replaced their password. ${accessText} Set a new password (Reset password) and give it to them so they can sign in.</p>` : ''}
+    <section class="group pad"><div class="record-head"><h2>${p.id}</h2><span>First name: <strong>${esc(p.first)}</strong></span><span>Week: <strong>${wk}</strong></span><span>Start: <strong>${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}</strong></span><span>Starting goal for physical activity: usual <strong>${p.baseline}</strong> min/week before the program, so the week 1 aerobic goal is ${mvpaGoal(p.baseline, 1)}</span><span>Last active: <strong>${last ? fmt(last, { month: 'short', day: 'numeric', year: 'numeric' }) : 'never'}</strong></span><span>Time zone: <strong>America/New York</strong></span>
+      <span data-k="rec-access">Access: <strong>${access.phase === 'ended' ? 'ended after' : 'through'} ${fmtD(access.lastDay)}</strong> (${accessWeeks(p)} weeks${p.accessOwn === null ? ', study setting' : ''}${access.phase === 'view-only' ? ', view-only now' : ''})</span></div>
       ${wk !== 'NS' ? `<div class="btn-row"><span class="muted" style="font-size:.95rem">Printable summaries to give ${p.id}:</span>${[...months.map(m => [String(m), `Month ${m}`]), ['program', wk === 'C' ? 'Whole program' : 'Whole program so far']].map(([k, l]) => `<button class="btn small ghost" data-act="print-sum" data-v="${k}" data-k="ps-${k}">${l}</button>`).join('')}</div>` : ''}
-      ${wk !== 'C' && !p.ended ? `<div class="btn-row"><button class="btn small" data-k="rec-view" data-act="impersonate" data-v="${p.id}">View as participant</button><span class="muted" style="font-size:.95rem">See their screens exactly as they do, read-only.</span></div>` : ''}
+      ${access.phase !== 'ended' && !p.ended ? `<div class="btn-row"><button class="btn small" data-k="rec-view" data-act="impersonate" data-v="${p.id}">View as participant</button><span class="muted" style="font-size:.95rem">See their screens exactly as they do, read-only.</span></div>` : ''}
       <div style="display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center"><span class="muted" style="font-size:.95rem">All of ${p.id}'s data:</span>${dlButtons('all', p.id, false)}<span class="muted" style="font-size:.95rem">Daily report only:</span>${dlButtons('daily', p.id)}<span class="muted" style="font-size:.95rem">Weekly summary only:</span>${dlButtons('weekly', p.id)}</div></section>
     ${w ? `<div class="weekpick" style="max-width:460px"><button class="arrow" data-k="pw-prev" data-act="pweek" data-v="${w - 1}" ${w <= 1 ? 'disabled' : ''} aria-label="Previous week">${I.left}</button>
       <div class="pick-label">Week ${w}<small>${fmt(dates[0], { month: 'short', day: 'numeric' })} to ${fmt(dates[6], { month: 'short', day: 'numeric' })}, MVPA goal ${mvpaGoal(p.baseline, w)}</small></div>
       <button class="arrow" data-k="pw-next" data-act="pweek" data-v="${w + 1}" ${w >= maxW ? 'disabled' : ''} aria-label="Next week">${I.right}</button></div>
     <div class="kpis"><div class="kpi"><b>${s.mins} / ${s.goal}</b><span>MVPA minutes</span></div><div class="kpi"><b>${s.str} / 2</b><span>strength sessions (full-body equivalents, ${s.strPartial} partial)</span></div>
-      <div class="kpi"><b>${s.avgProt ?? '–'} / ${PROTEIN_GOAL}</b><span>protein servings a day, average (${s.protGoal} ${s.protGoal === 1 ? 'day' : 'days'} met)</span></div><div class="kpi"><b>${s.daysLogged} / ${dates.filter(t => t <= asOf(p)).length}</b><span>days logged</span></div></div>
+      <div class="kpi"><b>${s.avgProt ?? '–'} / ${PROTEIN_GOAL}</b><span>protein servings a day, average (${s.protGoal} ${s.protGoal === 1 ? 'day' : 'days'} met)</span></div><div class="kpi"><b>${s.daysLogged} / ${dates.filter(t => t <= asOf(p)).length}</b><span>days logged (food, a drink, and weight or activity)</span></div></div>
     <section class="group"><div class="table-wrap"><table class="data"><thead><tr><th>Day</th><th>Meals and snacks (protein servings, hungry, reason)</th><th class="num">F+V</th><th class="num">Drinks</th><th class="num">MVPA</th><th>Activity</th><th>Strength</th><th>Side effects (1-5)</th><th class="num">Weight</th></tr></thead><tbody>
-      ${dates.map(t => { const d = D[t]; return `<tr><td><strong>${fmt(t, { weekday: 'short', month: 'short', day: 'numeric' })}</strong></td>${t > asOf(p) ? `<td colspan="8" class="muted">${t > TODAY ? 'Upcoming' : 'After access ended'}</td>` : !isLogged(d) ? '<td colspan="8" class="muted">Nothing logged</td>' :
-        `<td style="white-space:normal;min-width:260px">${d.meals.map((m, i) => `<div>${m.kind === 'snack' ? `Snack ${i + 1 - d.meals.filter(x => x.kind !== 'snack').length}${m.time ? ` (${m.time})` : ''}` : label(MEALS, m.kind)}: P ${m.protein ?? '?'}, H ${yn(m.hunger)}${m.reason ? `, ${esc(m.reason)}${m.other ? ` (${esc(m.other)})` : ''}` : ''}</div>`).join('')}${d.meals.length ? `<div><strong>Protein: ${proteinOf(d)} servings</strong></div>` : dash}</td>
-        <td class="num">${d.fv}</td><td class="num">${d.bev}</td><td class="num">${d.ex === false ? 0 : d.mins || dash}</td><td style="white-space:normal;min-width:140px">${d.acts.map(a => a === 'Other' && d.actOther ? `Other (${esc(d.actOther)})` : esc(a)).join(', ') || dash}</td>
+      ${dates.map(t => { const d = D[t]; return `<tr><td><strong>${fmt(t, { weekday: 'short', month: 'short', day: 'numeric' })}</strong></td>${t > asOf(p) ? `<td colspan="8" class="muted">${t > TODAY ? 'Upcoming' : 'After access ended'}</td>` : !hasAnyEntry(d) ? '<td colspan="8" class="muted">Nothing logged</td>' :
+        `<td style="white-space:normal;min-width:260px">${d.meals.map((m, i) => `<div>${m.kind === 'snack' ? `Snack ${i + 1 - d.meals.filter(x => x.kind !== 'snack').length}${m.time ? ` (${m.time})` : ''}` : label(MEALS, m.kind)}: P ${m.protein ?? '?'}, H ${yn(m.hunger)}${m.reason ? `, ${esc(m.reason)}${m.other ? ` (${esc(m.other)})` : ''}` : ''}</div>`).join('')}${d.meals.length ? `<div><strong>Protein: ${proteinAnswered(d) === null ? 'not answered' : `${proteinAnswered(d)} servings`}</strong></div>` : dash}</td>
+        <td class="num">${d.fv ?? dash}</td><td class="num">${d.bev ?? dash}</td><td class="num">${d.ex === false ? 0 : d.mins || dash}</td><td style="white-space:normal;min-width:140px">${d.acts.map(a => a === 'Other' && d.actOther ? `Other (${esc(d.actOther)})` : esc(a)).join(', ') || dash}</td>
         <td>${d.strength ? label(STRENGTH, d.strength) : dash}</td><td style="white-space:normal;min-width:160px">${Object.entries(d.sym).map(([k, v]) => `${label(SYMPTOMS, k)} (${v ?? '?'})`).join(', ') || `<span class="muted">${d.none ? 'No side effects' : 'None'}</span>`}</td><td class="num">${d.weight ?? dash}</td>`}</tr>`; }).join('')}
     </tbody></table></div></section>
     <p class="foot">P = protein servings (about 10 g each), H = ate mostly because hungry, Y/N/? = yes, no, not answered. Doses this week: ${doses.length ? doses.map(d => `${fmt(Date.parse(d.date), { weekday: 'short', month: 'short', day: 'numeric' })} ${d.time} ${esc(d.dose)} ${d.route}${d.rxChanged ? ` (prescription changed: ${esc(d.rxDetails)})` : ''}`).join('; ') : 'none logged'}.${p.id === 'BRX-014' ? ' This is the same data as the Participant website tab: change something there and it shows up here.' : ''}</p>`
     : `<p class="note">This participant starts on ${fmt(p.start, { month: 'short', day: 'numeric', year: 'numeric' })}. Their data appears here from then.</p>`}
     <section class="group pad" style="gap:10px"><h2 style="font-size:1.2rem">Lessons</h2>
       <p><strong>Lessons:</strong> ${(plessons[p.id] || []).length ? plessons[p.id].map(l => `Lesson ${l.lesson}: ${l.pct}% watched${l.survey ? ', survey clicked' : ''}`).join('; ') : '<span class="muted">none opened yet</span>'}</p></section>
-    <details class="group pad" ${S.admin.openPanel === 'settings' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Change settings (name, start date, baseline)</summary>
+    <details class="group pad" ${S.admin.openPanel === 'settings' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">Change settings (name, start date, starting goal, access length)</summary>
       <form id="settings-form" novalidate style="display:grid;gap:16px;margin-top:12px"><div class="form-grid">
-        ${f('st-first', 'First name', 'text', p.first)}${f('st-start', 'Program start date', 'date', iso(p.start), 'A Monday. Moving it shifts week numbers, goals, and the edit window. Entries that end up outside the new 14 weeks stay saved but leave the reports until it moves back.')}
-        ${f('st-base', 'Baseline active minutes per week', 'number', p.baseline)}
+        ${f('st-first', 'First name', 'text', p.first)}
+        ${f('st-weeks', 'Access length in weeks (blank = study setting)', 'number', p.accessOwn ?? '', `Blank uses the study setting${p.accessOwn === null ? ` (${accessWeeks(p)} weeks)` : ''}. ${ACCESS_WEEKS.min} to ${ACCESS_WEEKS.max}, counted from the start date; weeks past 14 are view-only. ${accessText}`)}
+        ${f('st-start', 'Program start date', 'date', iso(p.start), 'A Monday. Moving it shifts week numbers, goals, and the edit window. Entries that end up outside the new 14 weeks stay saved but leave the reports until it moves back.')}
+        ${f('st-base', 'Starting goal for physical activity (usual minutes a week before the program)', 'number', p.baseline, `Their usual aerobic (MVPA) minutes per week before the program. Under 100 starts at a 100 minute goal; 100 or more starts at 125. ${TODAY >= p.start + 7 * DAY ? "Locked: week 1 is over, and past weeks' aerobic goals were set from it." : 'Can be changed until week 1 ends.'}`)}
       </div><button class="btn small" type="submit" style="justify-self:start" data-k="st-go">Save settings</button></form></details>
-    ${!p.ended && wk !== 'C' ? `<details class="group pad" ${S.admin.openPanel === 'end' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">End access early (for example, they leave the study)</summary>
+    ${!p.ended && access.phase !== 'ended' ? `<details class="group pad" ${S.admin.openPanel === 'end' ? 'open' : ''}><summary style="cursor:pointer;font-weight:700">End access early (for example, they leave the study)</summary>
       <form id="end-form" novalidate style="display:grid;gap:16px;margin-top:12px;max-width:480px">
         ${f('ea-reason', 'Reason (optional)', 'text', '', 'For the study records, for example "Withdrew 2/3". Do not include health details. They are signed out on every device; all their data is kept.')}
         <button class="btn small" type="submit" style="justify-self:start" data-k="ea-go">End access now</button></form></details>` : ''}
@@ -1304,8 +1486,11 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     if (!weeks.length) return `${back}<p class="note">${p.id} hasn't reached these weeks yet.</p>`;
     const soFar = period === 'program' && TODAY < p.start + 98 * DAY && !p.ended;
     const first = pDates(p, weeks[0])[0], last = Math.min(pDates(p, weeks[weeks.length - 1])[6], end);
-    const s = weeks.map(w => summarize(p, w)), daysPossible = weeks.reduce((a, w) => a + pDates(p, w).filter(t => t <= end).length, 0);
-    const note = monthlyNote(s, daysPossible, period === 'program' ? 'program' : 'month');
+    // From week 1 for a month too: its tip skips last month's tip, worked out again from that month's data.
+    const { weeks: s, doses } = tipWeeks(p, weeks, end), daysPossible = weeks.reduce((a, w) => a + pDates(p, w).filter(t => t <= end).length, 0);
+    const note = period === 'program' ? monthlyNote(s, daysPossible, 'program', doses)
+      : monthlyNote(s, daysPossible, 'month', doses, MONTHS.filter(n => n < +period).map(n => tipWeeks(p, monthWeeks(n), end)));
+    const meds = doseLine(countDoses(p, weeks.flatMap(w => pDates(p, w)).filter(t => t <= end)), period === 'program' ? 'over the program' : 'this month');
     const weights = weeks.flatMap(w => pDates(p, w)).filter(t => t <= end).map(t => pdays[p.id]?.[t]?.weight).filter(v => v !== null && v !== undefined);
     const change = weights.length > 1 ? Math.round((weights[weights.length - 1] - weights[0]) * 10) / 10 : null;
     const weightLine = change === null ? null : `${change === 0 ? 'Your weight is the same' : `Your weight is ${change < 0 ? 'down' : 'up'} ${Math.abs(change).toFixed(1)} lb`} ${period === 'program' ? 'since your first weigh-in' : 'this month'}`;
@@ -1319,12 +1504,13 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         <p class="muted" style="margin:0;font-size:.9rem">Study ID ${p.id}. Printed ${fmt(TODAY, { month: 'long', day: 'numeric', year: 'numeric' })}.${p.ended ? ` Access ended ${fmt(p.ended, { month: 'long', day: 'numeric' })}.` : ''}</p>
         <section style="display:grid;gap:8px"><h2 style="font-size:1.2rem">How it went</h2>
           <p style="margin:0">${note.effort}</p><p style="margin:0">${note.trend}</p>
+          <p style="margin:0">${meds}</p>
           ${weightLine ? `<p style="margin:0"><strong>${weightLine}</strong> (${weights[0]} to ${weights[weights.length - 1]} lb).</p>` : ''}
-          <p style="margin:0"><strong>${period === 'program' ? 'One thing to try:' : 'One thing to try next month:'}</strong> ${note.action}</p>
+          <p style="margin:0"><strong>${note.allMet ? (period === 'program' ? 'Keep it going:' : 'Keep it going next month:') : period === 'program' ? 'One thing to try:' : 'One thing to try next month:'}</strong> ${note.action}</p>
           <p style="margin:0" class="muted">${note.reflect}</p></section>
         <section style="display:grid;gap:8px"><h2 style="font-size:1.2rem">Week by week</h2>
           ${goalTable(s, weeks)}
-          <p class="muted" style="margin:0;font-size:.9rem">✓ = goal met that week. Food numbers are daily averages of the days food or drinks were logged.</p></section>
+          <p class="muted" style="margin:0;font-size:.9rem">✓ = goal met that week. Each food number is a daily average of the days it was filled in.</p></section>
       </article>`;
   }
   function adminAdd() {
@@ -1335,7 +1521,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         ${f('np-id', 'Study ID (also their username)', 'text', 'For example BRX-014', `BRX-0${16 + S.admin.added.length}`)}${f('np-first', 'First name', 'text', 'Used to greet them on the website')}
         ${f('np-pw', 'Password', 'password', 'At least 10 characters. Write it on their sign-in card.')}${f('np-pw2', 'Confirm password', 'password')}
         ${f('np-start', 'Program start date', 'date', 'A Monday: day 1 of their 14 weeks. Can be changed later.', iso(mondayOf(TODAY) + 7 * DAY))}
-        ${f('np-base', 'Usual active minutes per week before the program', 'number', 'Under 100 starts at a 100 minute goal; 100 or more starts at 125.')}
+        ${f('np-base', 'Starting goal for physical activity (usual minutes a week before the program)', 'number', "Enter their usual aerobic (MVPA) minutes per week before the program, in whole minutes (0 if none). Under 100 starts at a 100 minute goal; 100 or more starts at 125. Can't be changed after week 1.")}
       </div><button class="btn" type="submit" style="justify-self:start" data-k="np-go">Add participant</button></form></section>`;
   }
   const REPORT_CARDS = [
@@ -1468,15 +1654,17 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     create_admin: 'Added an admin', remove_admin: 'Removed an admin', change_password: 'Changed own password', change_password_fail: 'Wrong current password (password change)',
     edit_lesson: 'Edited a lesson', move_lesson: 'Moved a lesson', upload_lesson_video: 'Uploaded a lesson video', upload_lesson_captions: 'Uploaded lesson captions',
     remove_lesson_video: 'Removed a lesson video', remove_lesson_captions: 'Removed lesson captions',
-    upload_lesson_handout: 'Uploaded a lesson handout', remove_lesson_handout: 'Removed a lesson handout', daily_jobs: 'Daily messages job ran' };
+    upload_lesson_handout: 'Uploaded a lesson handout', remove_lesson_handout: 'Removed a lesson handout', daily_jobs: 'Daily messages job ran',
+    update_access_weeks: 'Changed the study access length', close_access: 'Access ended automatically (password replaced)' };
   const AUDIT_GROUPS = { all: ['Everything', null], downloads: ['Data downloads', ['export', 'export_audit']], records: ['Records viewed', ['view_participants', 'view_participant', 'view_as_participant', 'view_audit_log', 'view_summary']],
-    changes: ['Changes by staff', ['create_participant', 'update_participant', 'reset_participant_password', 'end_participant_access', 'restore_participant_access', 'create_admin', 'remove_admin', 'change_password', 'edit_lesson', 'move_lesson', 'upload_lesson_video', 'upload_lesson_captions', 'remove_lesson_video', 'remove_lesson_captions', 'upload_lesson_handout', 'remove_lesson_handout']],
-    signins: ['Sign-ins and sign-outs', ['admin_login_ok', 'login_ok', 'logout']], failed: ['Failed sign-ins', ['admin_login_fail', 'participant_login_fail', 'change_password_fail']], system: ['Automatic jobs', ['daily_jobs']] };
+    changes: ['Changes by staff', ['create_participant', 'update_participant', 'reset_participant_password', 'end_participant_access', 'restore_participant_access', 'update_access_weeks', 'create_admin', 'remove_admin', 'change_password', 'edit_lesson', 'move_lesson', 'upload_lesson_video', 'upload_lesson_captions', 'remove_lesson_video', 'remove_lesson_captions', 'upload_lesson_handout', 'remove_lesson_handout']],
+    signins: ['Sign-ins and sign-outs', ['admin_login_ok', 'login_ok', 'logout']], failed: ['Failed sign-ins', ['admin_login_fail', 'participant_login_fail', 'change_password_fail']], system: ['Automatic jobs', ['daily_jobs', 'close_access']] };
   let auditSample = null;
   function auditRows() {
     if (!auditSample) {
       const out = [], H = 36e5, base = TODAY + 15 * H; let k = 0;
-      const add = (hoursAgo, kind, who, action, target) => out.push({ id: ++k, at: base - hoursAgo * H, kind, who, action, target: target ?? null, ip: kind === 'system' ? null : (who || target || 'x').split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1e9, 7).toString(16).padStart(8, '0') });
+      // The audit log keeps no network address (migration 014), so the rows have none.
+      const add = (hoursAgo, kind, who, action, target) => out.push({ id: ++k, at: base - hoursAgo * H, kind, who, action, target: target ?? null });
       add(0.2, 'admin', 'admin1', 'view_participants'); add(0.3, 'admin', 'admin1', 'admin_login_ok');
       add(1, 'admin', 'admin1', 'export', 'all.xlsx'); add(1.1, 'admin', 'admin1', 'view_participant', 'BRX-014'); add(1.2, 'admin', 'admin1', 'view_as_participant', 'BRX-014 dashboard');
       add(2, 'participant', 'BRX-014', 'login_ok'); add(2.1, 'anonymous', null, 'participant_login_fail', 'BRX-41');
@@ -1486,7 +1674,9 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       add(29, 'system', null, 'daily_jobs', '{"participants":0}'); add(30, 'anonymous', null, 'admin_login_fail', 'jsmth');
       add(48, 'admin', 'admin1', 'export', 'daily.csv BRX-006'); add(49, 'admin', 'admin1', 'create_participant', 'BRX-013'); add(50, 'admin', 'admin1', 'admin_login_ok');
       add(53, 'system', null, 'daily_jobs', '{"participants":0}');
-      auditSample = out;
+      // The daily job (about 9 or 10 AM Eastern) closing the accounts whose access had ended.
+      all().filter(p => p.closedAt !== null).forEach(p => add((base - (p.closedAt + 14 * H)) / H, 'system', null, 'close_access', p.id));
+      auditSample = out.sort((a, b) => b.at - a.at || b.id - a.id); // newest first
     }
     const f = S.admin.audit, acts = AUDIT_GROUPS[f.show][1], q = f.q.trim().toLowerCase();
     return auditSample.filter(r => (!acts || acts.includes(r.action)) && (!q || [r.who, r.target].some(x => x && x.toLowerCase().includes(q))));
@@ -1508,8 +1698,8 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       </tbody></table></div></section>`;
   }
   function auditCsv() {
-    const t = { cols: ['time_utc', 'time_eastern', 'who_type', 'who', 'action_code', 'action', 'details', 'connection'].map(key => ({ key, kind: 'text' })),
-      rows: auditRows().map(r => ({ time_utc: new Date(r.at).toISOString(), time_eastern: new Date(r.at).toLocaleString('en-US', { timeZone: 'America/New_York' }), who_type: r.kind, who: auditWho(r), action_code: r.action, action: AUDIT_LABELS[r.action] ?? r.action, details: r.target, connection: r.ip })) };
+    const t = { cols: ['time_utc', 'time_eastern', 'who_type', 'who', 'action_code', 'action', 'details'].map(key => ({ key, kind: 'text' })),
+      rows: auditRows().map(r => ({ time_utc: new Date(r.at).toISOString(), time_eastern: new Date(r.at).toLocaleString('en-US', { timeZone: 'America/New_York' }), who_type: r.kind, who: auditWho(r), action_code: r.action, action: AUDIT_LABELS[r.action] ?? r.action, details: r.target })) };
     saveBlob(new Blob([toCsv(t)], { type: 'text/csv;charset=utf-8' }), `boostrx_audit_${iso(TODAY)}.csv`); toast(`Downloading boostrx_audit_${iso(TODAY)}.csv`);
   }
 
@@ -1537,6 +1727,8 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
   const REASON_VALS = Object.entries(REASON_KEYS).map(([l, c]) => `${c} = ${l}`).join('; ');
   const fl = b => b === null || b === undefined ? null : b ? 1 : 0;
   const ynFlag = v => v === 'Yes' ? 1 : v === 'No' ? 0 : null;
+  const LOGGED_DAY = "a food entry (meal, snack, or fruit/veg answer), a drink entry, and a weight or activity entry; side effects alone don't count";
+  const ENTRY_DAYS = 'only days with an entry for that item count; a blank is skipped, a None (0) counts';
   function buildTables(onlyId) {
     const ps = all().filter(p => !onlyId || p.id === onlyId);
     const progDates = p => { const lastT = Math.min(asOf(p), p.start + 97 * DAY), out = []; for (let t = p.start; t <= lastT; t += DAY) out.push(t); return out; };
@@ -1548,27 +1740,31 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       ['study_id', 'text', "Study ID (also the participant's username)"], ['first_name', 'text', 'First name, as entered by an admin'], ['start_date', 'date', 'Program day 1'],
       ['end_date', 'date', 'Last program day (day 98). Access ends the next day.'], ['current_week', 'text', 'Program week today', 'NS = not started, 1 to 14, C = complete'],
       ['baseline_mvpa_min', 'number', 'Self-reported average weekly MVPA minutes before the program'], ['starting_mvpa_goal', 'number', 'Weeks 1-2 MVPA goal: 100 if baseline under 100, otherwise 125'],
-      ['days_logged', 'number', 'Program days with any entry so far'], ['last_logged', 'date', "Most recent program day with any entry (the day the entry is for, in the participant's own time zone). Blank = nothing logged."],
-      ['access_ended', 'date', 'Date an admin ended access early (for example, withdrew). Blank = access not ended. Every tab stops at this day.'], ['access_end_reason', 'text', 'Reason the admin entered when ending access'], ['time_zone', 'text', "Time zone of the participant's device (their days follow it), as last reported", 'IANA name, for example America/New_York']],
-      rows: ps.map(p => { const l = lastLogged(p); return { study_id: p.id, first_name: p.first, start_date: iso(p.start), end_date: iso(p.start + 97 * DAY), current_week: String(pWeek(p)), baseline_mvpa_min: p.baseline, starting_mvpa_goal: mvpaGoal(p.baseline, 1), days_logged: progDates(p).filter(t => isLogged(pdays[p.id]?.[t])).length, last_logged: l && l <= asOf(p) ? iso(l) : null,
-        access_ended: p.ended ? iso(p.ended) : null, access_end_reason: p.reason || null, time_zone: p.tz || 'America/New_York' }; }) };
-    const dcols = [['study_id', 'text', 'Study ID'], ['date', 'date', 'Calendar date'], ['study_week', 'number', 'Program week, 1 to 14'], ['study_day', 'number', 'Program day, 1 to 98'], ['logged_anything', 'flag', 'Any entry at all for this day', '1 = yes, 0 = no']];
+      ['days_logged', 'number', `Program days logged so far (a logged day has ${LOGGED_DAY})`], ['days_with_any_entry', 'number', 'Program days with any entry at all so far (side effects alone count here)'], ['last_logged', 'date', "Most recent program day with any entry (the day the entry is for, in the participant's own time zone). Blank = nothing logged."],
+      ['access_ended', 'date', 'Date an admin ended access early (for example, withdrew). Blank = access not ended. Every tab stops at this day.'], ['access_end_reason', 'text', 'Reason the admin entered when ending access'],
+      ['access_weeks', 'number', 'Weeks of access from the start date: the 14-week program, then view-only weeks (nothing can be entered)'], ['access_weeks_own', 'flag', '1 = this participant has their own access length; 0 = they use the study setting'],
+      ['access_last_day', 'date', 'Last day they can sign in (access ends at midnight after it, in their time zone)'], ['password_replaced', 'date', 'Date the daily job closed the account after access ended (their password was replaced). Blank = not closed.'], ['time_zone', 'text', "Time zone of the participant's device (their days follow it), as last reported", 'IANA name, for example America/New_York']],
+      rows: ps.map(p => { const l = lastLogged(p); return { study_id: p.id, first_name: p.first, start_date: iso(p.start), end_date: iso(p.start + 97 * DAY), current_week: String(pWeek(p)), baseline_mvpa_min: p.baseline, starting_mvpa_goal: mvpaGoal(p.baseline, 1), days_logged: progDates(p).filter(t => isLogged(pdays[p.id]?.[t])).length,
+        days_with_any_entry: progDates(p).filter(t => hasAnyEntry(pdays[p.id]?.[t])).length, last_logged: l && l <= asOf(p) ? iso(l) : null,
+        access_ended: p.ended ? iso(p.ended) : null, access_end_reason: p.reason || null,
+        access_weeks: accessWeeks(p), access_weeks_own: fl(p.accessOwn !== null), access_last_day: iso(accessLastDay(p)), password_replaced: p.closedAt !== null ? iso(p.closedAt) : null, time_zone: p.tz || 'America/New_York' }; }) };
+    const dcols = [['study_id', 'text', 'Study ID'], ['date', 'date', 'Calendar date'], ['study_week', 'number', 'Program week, 1 to 14'], ['study_day', 'number', 'Program day, 1 to 98'], ['logged_anything', 'flag', 'Any entry at all for this day', '1 = yes, 0 = no'], ['logged_day', 'flag', `Counts as a logged day: ${LOGGED_DAY}`, '1 = yes, 0 = no']];
     MEALS.forEach(([k, name]) => dcols.push([`${k}_eaten`, 'flag', `${name}: logged as eaten`, '1 = eaten, 0 = not logged as eaten'], [`${k}_protein_servings`, 'number', `${name}: protein servings`, PROTEIN_VALS], [`${k}_mostly_hungry`, 'flag', `${name}: eaten mostly because of hunger`, FLAG], [`${k}_main_reason`, 'text', `${name}: main reason for eating when not mostly hungry`, REASON_VALS], [`${k}_reason_other`, 'text', `${name}: participant's words when the reason is "other"`]));
     dcols.push(['snacks_eaten', 'number', "Snacks logged (any number a day). Each snack's answers are in the Meals report."], ['snack_protein_servings', 'number', 'Protein servings from all snacks that day (unanswered counted as 0). Blank = no meals or snacks logged that day.'],
-      ['protein_servings', 'number', 'Protein servings from all meals and snacks (goal 8 to 10; unanswered counted as 0). Blank = no meals or snacks logged that day. Averages count it as 0 only on food days (fruit/veg or a drink logged).'], ['protein_goal_met', 'flag', '8 or more protein servings', '1 = yes, 0 = no, blank = no meals logged'],
-      ['fruit_veg_servings', 'number', 'Servings of fruits and vegetables (goal 5). Blank = not entered.'], ['beverage_servings', 'number', '8 oz cups of sugar-free drinks (goal 8). Blank = not entered.'], ['exercised', 'flag', 'Answered yes to any moderate-to-vigorous intensity exercise this day', FLAG],
+      ['protein_servings', 'number', 'Protein servings from the meals and snacks with a protein answer (goal 8 to 10). Blank = no meal or snack had a protein answer that day; those days are left out of protein averages.'], ['protein_goal_met', 'flag', '8 or more protein servings', '1 = yes, 0 = no, blank = no protein answer that day'],
+      ['fruit_veg_servings', 'number', 'Servings of fruits and vegetables (goal 5). 0 = the participant tapped None. Blank = not entered.'], ['beverage_servings', 'number', '8 oz cups of sugar-free drinks (goal 8). 0 = the participant tapped None. Blank = not entered.'], ['exercised', 'flag', 'Answered yes to any moderate-to-vigorous intensity exercise this day', FLAG],
       ['mvpa_minutes', 'number', 'Minutes of aerobic (moderate-to-vigorous) exercise'], ['activity_types', 'text', 'Activities chosen, separated by semicolons', ACT_KEYS.join('; ')], ['activity_other', 'text', `Participant's words when the activity is "other"`],
       ['strength_type', 'text', 'Strength training that day. A partial (upper- or lower-body-only) session counts as half of a full-body session.', STRENGTH.map(([k, l]) => `${k} = ${l}`).join('; ') + '; blank = none'], ['weight_lb', 'number', 'Weight in pounds. Blank = not weighed.'], ['symptoms_reported', 'number', 'Number of side effects reported'], ['no_side_effects', 'flag', 'Participant answered "No side effects today"', '1 = yes; blank = not answered']);
     SYMPTOMS.forEach(([k, l]) => dcols.push([`symptom_${k}`, 'flag', `Side effect reported: ${l}`, '1 = reported, 0 = not reported'], [`symptom_${k}_severity`, 'number', `Severity of ${l.toLowerCase()}`, '1 = very mild ... 5 = very severe; blank = not reported or not rated']));
     const drows = [], mlrows = [];
     ps.forEach(p => progDates(p).forEach(t => {
-      const d = pdays[p.id]?.[t], logged = isLogged(d), r = { study_id: p.id, date: iso(t), study_week: wkOf(p, t), study_day: Math.round((t - p.start) / DAY) + 1, logged_anything: logged ? 1 : 0 };
+      const d = pdays[p.id]?.[t], logged = hasAnyEntry(d), r = { study_id: p.id, date: iso(t), study_week: wkOf(p, t), study_day: Math.round((t - p.start) / DAY) + 1, logged_anything: logged ? 1 : 0, logged_day: isLogged(d) ? 1 : 0 };
       const ms = logged ? d.meals : [];
       MEALS.forEach(([k]) => { const m = ms.find(x => x.kind === k);
         Object.assign(r, { [`${k}_eaten`]: m ? 1 : 0, [`${k}_protein_servings`]: m?.protein ?? null, [`${k}_mostly_hungry`]: m ? ynFlag(m.hunger) : null, [`${k}_main_reason`]: m?.reason ? REASON_KEYS[m.reason] : null, [`${k}_reason_other`]: m?.other || null }); });
-      const sn = ms.filter(x => x.kind === 'snack'), prot = logged ? proteinOf(d) : 0;
-      Object.assign(r, { snacks_eaten: sn.length, snack_protein_servings: ms.length ? sn.reduce((a, x) => a + (x.protein || 0), 0) : null, protein_servings: ms.length ? prot : null, protein_goal_met: ms.length ? (prot >= PROTEIN_GOAL ? 1 : 0) : null,
-        fruit_veg_servings: logged && d.fv > 0 ? d.fv : null, beverage_servings: logged && d.bev > 0 ? d.bev : null, exercised: logged ? fl(d.ex) : null, mvpa_minutes: logged ? (d.ex === false ? 0 : d.mins || null) : null,
+      const sn = ms.filter(x => x.kind === 'snack'), prot = logged ? proteinAnswered(d) : null;
+      Object.assign(r, { snacks_eaten: sn.length, snack_protein_servings: ms.length ? sn.reduce((a, x) => a + (x.protein || 0), 0) : null, protein_servings: prot, protein_goal_met: prot === null ? null : prot >= PROTEIN_GOAL ? 1 : 0,
+        fruit_veg_servings: logged ? d.fv : null, beverage_servings: logged ? d.bev : null, exercised: logged ? fl(d.ex) : null, mvpa_minutes: logged ? (d.ex === false ? 0 : d.mins || null) : null,
         activity_types: logged && d.acts.length ? d.acts.map(actKey).join(';') : null, activity_other: logged && d.actOther ? d.actOther : null, strength_type: logged ? d.strength : null, weight_lb: logged ? d.weight : null, symptoms_reported: logged ? Object.keys(d.sym).length : 0, no_side_effects: logged && d.none ? 1 : null });
       SYMPTOMS.forEach(([k]) => { const on = logged && k in d.sym; r[`symptom_${k}`] = on ? 1 : 0; r[`symptom_${k}_severity`] = on ? d.sym[k] ?? null : null; });
       drows.push(r);
@@ -1583,15 +1779,20 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     const wrows = [], weeksOf = {};
     ps.forEach(p => { const wk = pWeek(p), lastW = wk === 'C' ? 14 : typeof wk === 'number' ? wk : 0, fw = firstW(p); weeksOf[p.id] = [];
       for (let w = 1; w <= lastW; w++) { const s = summarize(p, w), dts = pDates(p, w); weeksOf[p.id].push({ w, s, complete: dts[6] < asOf(p) }); const ch = s.lastWeight !== null && fw !== null ? Math.round((s.lastWeight - fw) * 10) / 10 : null;
-        wrows.push({ study_id: p.id, study_week: w, week_start: iso(dts[0]), week_end: iso(dts[6]), week_complete: dts[6] < asOf(p) ? 1 : 0, days_logged: s.daysLogged, meals_eaten: s.meals, snacks_eaten: s.snacks, avg_protein_servings: s.avgProt, days_protein_goal: s.protGoal,
-          avg_fruit_veg: s.avgFv, days_fruit_veg_any: s.fvAny, days_fruit_veg_goal: s.fvGoal, avg_beverages: s.avgBev, days_beverage_any: s.bevAny, days_beverage_goal: s.bevGoal, mvpa_minutes: s.mins, mvpa_goal: s.goal, mvpa_goal_met: s.goalMet ? 1 : 0,
+        wrows.push({ study_id: p.id, study_week: w, week_start: iso(dts[0]), week_end: iso(dts[6]), week_complete: dts[6] < asOf(p) ? 1 : 0, days_logged: s.daysLogged, days_with_any_entry: s.daysAnyEntry, meals_eaten: s.meals, snacks_eaten: s.snacks,
+          avg_protein_servings: s.avgProt, days_protein_entered: s.protEntry, total_protein_servings: s.protTotal, days_protein_goal: s.protGoal,
+          avg_fruit_veg: s.avgFv, days_fruit_veg_entered: s.fvEntry, total_fruit_veg: s.fvTotal, days_fruit_veg_any: s.fvAny, days_fruit_veg_goal: s.fvGoal,
+          avg_beverages: s.avgBev, days_beverage_entered: s.bevEntry, total_beverages: s.bevTotal, days_beverage_any: s.bevAny, days_beverage_goal: s.bevGoal, mvpa_minutes: s.mins, mvpa_goal: s.goal, mvpa_goal_met: s.goalMet ? 1 : 0,
           strength_full: s.strFull, strength_partial: s.strPartial, strength_sessions: s.str, strength_goal_met: s.strMet ? 1 : 0, weigh_ins: s.weighIns, last_weight_lb: s.lastWeight, lb_change_from_first: ch, pct_change_from_first: ch !== null && fw ? pctChange(fw, s.lastWeight) : null, symptom_days: s.symDays,
           doses_logged: dosesOf(p).filter(d => d.date >= iso(dts[0]) && d.date <= iso(dts[6])).length }); } });
-    const weekly = { title: 'Weekly summary', desc: 'One row per participant per program week so far. Food averages use food days (any meal, fruit/veg, or drink logged), where a blank item counts as 0; other days are left out.', cols: [
+    const weekly = { title: 'Weekly summary', desc: 'One row per participant per program week so far. Each food average uses only the days with an entry for that item (a None counts as 0, a blank is skipped); the days and totals columns let you average either way.', cols: [
       ['study_id', 'text', 'Study ID'], ['study_week', 'number', 'Program week, 1 to 14'], ['week_start', 'date', 'First day of the program week'], ['week_end', 'date', 'Last day of the program week'], ['week_complete', 'flag', 'The whole week is in the past. If access ended early, the week it ended counts as not complete.', '1 = yes, 0 = week in progress (or access ended during it)'],
-      ['days_logged', 'number', 'Days with any entry'], ['meals_eaten', 'number', 'Breakfasts, lunches, and dinners logged'], ['snacks_eaten', 'number', 'Snacks logged'], ['avg_protein_servings', 'number', 'Average daily protein servings (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)'], ['days_protein_goal', 'number', 'Days with 8 or more protein servings'],
-      ['avg_fruit_veg', 'number', 'Average daily fruit and vegetable servings (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)'], ['days_fruit_veg_any', 'number', 'Days with at least 1 fruit or vegetable serving'], ['days_fruit_veg_goal', 'number', 'Days with 5 or more servings'],
-      ['avg_beverages', 'number', 'Average daily 8 oz sugar-free drinks (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)'], ['days_beverage_any', 'number', 'Days with at least 1 serving'], ['days_beverage_goal', 'number', 'Days with 8 or more servings'], ['mvpa_minutes', 'number', 'Total aerobic (MVPA) minutes in the week'], ['mvpa_goal', 'number', "That week's MVPA goal"],
+      ['days_logged', 'number', `Days logged (${LOGGED_DAY})`], ['days_with_any_entry', 'number', 'Days with any entry at all (side effects alone count here)'], ['meals_eaten', 'number', 'Breakfasts, lunches, and dinners logged'], ['snacks_eaten', 'number', 'Snacks logged'],
+      ['avg_protein_servings', 'number', 'Average daily protein servings over days_protein_entered (total_protein_servings / days_protein_entered)'], ['days_protein_entered', 'number', 'Days with a protein answer on at least one meal or snack ("little or no protein" counts)'],
+      ['total_protein_servings', 'number', 'Protein servings in the week, from the meals and snacks with a protein answer'], ['days_protein_goal', 'number', 'Days with 8 or more protein servings'],
+      ['avg_fruit_veg', 'number', `Average daily fruit and vegetable servings (${ENTRY_DAYS})`], ['days_fruit_veg_entered', 'number', 'Days with a fruit and vegetable entry (None counts)'], ['total_fruit_veg', 'number', 'Fruit and vegetable servings in the week'],
+      ['days_fruit_veg_any', 'number', 'Days with at least 1 fruit or vegetable serving'], ['days_fruit_veg_goal', 'number', 'Days with 5 or more servings'],
+      ['avg_beverages', 'number', `Average daily 8 oz sugar-free drinks (${ENTRY_DAYS})`], ['days_beverage_entered', 'number', 'Days with a sugar-free drinks entry (None counts)'], ['total_beverages', 'number', '8 oz cups of sugar-free drinks in the week'], ['days_beverage_any', 'number', 'Days with at least 1 serving'], ['days_beverage_goal', 'number', 'Days with 8 or more servings'], ['mvpa_minutes', 'number', 'Total aerobic (MVPA) minutes in the week'], ['mvpa_goal', 'number', "That week's MVPA goal"],
       ['mvpa_goal_met', 'flag', 'MVPA minutes reached the goal', '1 = yes, 0 = no'], ['strength_full', 'number', 'Days with a full-body strength session'], ['strength_partial', 'number', 'Days with an upper-body-only or lower-body-only session'], ['strength_sessions', 'number', 'Full-body equivalents: each full session counts 1 and each partial session counts 0.5'], ['strength_goal_met', 'flag', '2 or more full-body equivalents', '1 = yes, 0 = no'],
       ['weigh_ins', 'number', 'Days with a weight entered (goal 2)'], ['last_weight_lb', 'number', 'Last weight entered that week'], ['lb_change_from_first', 'number', "Last weight that week minus the participant's first weight (negative = loss)"], ['pct_change_from_first', 'number', 'Percent change from first weight (negative = loss)'], ['symptom_days', 'number', 'Days with at least one side effect reported'], ['doses_logged', 'number', 'Medication doses logged with a date in this week']], rows: wrows };
     const mrows = [];
@@ -1616,25 +1817,31 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       rows: ps.flatMap(p => (pmsgs[p.id] || []).map(m => ({ study_id: p.id, created_at: isoTime(m.at), kind: m.kind, period: m.period, template_version: TEMPLATE_VERSION, status: m.status, detail: m.detail }))) };
     const history = { title: 'Edit history', desc: 'Every change or removal of logged data, with the values before and after. New entries are not listed here; they are in the other tabs. (Empty in the sample data.)', cols: [['study_id', 'text', 'Study ID'], ['changed_at', 'text', 'When the change was saved (UTC, ISO 8601)'], ['data_type', 'text', 'Which kind of entry changed', 'meal_entries, daily_logs, symptom_entries, med_doses'], ['change', 'text', 'UPDATE = edited, DELETE = removed'], ['before', 'text', 'Values before the change (JSON)'], ['after', 'text', 'Values after the change (JSON); blank for removals']], rows: [] };
     // Weekly, wide: one row per participant, a column per week (same columns as WIDE in web/src/lib/reports.ts).
-    const WIDE = [['days_logged', 'days with any entry', s => s.daysLogged, 'number'], ['mvpa_minutes', 'aerobic (MVPA) minutes', s => s.mins, 'number'], ['mvpa_goal', 'MVPA goal that week', s => s.goal, 'number'],
+    const WIDE = [['days_logged', `days logged (${LOGGED_DAY})`, s => s.daysLogged, 'number'], ['days_with_any_entry', 'days with any entry at all (side effects alone count here)', s => s.daysAnyEntry, 'number'],
+      ['mvpa_minutes', 'aerobic (MVPA) minutes', s => s.mins, 'number'], ['mvpa_goal', 'MVPA goal that week', s => s.goal, 'number'],
       ['mvpa_goal_met', 'MVPA goal met (1 = yes, 0 = no)', s => s.goalMet ? 1 : 0, 'flag'], ['strength_sessions', 'full-body strength equivalents (partial = 0.5)', s => s.str, 'number'],
-      ['avg_protein_servings', 'average daily protein servings (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)', s => s.avgProt, 'number'], ['avg_fruit_veg', 'average daily fruit and vegetable servings (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)', s => s.avgFv, 'number'],
-      ['avg_beverages', 'average daily cups of sugar-free drinks (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)', s => s.avgBev, 'number'], ['weigh_ins', 'days with a weight entered', s => s.weighIns, 'number']];
+      ['avg_protein_servings', 'average daily protein servings over the days with a protein answer on at least one meal or snack', s => s.avgProt, 'number'], ['days_protein_entered', 'days with a protein answer on at least one meal or snack', s => s.protEntry, 'number'],
+      ['total_protein_servings', 'protein servings in the week, from the meals and snacks with a protein answer', s => s.protTotal, 'number'],
+      ['avg_fruit_veg', `average daily fruit and vegetable servings (${ENTRY_DAYS})`, s => s.avgFv, 'number'], ['days_fruit_veg_entered', 'days with a fruit and vegetable entry (None counts)', s => s.fvEntry, 'number'], ['total_fruit_veg', 'fruit and vegetable servings in the week', s => s.fvTotal, 'number'],
+      ['avg_beverages', `average daily cups of sugar-free drinks (${ENTRY_DAYS})`, s => s.avgBev, 'number'], ['days_beverage_entered', 'days with a sugar-free drinks entry (None counts)', s => s.bevEntry, 'number'], ['total_beverages', 'cups of sugar-free drinks in the week', s => s.bevTotal, 'number'],
+      ['weigh_ins', 'days with a weight entered', s => s.weighIns, 'number']];
     const wk2 = w => `w${String(w).padStart(2, '0')}`;
     const weeklyWide = { title: 'Weekly summary (wide)', desc: 'The weekly summary with one row per participant and a column for each week (w01 to w14). Blank = week not reached yet. Check wNN_complete before using a week: 0 means it is still in progress.',
       cols: [['study_id', 'text', 'Study ID'], ...Array.from({ length: 14 }, (_, i) => i + 1).flatMap(w => [[`${wk2(w)}_complete`, 'flag', `Week ${w}: the whole week is in the past (0 = in progress, so its numbers are partial)`, '1 = yes, 0 = no, blank = not reached'],
         ...WIDE.map(([k, d, , kind]) => [`${wk2(w)}_${k}`, kind, `Week ${w}: ${d}`])])],
       rows: ps.map(p => { const r = { study_id: p.id }; (weeksOf[p.id] || []).forEach(({ w, s, complete }) => { r[`${wk2(w)}_complete`] = complete ? 1 : 0; WIDE.forEach(([k, , get]) => { r[`${wk2(w)}_${k}`] = get(s); }); }); return r; }) };
     // Program summary: one row per participant across the whole program so far.
-    const avgOf = xs => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length * 10) / 10 : null;
-    const summary = { title: 'Program summary', desc: 'One row per participant: totals and averages across their program so far (all 14 weeks once they finish). Daily food averages use food days (any meal, fruit/veg, or drink logged; a blank item counts as 0); weekly averages use completed weeks.', cols: [
+    const total = xs => xs.reduce((a, b) => a + b, 0), avgOf = xs => xs.length ? Math.round(total(xs) / xs.length * 10) / 10 : null;
+    const summary = { title: 'Program summary', desc: 'One row per participant: totals and averages across their program so far (all 14 weeks once they finish). Each daily food average uses only the days with an entry for that item (a None counts as 0, a blank is skipped); weekly averages use completed weeks.', cols: [
       ['study_id', 'text', 'Study ID'], ['start_date', 'date', 'Program day 1'], ['weeks_completed', 'number', 'Program weeks fully in the past (0 to 14)'], ['days_so_far', 'number', 'Program days so far (up to 98; stops at the day access ended, if it ended early)'],
-      ['days_logged', 'number', 'Program days with any entry'], ['pct_days_logged', 'number', 'Percent of program days so far with any entry'], ['total_mvpa_minutes', 'number', 'Total aerobic (MVPA) minutes'],
+      ['days_logged', 'number', `Program days logged (${LOGGED_DAY})`], ['pct_days_logged', 'number', 'Percent of program days so far that were logged (days_logged / days_so_far)'],
+      ['days_with_any_entry', 'number', 'Program days with any entry at all (side effects alone count here)'], ['total_mvpa_minutes', 'number', 'Total aerobic (MVPA) minutes'],
       ['avg_weekly_mvpa_minutes', 'number', 'Average aerobic minutes per completed week'], ['weeks_mvpa_goal_met', 'number', "Completed weeks that met that week's MVPA goal"],
       ['avg_weekly_strength_sessions', 'number', 'Average full-body strength equivalents per completed week (partial = 0.5)'], ['weeks_strength_goal_met', 'number', 'Completed weeks with 2 or more full-body equivalents'],
-      ['avg_daily_protein_servings', 'number', 'Average daily protein servings (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)'], ['days_protein_goal_met', 'number', `Days with ${PROTEIN_GOAL} or more protein servings`],
-      ['avg_daily_fruit_veg', 'number', 'Average daily fruit and vegetable servings (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)'], ['days_fruit_veg_goal_met', 'number', 'Days with 5 or more servings'],
-      ['avg_daily_beverages', 'number', 'Average daily cups of sugar-free drinks (food days: any meal, fruit/veg, or drink logged; a blank counts as 0)'], ['days_beverage_goal_met', 'number', 'Days with 8 or more cups'],
+      ['avg_daily_protein_servings', 'number', 'Average daily protein servings over days_protein_entered (total_protein_servings / days_protein_entered)'], ['days_protein_entered', 'number', 'Days with a protein answer on at least one meal or snack ("little or no protein" counts)'],
+      ['total_protein_servings', 'number', 'Protein servings in the program so far, from the meals and snacks with a protein answer'], ['days_protein_goal_met', 'number', `Days with ${PROTEIN_GOAL} or more protein servings`],
+      ['avg_daily_fruit_veg', 'number', `Average daily fruit and vegetable servings (${ENTRY_DAYS})`], ['days_fruit_veg_entered', 'number', 'Days with a fruit and vegetable entry (None counts)'], ['total_fruit_veg', 'number', 'Fruit and vegetable servings in the program so far'], ['days_fruit_veg_goal_met', 'number', 'Days with 5 or more servings'],
+      ['avg_daily_beverages', 'number', `Average daily cups of sugar-free drinks (${ENTRY_DAYS})`], ['days_beverage_entered', 'number', 'Days with a sugar-free drinks entry (None counts)'], ['total_beverages', 'number', 'Cups of sugar-free drinks in the program so far'], ['days_beverage_goal_met', 'number', 'Days with 8 or more cups'],
       ['weigh_ins', 'number', 'Days with a weight entered'], ['first_weight_lb', 'number', 'First weight entered'], ['latest_weight_lb', 'number', 'Most recent weight entered'],
       ['lb_change', 'number', 'Latest minus first weight (negative = loss)'], ['pct_change', 'number', 'Percent change from first weight (negative = loss)'],
       ['lessons_opened', 'number', 'Lessons opened at least once'], ['lessons_watched_90', 'number', 'Lessons with 90% or more of the video watched'], ['surveys_clicked', 'number', 'Lessons whose survey link was clicked'],
@@ -1643,11 +1850,12 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         const pd = progDates(p).map(t => pdays[p.id]?.[t]), done = (weeksOf[p.id] || []).filter(x => x.complete), logged = pd.filter(isLogged), fw = firstW(p);
         const wts = pd.filter(d => d && d.weight !== null), lw = wts.length ? wts[wts.length - 1].weight : null, ch = lw !== null && fw !== null ? Math.round((lw - fw) * 10) / 10 : null;
         const { protein, fv, bev } = foodNumbers(pd.filter(Boolean)), upTo = reachedWeek(p), pv = (plessons[p.id] || []).filter(v => v.lesson <= upTo);
-        return { study_id: p.id, start_date: iso(p.start), weeks_completed: done.length, days_so_far: pd.length, days_logged: logged.length, pct_days_logged: pd.length ? Math.round(logged.length / pd.length * 100) : null,
+        return { study_id: p.id, start_date: iso(p.start), weeks_completed: done.length, days_so_far: pd.length, days_logged: logged.length, pct_days_logged: pd.length ? Math.round(logged.length / pd.length * 100) : null, days_with_any_entry: pd.filter(hasAnyEntry).length,
           total_mvpa_minutes: pd.reduce((a, d) => a + (d?.mins || 0), 0), avg_weekly_mvpa_minutes: avgOf(done.map(x => x.s.mins)), weeks_mvpa_goal_met: done.filter(x => x.s.goalMet).length,
           avg_weekly_strength_sessions: avgOf(done.map(x => x.s.str)), weeks_strength_goal_met: done.filter(x => x.s.strMet).length,
-          avg_daily_protein_servings: avgOf(protein), days_protein_goal_met: protein.filter(n => n >= PROTEIN_GOAL).length, avg_daily_fruit_veg: avgOf(fv), days_fruit_veg_goal_met: fv.filter(n => n >= 5).length,
-          avg_daily_beverages: avgOf(bev), days_beverage_goal_met: bev.filter(n => n >= 8).length, weigh_ins: wts.length, first_weight_lb: fw, latest_weight_lb: lw, lb_change: ch, pct_change: ch !== null && fw ? pctChange(fw, lw) : null,
+          avg_daily_protein_servings: avgOf(protein), days_protein_entered: protein.length, total_protein_servings: total(protein), days_protein_goal_met: protein.filter(n => n >= PROTEIN_GOAL).length,
+          avg_daily_fruit_veg: avgOf(fv), days_fruit_veg_entered: fv.length, total_fruit_veg: total(fv), days_fruit_veg_goal_met: fv.filter(n => n >= 5).length,
+          avg_daily_beverages: avgOf(bev), days_beverage_entered: bev.length, total_beverages: total(bev), days_beverage_goal_met: bev.filter(n => n >= 8).length, weigh_ins: wts.length, first_weight_lb: fw, latest_weight_lb: lw, lb_change: ch, pct_change: ch !== null && fw ? pctChange(fw, lw) : null,
           lessons_opened: pv.length, lessons_watched_90: pv.filter(v => v.pct >= 90).length, surveys_clicked: pv.filter(v => v.survey).length,
           doses_logged: dosesOf(p).length, symptom_days: pd.filter(d => d && Object.keys(d.sym).length).length };
       }) };
@@ -1700,10 +1908,16 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       case 'hunger': m.hunger = v; if (v === 'Yes') m.reason = null; break;
       case 'reason': m.reason = v; break;
       case 'tok': case 'tok-minus': case 'tok-plus': {
-        const box = b.closest('[data-serve]'), k = box.dataset.serve, goal = +box.dataset.goal, before = x[k];
-        x[k] = a === 'tok-minus' ? Math.max(0, x[k] - 1) : a === 'tok-plus' ? Math.min(MAX_SERVINGS[k], x[k] + 1) : (+b.dataset.n === x[k] ? x[k] - 1 : +b.dataset.n);
-        render(); if (x[k] > before && S.day === TODAY) feedback(k + S.day, x[k], goal, k === 'fv' ? 'You had 5 servings of fruits and vegetables today.' : 'You drank 8 cups of sugar-free drinks today.'); return;
+        // Adding a serving replaces None; undoing back to 0 leaves the day not answered (blank), like changeServings.
+        const box = b.closest('[data-serve]'), k = box.dataset.serve, goal = +box.dataset.goal, before = x[k] ?? 0;
+        const n = a === 'tok-minus' ? Math.max(0, before - 1) : a === 'tok-plus' ? Math.min(MAX_SERVINGS[k], before + 1) : (+b.dataset.n === before ? before - 1 : +b.dataset.n);
+        if (n !== before) x[k] = n || null;
+        render(); if (n > before && S.day === TODAY) feedback(k + S.day, n, goal, k === 'fv' ? 'You had 5 servings of fruits and vegetables today.' : 'You drank 8 cups of sugar-free drinks today.'); return;
       }
+      // None only fills an empty count (the button shows at 0); pressing it again takes the answer back to blank (setNoServings).
+      case 'tok-none': { const k = b.closest('[data-serve]').dataset.serve; if (!x[k]) x[k] = x[k] === 0 ? null : 0; break; }
+      case 'psum': S.psum = true; render(); scrollTo(0, 0); return;
+      case 'psum-back': S.psum = null; break;
       case 'sym': { const k = b.closest('[data-sym]').dataset.sym; S.symDone[S.day] ??= false; if (k in x.sym) delete x.sym[k]; else { x.sym[k] = null; x.none = false; } break; } // checking one replaces "No side effects"
       case 'sym-done': S.symDone[S.day] = true; break;
       case 'sym-none': x.none = true; S.symDone[S.day] = true; render(); $('[data-k="sym-edit"]')?.focus(); return;
@@ -1734,13 +1948,13 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       }
       case 'week': S.week = +v; break;
       case 'lesson': {
-        S.lesson = +v; const L = plessons['BRX-014'], seen = L.find(l => l.lesson === +v);
+        S.lesson = +v; const L = plessons[ME.id], seen = L.find(l => l.lesson === +v);
         // Viewing as a participant is never counted as their own visit.
         if (!S.viewAs) { if (seen) seen.count++; else { L.push({ lesson: +v, lid: lessonAt(+v).id, first: TODAY + 15 * 3600e3, count: 1, pct: 0, survey: null }); L.sort((a, b) => a.lesson - b.lesson); } }
         render(); scrollTo(0, 0); return;
       }
       case 'lesson-back': S.lesson = null; break;
-      case 'survey': { if (S.viewAs) return; const L = plessons['BRX-014'], seen = L.find(l => l.lesson === +v); if (seen && !seen.survey) seen.survey = TODAY + 15 * 3600e3; return; }
+      case 'survey': { if (S.viewAs) return; const L = plessons[ME.id], seen = L.find(l => l.lesson === +v); if (seen && !seen.survey) seen.survey = TODAY + 15 * 3600e3; return; }
       case 'lesson-open': S.admin.lessonOpen[+v] = !S.admin.lessonOpen[+v]; break;
       case 'lesson-move': {
         const l = lessons.find(x => x.id === +v), other = l && lessonAt(l.n + +b.dataset.dir);
@@ -1748,7 +1962,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
         // Same rule as moveLesson in web/src/lib/lessons-admin.ts: viewing records are kept per week, so a week someone has
         // already opened can't swap. In the demo, every week BRX-014 has reached counts as opened.
         const lo = Math.min(l.n, other.n), hi = Math.max(l.n, other.n);
-        if (lo <= lessonUpTo(ME)) { S.admin.lessonMoveErr = { id: l.id, msg: `A participant has already opened the week ${lo} or week ${hi} lesson, so these two can't swap. You can still change their titles, videos, and survey links.` }; break; }
+        if (lo <= lessonUpTo(LINDA)) { S.admin.lessonMoveErr = { id: l.id, msg: `A participant has already opened the week ${lo} or week ${hi} lesson, so these two can't swap. You can still change their titles, videos, and survey links.` }; break; }
         [l.n, other.n] = [other.n, l.n]; l.updated = other.updated = fmt(TODAY, { month: 'short', day: 'numeric' });
         lessons.sort((a, c) => a.n - c.n); S.admin.lessonOk = null; S.admin.lessonMoveErr = null; break;
       }
@@ -1773,19 +1987,22 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       case 'to-admin': if (ONLY === 'participant') { location.href = 'staff.html'; return; } S.mode = 'admin'; break;
       // Like the website's "/" link: a signed-in participant goes back to their Dashboard, anyone else to sign in.
       case 'privacy': S.privacyFrom = S.mode; S.mode = 'privacy'; scrollTo(0, 0); break;
-      case 'privacy-back': if (S.privacyFrom === 'app') { S.mode = 'app'; S.tab = 'dashboard'; S.month = null; S.lesson = null; } else S.mode = 'signin'; scrollTo(0, 0); break;
-      case 'anav': S.admin.view = v; S.admin.err = {}; S.admin.addDraft = null; S.admin.confirm = null; S.admin.lessonMoveErr = null; break;
+      case 'privacy-back': if (S.privacyFrom === 'app') { S.mode = 'app'; S.tab = 'dashboard'; S.month = null; S.lesson = null; S.psum = null; } else S.mode = 'signin'; scrollTo(0, 0); break;
+      case 'anav': S.admin.view = v; S.admin.err = {}; S.admin.accessMsg = null; S.admin.addDraft = null; S.admin.confirm = null; S.admin.lessonMoveErr = null; break;
       case 'audit-dl': auditCsv(); return;
       case 'sort': { const [k, dir] = S.admin.sort; S.admin.sort = [v, k === v ? -dir : 1]; break; }
       case 'open-p': S.admin.view = 'record'; S.admin.pid = v; S.admin.pweek = null; S.admin.err = {}; S.admin.openPanel = null; S.admin.justAdded = null; S.admin.confirm = null; break;
       case 'pweek': S.admin.pweek = +v; break;
-      case 'impersonate': if (v === 'BRX-014') { S.mode = 'app'; S.viewAs = v; S.tab = 'dashboard'; S.day = S.actDay = TODAY; S.month = S.lesson = null; render(); scrollTo(0, 0); $('[data-k="viewas-back"]')?.focus(); } else toast("Opens this participant's view of the website, read-only. Try it on BRX-014."); return;
-      case 'viewas-back': S.mode = 'admin'; S.admin.view = 'record'; S.admin.pid = S.viewAs; S.viewAs = null; S.admin.confirm = null; render(); scrollTo(0, 0); $('[data-k="rec-view"]')?.focus(); return;
+      // Any participant whose access hasn't ended (the record only offers it then), in the view-only weeks too.
+      case 'impersonate': { const p = all().find(x => x.id === v); if (!p || p.ended || accessPhase(p) === 'ended') return; showAs(p); S.mode = 'app'; S.viewAs = v; S.tab = 'dashboard'; render(); scrollTo(0, 0); $('[data-k="viewas-back"]')?.focus(); return; }
+      case 'viewas-back': S.mode = 'admin'; S.admin.view = 'record'; S.admin.pid = S.viewAs; S.viewAs = null; showAs(SIGNED); S.admin.confirm = null; render(); scrollTo(0, 0); $('[data-k="rec-view"]')?.focus(); return;
       case 'dl': download(b.dataset.report, b.dataset.fmt, b.dataset.p); return;
       case 'admin-signout': S.admin.authed = false; S.admin.view = 'home'; break;
       case 'dose-del': med.doses.splice(+v, 1); render(); toast('Dose removed.'); return;
       case 'ask': S.admin.confirm = v || null; break;
-      case 'restore': { const p = all().find(x => x.id === v); p.ended = null; p.reason = null; S.admin.confirm = null; render(); toast('Access restored. They can sign in again with their password.'); return; }
+      // Undoes "End access" only: an access length that has run out, or a password the daily job replaced, still stops them.
+      case 'restore': { const p = all().find(x => x.id === v); p.ended = null; p.reason = null; S.admin.confirm = null; const a = accessStatus(p); render();
+        toast(a.phase !== 'ended' && !a.needsPassword ? `Access restored. They can sign in again with their password. ${accessNote(a)}` : `Access restored. ${accessNote(a)}`); return; }
       case 'remove-admin': {
         S.admin.confirm = null;
         if (S.admin.admins.length <= 1) { render(); toast('The study needs at least one admin.'); return; }
@@ -1833,7 +2050,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
     : t > TODAY + 365 * DAY ? 'That start date is more than a year away. Check the year.' : null;
   /** Logged days and doses that would fall outside the 14 weeks starting on `start` (they would drop out of the reports). */
   const entriesOutside = (p, start) => { const end = start + 97 * DAY, D = pdays[p.id] || {};
-    return Object.keys(D).map(Number).filter(t => (t < start || t > end) && isLogged(D[t])).length + (pmeds[p.id]?.doses || []).filter(d => { const t = Date.parse(d.date); return t < start || t > end; }).length; };
+    return Object.keys(D).map(Number).filter(t => (t < start || t > end) && hasAnyEntry(D[t])).length + (pmeds[p.id]?.doses || []).filter(d => { const t = Date.parse(d.date); return t < start || t > end; }).length; };
   root.addEventListener('submit', e => {
     e.preventDefault();
     if (e.target.matches('.lesson-form')) {
@@ -1844,7 +2061,18 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       if (Object.keys(err).length) { S.admin.lessonErr[id] = err; S.admin.lessonDraft[id] = { title, surveyUrl }; S.admin.lessonOk = null; render(); return; }
       l.title = title || null; l.surveyUrl = surveyUrl || null; delete S.admin.lessonErr[id]; delete S.admin.lessonDraft[id]; S.admin.lessonOk = id; render(); return;
     }
-    if (e.target.id === 'signin-form') { S.mode = 'app'; S.tab = 'dashboard'; render(); toast('Signed in. You will stay signed in on this device.'); return; }
+    if (e.target.id === 'signin-form') {
+      // Same refusals as participantLogin in web/src/lib/auth.ts. The demo takes any password, except after the daily job
+      // replaced it when access ended (staff then lengthen access and set a new one).
+      const p = all().find(x => x.id === $('#si-id').value.trim().toUpperCase());
+      const err = !p || !$('#si-pw').value ? 'That study ID or password is not right.'
+        : accessPhase(p) === 'ended' ? 'The program has ended and this account is now closed. Thank you for taking part!'
+        : p.needsPw ? 'That study ID or password is not right.'
+        : p.ended ? 'Your access to Boost Rx has ended. Questions? Please contact the study team.' : null;
+      S.signinErr = err;
+      if (err) { render(); $('#si-id')?.focus(); return; }
+      SIGNED = p; showAs(p); S.mode = 'app'; S.tab = 'dashboard'; render(); toast('Signed in. You will stay signed in on this device.'); return;
+    }
     if (e.target.id === 'admin-pw-form') {
       if (!$('#a-user').value.trim() || !$('#a-pw').value) { S.admin.err = { pw: 'Enter your username and password.' }; render(); return; }
       S.admin.err = {}; S.admin.authed = true; S.admin.view = 'home'; render(); scrollTo(0, 0); return;
@@ -1861,19 +2089,44 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       const be = baselineErr(g('st-base'));
       if (be) err['st-base'] = be;
       else if (+g('st-base') !== p.baseline && TODAY >= Math.min(p.start, se ? p.start : start) + 7 * DAY)
-        err['st-base'] = "Baseline minutes can't change after week 1: the aerobic goals for past weeks were set from it. Please contact the website developer if it needs correcting.";
+        err['st-base'] = "The starting goal for physical activity can't change after week 1: the aerobic goals for past weeks were set from it. Please contact the website developer if it needs correcting.";
+      // Their own access length (AccessWeeksText in web/src/lib/access.ts): blank = the study setting.
+      const wRaw = g('st-weeks'), own = wRaw === '' ? null : +wRaw;
+      if (wRaw !== '' && !(/^\d{1,3}$/.test(wRaw) && own >= ACCESS_WEEKS.min && own <= ACCESS_WEEKS.max)) err['st-weeks'] = `Enter whole weeks from ${ACCESS_WEEKS.min} to ${ACCESS_WEEKS.max}.`;
       S.admin.openPanel = 'settings';
       if (Object.keys(err).length) { S.admin.err = err; render(); $('#' + Object.keys(err)[0])?.focus(); return; }
-      p.first = g('st-first'); p.baseline = +g('st-base'); p.start = start; S.admin.err = {}; S.admin.pweek = null;
-      if (p === ME && startChanged) { S.day = S.actDay = TODAY; S.wday = TODAY - DAY; S.week = weekOf(TODAY); S.month = S.lesson = null; }
+      const changed = startChanged || g('st-first') !== p.first || +g('st-base') !== p.baseline || own !== p.accessOwn;
+      p.first = g('st-first'); p.baseline = +g('st-base'); p.start = start; p.accessOwn = own; S.admin.err = {}; S.admin.pweek = null;
+      if (p === ME && startChanged) showAs(ME);
       const outside = n === 0 ? '' : ` ${n} logged ${n === 1 ? 'entry is' : 'entries are'} now outside the 14 weeks, so ${n === 1 ? "it won't" : "they won't"} show in reports. Nothing was deleted: moving the start date back brings ${n === 1 ? 'it' : 'them'} back.`;
-      render(); toast((p === ME ? 'Saved. Week numbers and goals now follow the new settings, on the record and on her participant screens.' : 'Saved. Week numbers and goals now follow the new settings.') + outside); return;
+      const note = accessNote(accessStatus(p)); closeEndedAccess(); // the daily job closes an account whose access has now ended
+      render(); toast(changed ? `Saved. Week numbers and goals now follow the new settings. ${note}${outside}` : `Nothing changed. ${note}`); return;
+    }
+    if (e.target.id === 'access-form') {
+      // Same checks and messages as setStudyAccessWeeks in web/src/lib/access.ts. A shorter length that would end access today
+      // for anyone on the study setting needs that count typed to confirm (letting them back in means a new password for each).
+      const raw = $('#ac-weeks').value.trim(), weeks = +raw, opened = STUDY.accessWeeks; S.admin.accessMsg = null;
+      const bad = raw === '' ? 'Enter a number of weeks.' : !(/^\d{1,3}$/.test(raw) && weeks >= ACCESS_WEEKS.min && weeks <= ACCESS_WEEKS.max) ? `Enter whole weeks from ${ACCESS_WEEKS.min} to ${ACCESS_WEEKS.max}.` : null;
+      if (bad) { S.admin.err = { 'ac-weeks': bad }; render(); $('#ac-weeks')?.focus(); return; }
+      if (weeks === opened) { S.admin.err = {}; S.admin.accessMsg = 'Nothing changed.'; render(); return; }
+      const ending = weeks < opened ? all().filter(p => p.accessOwn === null && !p.ended && accessPhase(p, TODAY, opened) !== 'ended' && accessPhase(p, TODAY, weeks) === 'ended').length : 0;
+      if (ending > 0 && $('#ac-confirm').value.trim() !== String(ending)) {
+        S.admin.err = { 'ac-confirm': `${weeks} weeks would end access today for ${ending} ${ending === 1 ? 'participant who is' : 'participants who are'} in the view-only weeks now. They would be signed out and their ${ending === 1 ? 'password' : 'passwords'} replaced, and letting them back in means a new password for each. To go ahead, type ${ending} here and save again.` };
+        render(); $('#ac-confirm')?.focus(); return;
+      }
+      STUDY.accessWeeks = weeks; closeEndedAccess(); S.admin.err = {}; clearForms.add('access-form');
+      const start = nextMonday();
+      S.admin.accessMsg = `Saved. Access now lasts ${weeks} weeks for everyone without their own length. Someone starting on ${fmtD(start)} can sign in through ${fmtD(accessLastDay({ start }, weeks))}.`;
+      render(); return;
     }
     if (e.target.id === 'reset-form') {
       const pw = $('#rp-pw').value; S.admin.openPanel = 'reset';
       if (pw.length < 10) { S.admin.err = { 'rp-pw': 'Use at least 10 characters.' }; render(); return; }
       if (pw !== $('#rp-pw2').value) { S.admin.err = { 'rp-pw2': 'The two passwords do not match.' }; render(); return; }
-      S.admin.err = {}; S.admin.openPanel = null; clearForms.add('reset-form'); render(); toast('Password changed. The participant is signed out on all devices; give them the new password.'); return;
+      const p = all().find(x => x.id === S.admin.pid); p.needsPw = false; // a new password undoes the one the daily job replaced
+      S.admin.err = {}; S.admin.openPanel = null; clearForms.add('reset-form'); render();
+      toast(accessPhase(p) === 'ended' ? `Password changed, but their access ended after ${fmtD(accessLastDay(p))}, so they can't sign in yet. Lengthen their access in Change settings, then give them the new password.`
+        : 'Password changed. The participant is signed out on all devices; give them the new password.'); return;
     }
     if (e.target.id === 'admin-add-form') {
       const g = id => $('#' + id).value.trim(), user = g('na-user').toLowerCase();
@@ -1914,7 +2167,7 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       const be = baselineErr(g('np-base'));
       if (be) err['np-base'] = be;
       if (Object.keys(err).length) { S.admin.err = err; render(); $('#' + Object.keys(err)[0])?.focus(); return; }
-      S.admin.added.push({ id, first: g('np-first'), start, baseline: +g('np-base'), ago: null, hasEmail: false, ended: null, reason: null }); pdays[id] = {}; pmeds[id] = { doses: [] }; plessons[id] = []; pmsgs[id] = [];
+      S.admin.added.push({ id, first: g('np-first'), start, baseline: +g('np-base'), ago: null, hasEmail: false, ended: null, reason: null, accessOwn: null, closedAt: null, needsPw: false }); pdays[id] = {}; pmeds[id] = { doses: [] }; plessons[id] = []; pmsgs[id] = [];
       S.admin.err = {}; S.admin.addDraft = null; S.admin.view = 'record'; S.admin.pid = id; S.admin.pweek = null; S.admin.justAdded = id; render(); scrollTo(0, 0);
     }
   });
