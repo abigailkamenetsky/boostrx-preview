@@ -2299,19 +2299,20 @@ table.data.month td.met { color: var(--success); font-weight: 700; }
       for (const k of FILE_KINDS) {
         const r = s[k];
         if (r?.sample && l[k] && SAMPLE_URLS.has(l[k].url)) continue; // the built-in file, made again above
-        l[k] = r?.path && links[r.path] ? { name: r.name, bytes: r.bytes, path: r.path, url: links[r.path] } : null;
+        // Captions wait for localCaptions (no track points at the file store's site, which the browser would refuse).
+        l[k] = r?.path && links[r.path] ? { name: r.name, bytes: r.bytes, path: r.path, url: k === 'captions' ? null : links[r.path], remote: links[r.path] } : null;
       }
     }
     lessons.sort((a, b) => a.n - b.n);
     auditSample = null; showAs(LINDA); // the participant screens read days and doses from the restored records
   }
   // Captions on the file store's site are fetched into the page, since a video can't show a caption track from another site
-  // unless that site allows it. If the fetch is refused, the link is left as it is.
+  // unless that site allows it. If the fetch is refused, the video plays without captions.
   function localCaptions() {
-    const ls = lessons.filter(l => l.captions?.path && !l.captions.url.startsWith('blob:'));
+    const ls = lessons.filter(l => l.captions?.path && !l.captions.url && l.captions.remote);
     Promise.all(ls.map(async l => {
       const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 5000);
-      try { const r = await fetch(l.captions.url, { signal: ctl.signal }); if (r.ok) { l.captions.url = blobUrl(await r.text(), 'text/vtt'); return true; } } catch { /* left as a link */ } finally { clearTimeout(t); }
+      try { const r = await fetch(l.captions.remote, { signal: ctl.signal }); if (r.ok) { l.captions.url = blobUrl(await r.text(), 'text/vtt'); return true; } } catch { /* no captions */ } finally { clearTimeout(t); }
       return false;
     })).then(done => { if (done.some(Boolean)) render(); });
   }
